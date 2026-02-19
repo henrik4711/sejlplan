@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sejlplan</title>
+<style>
+/* ═══════════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+:root {
+  /* Palette – skibsbro om natten */
+  --ink:      #0D1B2A;
+  --ink2:     #162333;
+  --ink3:     #1E2F42;
+  --ink4:     #2A3F56;
+  --gold:     #E8B96A;
+  --gold2:    #F5D49A;
+  --teal:     #4ECDC4;
+  --sea:      #2980B9;
+  --go:       #27AE60;
+  --warn:     #E67E22;
+  --stop:     #E74C3C;
+  --txt1:     #F0EDE8;
+  --txt2:     rgba(240,237,232,.65);
+  --txt3:     rgba(240,237,232,.38);
+  --sep:      rgba(240,237,232,.08);
+  --sep2:     rgba(240,237,232,.14);
+  --glass:    rgba(13,27,42,.82);
+  --glass2:   rgba(22,35,51,.92);
+
+  /* Layout */
+  --rail:     60px;
+  --rail-open:256px;
+  --serif:    Georgia, 'Times New Roman', serif;
+  --sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--sans);
+}
+
+html, body { width:100%; height:100%; overflow:hidden; background:var(--ink); color:var(--txt1); }
+
+/* ═══════════════════════════════════════════════════
+   MAP
+═══════════════════════════════════════════════════ */
+#map {
+  position:fixed; top:0; left:var(--rail); right:0; bottom:0;
+  z-index:0;
+  background:#0a2744;
+  transition: left .38s cubic-bezier(.4,0,.2,1);
+}
+html, body {
+  width:100% !important;
+  height:100% !important;
+  min-height:100vh !important;
+  overflow:hidden !important;
+}
+body.open #map { left: var(--rail-open); }
+/* no leaflet */
+
+/* ═══════════════════════════════════════════════════
+   PERSISTENT TOP SEARCH BAR (always visible on map)
+═══════════════════════════════════════════════════ */
+#searchbar {
+  position:fixed;
+  top:16px;
+  left: calc(var(--rail) + 14px);
+  right:14px;
+  z-index:300;
+  display:flex; gap:8px; align-items:center;
+  background:var(--glass);
+  backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--sep2);
+  border-radius:16px;
+  padding:10px 10px 10px 16px;
+  box-shadow:0 4px 24px rgba(0,0,0,.35);
+  transition: left .38s cubic-bezier(.4,0,.2,1);
+}
+body.open #searchbar { left: calc(var(--rail-open) + 14px); }
+
+#searchbar-icon { font-size:18px; flex-shrink:0; opacity:.7; }
+#searchbar input {
+  flex:1; background:none; border:none; outline:none;
+  font-family:var(--sans); font-size:15px; font-weight:500;
+  color:var(--txt1);
+}
+#searchbar input::placeholder { color:var(--txt3); }
+#searchbar-btn {
+  background:var(--gold); color:var(--ink); border:none;
+  border-radius:10px; padding:8px 16px;
+  font-family:var(--sans); font-size:13px; font-weight:700;
+  cursor:pointer; flex-shrink:0; transition:opacity .15s;
+  white-space:nowrap;
+}
+#searchbar-btn:active { opacity:.8; }
+
+/* progress steps inside search bar */
+#steps {
+  position:fixed;
+  top:76px;
+  left: calc(var(--rail) + 14px);
+  right:14px;
+  z-index:299;
+  display:flex; gap:6px; align-items:center;
+  transition: left .38s cubic-bezier(.4,0,.2,1);
+}
+body.open #steps { left: calc(var(--rail-open) + 14px); }
+.step {
+  display:flex; align-items:center; gap:5px;
+  background:var(--glass); backdrop-filter:blur(16px);
+  border:1px solid var(--sep);
+  border-radius:999px; padding:5px 12px 5px 8px;
+  font-size:11px; font-weight:600; color:var(--txt3);
+  transition:all .3s;
+}
+.step.done { border-color:var(--gold); color:var(--gold); }
+.step.active { border-color:var(--teal); color:var(--teal); background:rgba(78,205,196,.1); }
+.step-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.step-line { flex:1; max-width:20px; height:1px; background:var(--sep2); }
+
+/* ═══════════════════════════════════════════════════
+   LEFT RAIL NAV
+═══════════════════════════════════════════════════ */
+#rail {
+  position:fixed; top:0; left:0; bottom:0;
+  width:var(--rail);
+  z-index:400;
+  background:var(--glass2);
+  backdrop-filter:blur(30px);
+  border-right:1px solid var(--sep);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  transition:width .38s cubic-bezier(.4,0,.2,1);
+}
+body.open #rail { width:var(--rail-open); }
+
+/* logo / toggle */
+#rail-top {
+  height:64px; flex-shrink:0;
+  display:flex; align-items:center;
+  border-bottom:1px solid var(--sep);
+  cursor:pointer; padding:0 18px; gap:12px;
+  transition:background .15s;
+}
+#rail-top:hover { background:rgba(255,255,255,.03); }
+#rail-logo { font-family:var(--serif); font-size:22px; color:var(--gold); flex-shrink:0; }
+#rail-name {
+  font-family:var(--serif); font-size:17px; color:var(--txt1);
+  opacity:0; transform:translateX(-8px);
+  transition:opacity .25s .06s, transform .25s .06s;
+  white-space:nowrap; overflow:hidden;
+}
+body.open #rail-name { opacity:1; transform:translateX(0); }
+#rail-chevron {
+  margin-left:auto; font-size:14px; color:var(--txt3);
+  opacity:0; transition:opacity .2s .08s, transform .38s;
+  flex-shrink:0;
+}
+body.open #rail-chevron { opacity:1; transform:rotate(180deg); }
+
+/* rail items */
+#rail-items { flex:1; padding:10px 0; overflow:hidden; }
+#rail-bottom { border-top:1px solid var(--sep); padding:8px 0; }
+
+.ri {
+  position:relative;
+  display:flex; align-items:flex-start;
+  margin:2px 8px; border-radius:12px;
+  cursor:pointer; overflow:hidden;
+  transition:background .15s;
+  min-height:52px;
+}
+.ri:hover { background:rgba(255,255,255,.04); }
+.ri.active { background:rgba(232,185,106,.08); }
+.ri.active::before {
+  content:''; position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:3px; height:22px; background:var(--gold); border-radius:0 3px 3px 0;
+}
+
+.ri-ic {
+  width:44px; min-width:44px; height:52px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.ri-txt {
+  flex:1; padding:10px 12px 10px 0;
+  opacity:0; transform:translateX(-6px);
+  transition:opacity .22s .06s, transform .22s .06s;
+  pointer-events:none; min-width:0;
+}
+body.open .ri-txt { opacity:1; transform:translateX(0); pointer-events:auto; }
+.ri-lbl { font-size:13px; font-weight:600; color:var(--txt1); white-space:nowrap; }
+.ri-desc { font-size:11px; color:var(--txt3); margin-top:3px; line-height:1.4; white-space:normal; }
+.ri.active .ri-lbl { color:var(--gold); }
+
+/* badge */
+.ri-badge {
+  position:absolute; top:8px; left:28px;
+  background:var(--gold); color:var(--ink);
+  font-size:9px; font-weight:800;
+  padding:1px 5px; border-radius:999px; display:none;
+}
+.ri-badge.on { display:block; }
+
+/* ═══════════════════════════════════════════════════
+   BOTTOM SHEET
+═══════════════════════════════════════════════════ */
+#sheet {
+  position:fixed; bottom:0; right:0;
+  left:var(--rail);
+  z-index:200;
+  background:var(--glass2);
+  backdrop-filter:blur(40px) saturate(200%);
+  border-top:1px solid var(--sep2);
+  border-radius:20px 20px 0 0;
+  box-shadow:0 -4px 40px rgba(0,0,0,.5);
+  transition:transform .42s cubic-bezier(.32,.72,0,1), left .38s cubic-bezier(.4,0,.2,1);
+  display:flex; flex-direction:column; max-height:88vh;
+}
+body.open #sheet { left:var(--rail-open); }
+#sheet.peek { transform:translateY(calc(100% - 72px)); }
+#sheet.half { transform:translateY(calc(100% - 340px)); }
+#sheet.full { transform:translateY(0); }
+
+#knob-wrap {
+  padding:10px 0 0; display:flex; flex-direction:column; align-items:center; gap:10px;
+  flex-shrink:0; cursor:grab;
+}
+#knob { width:36px; height:4px; background:var(--sep2); border-radius:2px; }
+#sheet-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 18px 12px; flex-shrink:0; border-bottom:1px solid var(--sep);
+}
+#sheet-title { font-family:var(--serif); font-size:19px; color:var(--txt1); }
+#sheet-action { font-size:13px; font-weight:600; color:var(--gold); cursor:pointer; }
+#sheet-body {
+  flex:1; overflow-y:auto; padding:0 16px 60px;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+#sheet-body::-webkit-scrollbar { display:none; }
+
+/* ═══════════════════════════════════════════════════
+   CONTENT COMPONENTS
+═══════════════════════════════════════════════════ */
+
+/* Section header */
+.sh { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--txt3); padding:20px 0 10px; }
+
+/* Empty state */
+.empty {
+  display:flex; flex-direction:column; align-items:center;
+  padding:32px 16px 24px; gap:14px; text-align:center;
+}
+.empty svg { opacity:.35; }
+.empty-title { font-family:var(--serif); font-size:20px; color:var(--txt1); }
+.empty-sub { font-size:13px; color:var(--txt3); line-height:1.6; max-width:220px; }
+
+/* Waypoint list */
+.wp-row {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 0; border-bottom:1px solid var(--sep);
+}
+.wp-row:last-of-type { border-bottom:none; }
+.wp-dot {
+  width:30px; height:30px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:800; color:var(--ink);
+}
+.wp-dot.s { background:var(--go); }
+.wp-dot.e { background:var(--stop); color:#fff; }
+.wp-dot.m { background:var(--gold); }
+.wp-name  { font-size:15px; font-weight:600; color:var(--txt1); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wp-coord { font-size:11px; color:var(--txt3); margin-top:2px; }
+.wp-del {
+  width:30px; height:30px; border-radius:9px; flex-shrink:0;
+  background:rgba(231,76,60,.15); border:none; color:var(--stop);
+  font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background .15s;
+}
+.wp-del:active { background:rgba(231,76,60,.3); }
+.wp-conn { display:flex; align-items:center; gap:10px; padding:2px 0; }
+.wp-conn-line { width:1px; height:14px; background:var(--sep2); margin-left:14px; }
+.wp-conn-txt  { font-size:11px; color:var(--txt3); }
+
+/* Buttons */
+.btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:15px; border-radius:14px;
+  border:none; font-family:var(--sans); font-size:15px; font-weight:700;
+  cursor:pointer; margin-top:10px; transition:opacity .15s, transform .1s;
+  letter-spacing:.01em;
+}
+.btn:active { opacity:.82; transform:scale(.98); }
+.btn:disabled { opacity:.35 !important; cursor:default; }
+.btn-gold { background:var(--gold); color:var(--ink); }
+.btn-teal { background:var(--teal); color:var(--ink); }
+.btn-ghost { background:rgba(240,237,232,.07); color:var(--txt2); font-size:14px; padding:13px; }
+.btn-ai   { background:linear-gradient(135deg,#8B5CF6,#6366F1); color:#fff; }
+
+/* ── DEPARTURE CARDS (the big redesign) ── */
+#win-scroll {
+  display:flex; gap:12px; overflow-x:auto; padding:4px 0 12px;
+  scrollbar-width:none; scroll-snap-type:x mandatory;
+}
+#win-scroll::-webkit-scrollbar { display:none; }
+
+.wc {
+  flex-shrink:0; width:140px;
+  border-radius:18px; padding:16px 14px;
+  cursor:pointer; scroll-snap-align:start;
+  border:2px solid transparent;
+  position:relative; overflow:hidden;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
+}
+.wc::before { /* colored top stripe */
+  content:''; position:absolute; top:0; left:0; right:0; height:4px;
+  background:var(--stripe,var(--sep2));
+  border-radius:18px 18px 0 0;
+}
+.wc.go   { background:rgba(39,174,96,.1);  --stripe:var(--go); }
+.wc.warn { background:rgba(230,126,34,.1); --stripe:var(--warn); }
+.wc.stop { background:rgba(231,76,60,.1);  --stripe:var(--stop); }
+.wc.sel {
+  border-color:var(--gold);
+  box-shadow:0 0 0 4px rgba(232,185,106,.15), 0 8px 24px rgba(0,0,0,.3);
+  transform:scale(1.04) translateY(-2px);
+}
+.wc:active { transform:scale(.96); }
+
+.wc-rank  { font-size:1.6em; margin-bottom:8px; }
+.wc-day   { font-size:10px; font-weight:600; color:var(--txt3); text-transform:uppercase; letter-spacing:.05em; }
+.wc-time  { font-family:var(--serif); font-size:2em; color:var(--txt1); line-height:1; margin:3px 0; }
+.wc-arr   { font-size:11px; color:var(--txt3); margin-bottom:10px; }
+.wc-divider { height:1px; background:var(--sep2); margin:8px 0; }
+.wc-stat  { font-size:10px; color:var(--txt2); line-height:1.7; }
+.wc-stat b { color:var(--txt1); font-weight:600; }
+
+/* ── METRICS GRID ── */
+.metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }
+.metric {
+  background:var(--ink3); border-radius:12px; padding:12px 6px; text-align:center;
+  border:1px solid var(--sep);
+}
+.metric-val { font-family:var(--serif); font-size:20px; color:var(--txt1); }
+.metric-val.red    { color:var(--stop); }
+.metric-val.orange { color:var(--warn); }
+.metric-val.green  { color:var(--go); }
+.metric-lbl { font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--txt3); margin-top:4px; }
+
+/* ── SEG BAR ── */
+.seg-bar { height:8px; border-radius:4px; overflow:hidden; display:flex; background:var(--ink4); margin:10px 0 3px; }
+.seg-tick { flex:1; }
+.seg-lbl  { font-size:10px; color:var(--txt3); text-align:center; margin-bottom:10px; }
+
+/* ── LEG CARDS ── */
+.lc { background:var(--ink3); border-radius:14px; padding:14px; margin-bottom:8px; border:1px solid var(--sep); }
+.lc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+.lc-name { font-size:13px; font-weight:700; color:var(--txt1); }
+.lc-dist { font-size:13px; font-weight:700; color:var(--gold); }
+.lc-sub  { font-size:11px; color:var(--txt3); margin-bottom:7px; }
+.lc-bar  { height:5px; border-radius:3px; overflow:hidden; display:flex; background:var(--ink4); }
+
+/* ── SETTINGS ── */
+.sg { background:var(--ink3); border-radius:14px; overflow:hidden; margin-bottom:8px; border:1px solid var(--sep); }
+.sr { display:flex; align-items:center; justify-content:space-between; padding:13px 16px; gap:12px; border-bottom:1px solid var(--sep); }
+.sr:last-child { border-bottom:none; }
+.sl { font-size:14px; color:var(--txt1); flex:1; }
+.sv { font-size:14px; font-weight:700; color:var(--gold); min-width:50px; text-align:right; }
+input[type=range] {
+  -webkit-appearance:none; appearance:none;
+  width:100px; height:4px; background:var(--ink4); border-radius:2px; outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none;
+  width:20px; height:20px; border-radius:50%; background:var(--gold);
+  box-shadow:0 1px 8px rgba(0,0,0,.4); cursor:pointer;
+}
+input[type=date] {
+  border:none; outline:none; background:none;
+  font-family:var(--sans); font-size:14px; font-weight:600; color:var(--gold); cursor:pointer;
+  color-scheme:dark;
+}
+input[type=password] {
+  border:none; outline:none; background:none;
+  font-family:var(--sans); font-size:13px; font-weight:600;
+  color:var(--gold); text-align:right; width:180px;
+}
+
+.boat-row { display:flex; gap:8px; overflow-x:auto; padding:12px 0; scrollbar-width:none; }
+.boat-row::-webkit-scrollbar { display:none; }
+.bc {
+  flex-shrink:0; background:var(--ink3); border:2px solid var(--sep);
+  border-radius:14px; padding:12px 14px; text-align:center; cursor:pointer; min-width:110px;
+  transition:all .18s;
+}
+.bc.sel { background:rgba(232,185,106,.1); border-color:var(--gold); }
+.bc-icon { font-size:1.6em; margin-bottom:4px; }
+.bc-name { font-size:11px; font-weight:700; color:var(--txt1); }
+.bc-sub  { font-size:10px; color:var(--txt3); margin-top:2px; }
+
+/* ── WEATHER TABLE ── */
+.wx-wrap { overflow-x:auto; }
+table.wx { width:100%; border-collapse:collapse; font-size:12px; }
+table.wx th { text-align:left; padding:7px 6px; font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--txt3); border-bottom:1px solid var(--sep2); }
+table.wx td { padding:9px 6px; border-bottom:1px solid var(--sep); color:var(--txt2); }
+table.wx tr:last-child td { border-bottom:none; }
+table.wx tr:hover td { background:rgba(255,255,255,.02); }
+
+/* ── AI OUTPUT ── */
+#ai-out { font-size:14px; line-height:1.85; color:var(--txt2); }
+#ai-out h2 { font-family:var(--serif); font-size:16px; color:var(--gold); margin:18px 0 5px; }
+#ai-out strong { color:var(--txt1); font-weight:600; }
+
+/* ═══════════════════════════════════════════════════
+   LOADER – progress style
+═══════════════════════════════════════════════════ */
+#loader {
+  display:none; position:fixed; inset:0; z-index:600;
+  background:rgba(13,27,42,.88); backdrop-filter:blur(8px);
+  align-items:center; justify-content:center; flex-direction:column; gap:16px;
+}
+#loader.on { display:flex; }
+#loader-ring {
+  position:relative; width:64px; height:64px;
+}
+#loader-ring svg { position:absolute; inset:0; animation:spin 2s linear infinite; }
+#loader-ring-inner {
+  position:absolute; inset:12px; border-radius:50%;
+  background:var(--ink2); display:flex; align-items:center; justify-content:center;
+  font-size:20px;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+#loader-title { font-family:var(--serif); font-size:18px; color:var(--txt1); }
+#loader-msg   { font-size:13px; color:var(--txt3); }
+#loader-bar {
+  width:200px; height:3px; background:var(--ink4); border-radius:2px; overflow:hidden;
+}
+#loader-fill {
+  height:100%; background:linear-gradient(90deg, var(--gold), var(--teal));
+  border-radius:2px; width:0%;
+  transition:width .5s ease;
+  animation:barflow 2.2s ease-in-out infinite;
+}
+@keyframes barflow { 0%{width:0%;margin-left:0} 50%{width:70%;margin-left:15%} 100%{width:0%;margin-left:100%} }
+
+/* ═══════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════ */
+#toast {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(8px);
+  z-index:700; background:rgba(22,35,51,.96); backdrop-filter:blur(20px);
+  border:1px solid var(--sep2);
+  color:var(--txt1); padding:10px 22px; border-radius:999px;
+  font-size:13px; font-weight:600;
+  opacity:0; transition:all .28s; pointer-events:none; white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+#toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE – narrow screens hide rail, use bottom bar
+═══════════════════════════════════════════════════ */
+@media (max-width:600px) {
+  :root { --rail:0px; --rail-open:0px; }
+  #rail { display:none; }
+  #map { left:0 !important; bottom:64px; }
+  #sheet { left:0 !important; }
+  #searchbar { left:12px !important; right:64px; }
+  #steps { left:12px !important; right:12px; }
+
+  /* mobile bottom dock */
+  #dock {
+    display:flex !important;
+    position:fixed; bottom:0; left:0; right:0; height:64px; z-index:400;
+    background:var(--glass2); backdrop-filter:blur(30px);
+    border-top:1px solid var(--sep); align-items:center;
+  }
+  .dock-item {
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+    cursor:pointer; padding:6px 0;
+  }
+  .dock-icon { font-size:22px; line-height:1; }
+  .dock-lbl  { font-size:10px; font-weight:600; color:var(--txt3); }
+  .dock-item.active .dock-lbl { color:var(--gold); }
+}
+
+#dock { display:none; } /* hidden on desktop */
+
+/* Waypoint marker animation */
+@keyframes markerPop { 0%{transform:scale(0) translateY(14px); opacity:0} 70%{transform:scale(1.2) translateY(-2px)} 100%{transform:scale(1) translateY(0); opacity:1} }
+.wp-marker-new { animation:markerPop .35s cubic-bezier(.34,1.56,.64,1) forwards; }
+</style>
+</head>
+<body>
+
+<!-- MAP -->
+<div id="map"></div>
+<div id="zoom-btns"><button class="zoom-btn" onclick="map.zoomIn()">+</button><button class="zoom-btn" onclick="map.zoomOut()">−</button></div>
+
+<!-- PERSISTENT SEARCH BAR -->
+<div id="searchbar">
+  <span id="searchbar-icon">🔍</span>
+  <input id="srch" type="text" placeholder="Søg havn, ø eller position…" onkeydown="if(event.key==='Enter')doSearch()">
+  <button id="searchbar-btn" onclick="doSearch()">Tilføj WP</button>
+</div>
+
+<!-- PROGRESS STEPS -->
+<div id="steps">
+  <div class="step active" id="step1"><div class="step-dot"></div>Waypoints</div>
+  <div class="step-line"></div>
+  <div class="step" id="step2"><div class="step-dot"></div>Analyse</div>
+  <div class="step-line"></div>
+  <div class="step" id="step3"><div class="step-dot"></div>Afgangstid</div>
+</div>
+
+<!-- LEFT RAIL -->
+<div id="rail">
+  <div id="rail-top" onclick="toggleRail()">
+    <span id="rail-logo">⛵</span>
+    <span id="rail-name">Sejlplan</span>
+    <span id="rail-chevron">‹</span>
+  </div>
+
+  <div id="rail-items">
+    <div class="ri active" id="ri-route" onclick="go('route')">
+      <div class="ri-ic">🗺️</div>
+      <div class="ri-txt">
+        <div class="ri-lbl">Rute</div>
+        <div class="ri-desc">Tilføj havne og klik på kortet. Drag markører for at justere.</div>
+      </div>
+    </div>
+    <div class="ri" id="ri-results" onclick="go('results')">
+      <div class="ri-ic">⏰
+        <span class="ri-badge" id="badge">0</span>
+      </div>
+      <div class="ri-txt">
+        <div class="ri-lbl">Afgangstider</div>
+        <div class="ri-desc">Top 10 vinduer rangeret efter vejr, bølger og sejltid.</div>
+      </div>
+    </div>
+    <div class="ri" id="ri-weather" onclick="go('weather')">
+      <div class="ri-ic">🌬️</div>
+      <div class="ri-txt">
+        <div class="ri-lbl">Vejr</div>
+        <div class="ri-desc">Time-for-time oversigt langs ruten for hele perioden.</div>
+      </div>
+    </div>
+    <div class="ri" id="ri-ai" onclick="go('ai')">
+      <div class="ri-ic">✦</div>
+      <div class="ri-txt">
+        <div class="ri-lbl">AI Analyse</div>
+        <div class="ri-desc">GPT-4o vurderer hvert ben og anbefaler optimal afgang.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rail-bottom">
+    <div class="ri" onclick="undoLast()">
+      <div class="ri-ic">↩️</div>
+      <div class="ri-txt">
+        <div class="ri-lbl">Fortryd</div>
+        <div class="ri-desc">Fjern det sidst tilføjede waypoint fra ruten.</div>
+      </div>
+    </div>
+    <div class="ri" id="ri-settings" onclick="go('settings')">
+      <div class="ri-ic">⚙️</div>
+      <div class="ri-txt">
+        <div class="ri-lbl">Indstillinger</div>
+        <div class="ri-desc">Båd, komfortgrænser, datovindue og OpenAI nøgle.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE DOCK -->
+<div id="dock">
+  <div class="dock-item active" id="di-route"    onclick="go('route')">   <div class="dock-icon">🗺️</div><div class="dock-lbl">Rute</div></div>
+  <div class="dock-item"        id="di-results"  onclick="go('results')"> <div class="dock-icon">⏰</div><div class="dock-lbl">Afgang</div></div>
+  <div class="dock-item"        id="di-weather"  onclick="go('weather')"> <div class="dock-icon">🌬️</div><div class="dock-lbl">Vejr</div></div>
+  <div class="dock-item"        id="di-ai"       onclick="go('ai')">      <div class="dock-icon">✦</div><div class="dock-lbl">AI</div></div>
+  <div class="dock-item"        id="di-settings" onclick="go('settings')"><div class="dock-icon">⚙️</div><div class="dock-lbl">Indst.</div></div>
+</div>
+
+<!-- BOTTOM SHEET -->
+<div id="sheet" class="peek">
+  <div id="knob-wrap"><div id="knob"></div></div>
+  <div id="sheet-head">
+    <div id="sheet-title">Rute</div>
+    <div id="sheet-action"></div>
+  </div>
+  <div id="sheet-body"></div>
+</div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div id="loader-ring">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="28" stroke="rgba(232,185,106,.15)" stroke-width="4"/>
+      <path d="M32 4 A28 28 0 0 1 60 32" stroke="var(--gold)" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+    <div id="loader-ring-inner">⛵</div>
+  </div>
+  <div id="loader-title">Sejlplan</div>
+  <div id="loader-msg">Henter vejrdata…</div>
+  <div id="loader-bar"><div id="loader-fill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── ERROR HANDLER ──────────────────
+
+// ═══════════════════════════════════════════════════════
+// MINIMAP - Zero-dependency tile map engine
+// Canvas-based, touch support, OSM tiles
+// ═══════════════════════════════════════════════════════
+class MiniMap {
+  constructor(containerId, opts={}) {
+    this.el = document.getElementById(containerId);
+    this.lat = opts.lat||56; this.lon = opts.lon||11; this.zoom = opts.zoom||6;
+    this.tileUrl = opts.tileUrl||'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    this.tiles = {}; // cache
+    this.markers = [];
+    this.polylines = [];
+    this._listeners = {};
+    this._drag = null;
+    this._pinch = null;
+
+    // Canvas
+    this.canvas = document.createElement('canvas');
+    this.canvas.style.cssText = 'position:absolute;top:0;left:0;display:block;touch-action:none;cursor:grab;background:#0a2744';
+    this.ctx = this.canvas.getContext('2d');
+    // Attach to body for true fullscreen (works in iframes too)
+    document.body.appendChild(this.canvas);
+
+    // Overlay for markers - also body-level fixed
+    this.overlay = document.createElement('div');
+    this.overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:1;';
+    document.body.appendChild(this.overlay);
+
+    this._bindEvents();
+    // Wait for element to be sized before first draw
+    if (document.readyState === 'complete') {
+      this._resize(); this._draw();
+    } else {
+      window.addEventListener('load', ()=>{ this._resize(); this._draw(); }, {once:true});
+    }
+    window.addEventListener('resize', ()=>{ this._resize(); this._draw(); });
+  }
+
+  // ── MATH ──────────────────────────────────
+  _lat2y(lat,zoom){ const s=Math.sin(lat*Math.PI/180); return (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*Math.pow(2,zoom)*256; }
+  _lon2x(lon,zoom){ return (lon+180)/360*Math.pow(2,zoom)*256; }
+  _y2lat(y,zoom){ const n=Math.PI-2*Math.PI*y/(Math.pow(2,zoom)*256); return 180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))); }
+  _x2lon(x,zoom){ return x/(Math.pow(2,zoom)*256)*360-180; }
+
+  // pixel offset of lat/lon from current view center
+  _ll2px(lat,lon){
+    const cx=this._lon2x(this.lon,this.zoom), cy=this._lat2y(this.lat,this.zoom);
+    const px=this._lon2x(lon,this.zoom)-cx+this.w/2;
+    const py=this._lat2y(lat,this.zoom)-cy+this.h/2;
+    return [px,py];
+  }
+  _px2ll(px,py){
+    const cx=this._lon2x(this.lon,this.zoom), cy=this._lat2y(this.lat,this.zoom);
+    return [this._y2lat(cy+py-this.h/2,this.zoom), this._x2lon(cx+px-this.w/2,this.zoom)];
+  }
+
+  // ── RESIZE ────────────────────────────────
+  _resize(){
+    // Always use window dimensions - works in iframes and file://
+    this.w = window.innerWidth || document.documentElement.clientWidth || 800;
+    this.h = window.innerHeight || document.documentElement.clientHeight || 600;
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width  = this.w * dpr;
+    this.canvas.height = this.h * dpr;
+    this.canvas.style.width  = this.w + 'px';
+    this.canvas.style.height = this.h + 'px';
+    // Reposition canvas to cover full window
+    this.canvas.style.position = 'fixed';
+    this.canvas.style.top = '0';
+    this.canvas.style.left = '0';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // ── DRAW ──────────────────────────────────
+  _draw(){
+    const ctx=this.ctx, z=Math.round(this.zoom);
+    const tileSize=256;
+    const cx=this._lon2x(this.lon,z), cy=this._lat2y(this.lat,z);
+    const startX=Math.floor((cx-this.w/2)/tileSize);
+    const startY=Math.floor((cy-this.h/2)/tileSize);
+    const endX=Math.ceil((cx+this.w/2)/tileSize);
+    const endY=Math.ceil((cy+this.h/2)/tileSize);
+    const maxTile=Math.pow(2,z);
+
+    ctx.clearRect(0,0,this.w,this.h);
+    // Background (sea color)
+    ctx.fillStyle='#a8c8e8';
+    ctx.fillRect(0,0,this.w,this.h);
+
+    for(let tx=startX;tx<=endX;tx++){
+      for(let ty=startY;ty<=endY;ty++){
+        if(ty<0||ty>=maxTile) continue;
+        const ntx=((tx%maxTile)+maxTile)%maxTile;
+        const key=`${z}/${ntx}/${ty}`;
+        const px=tx*tileSize-(cx-this.w/2);
+        const py=ty*tileSize-(cy-this.h/2);
+
+        if(this.tiles[key]?.complete && this.tiles[key].naturalWidth>0){
+          ctx.drawImage(this.tiles[key],Math.round(px),Math.round(py),tileSize,tileSize);
+        } else if(!this.tiles[key]){
+          const img=new Image();
+          img.src=this.tileUrl.replace('{z}',z).replace('{x}',ntx).replace('{y}',ty);
+          img.onload=()=>this._draw();
+          this.tiles[key]=img;
+        }
+      }
+    }
+
+    // Draw polylines
+    this.polylines.forEach(pl=>{
+      if(pl.latlngs.length<2) return;
+      ctx.beginPath();
+      ctx.strokeStyle=pl.color||'#E8B96A'; ctx.lineWidth=pl.weight||3;
+      if(pl.dash) ctx.setLineDash(pl.dash); else ctx.setLineDash([]);
+      ctx.globalAlpha=pl.opacity||1;
+      pl.latlngs.forEach((ll,i)=>{
+        const [px,py]=this._ll2px(ll[0],ll[1]);
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      });
+      ctx.stroke(); ctx.globalAlpha=1;
+    });
+
+    // Update marker positions
+    this._updateMarkers();
+  }
+
+  _updateMarkers(){
+    this.markers.forEach(m=>{
+      const [px,py]=this._ll2px(m.lat,m.lon);
+      m.el.style.left=(px-m.aw)+'px';
+      m.el.style.top=(py-m.ah)+'px';
+    });
+  }
+
+  // ── EVENTS ────────────────────────────────
+  _bindEvents(){
+    const el=this.canvas;
+    // Mouse
+    el.addEventListener('mousedown',e=>{ this._drag={x:e.clientX,y:e.clientY,lat:this.lat,lon:this.lon}; el.style.cursor='grabbing'; });
+    el.addEventListener('mousemove',e=>{
+      if(!this._drag) return;
+      const dx=e.clientX-this._drag.x, dy=e.clientY-this._drag.y;
+      const cx=this._lon2x(this._drag.lon,this.zoom)-dx;
+      const cy=this._lat2y(this._drag.lat,this.zoom)-dy;
+      this.lat=this._y2lat(cy,this.zoom); this.lon=this._x2lon(cx,this.zoom);
+      this._draw();
+    });
+    el.addEventListener('mouseup',e=>{ 
+      if(this._drag && Math.abs(e.clientX-this._drag.x)<5 && Math.abs(e.clientY-this._drag.y)<5){
+        const [lat,lon]=this._px2ll(e.clientX, e.clientY);
+        this._emit('click',{latlng:{lat,lng:lon}});
+      }
+      this._drag=null; el.style.cursor='grab';
+    });
+    el.addEventListener('mouseleave',()=>{ this._drag=null; el.style.cursor='grab'; });
+    el.addEventListener('wheel',e=>{ e.preventDefault(); this._zoomAt(e.offsetX,e.offsetY,e.deltaY>0?-0.5:0.5); },{passive:false});
+
+    // Touch
+    el.addEventListener('touchstart',e=>{
+      e.preventDefault();
+      if(e.touches.length===1){
+        this._drag={x:e.touches[0].clientX,y:e.touches[0].clientY,lat:this.lat,lon:this.lon};
+        this._pinch=null; this._touchStart=Date.now(); this._touchMoved=false;
+      } else if(e.touches.length===2){
+        this._drag=null;
+        this._pinch={dist:this._pinchDist(e),lat:this.lat,lon:this.lon,zoom:this.zoom,
+          cx:(e.touches[0].clientX+e.touches[1].clientX)/2,
+          cy:(e.touches[0].clientY+e.touches[1].clientY)/2};
+      }
+    },{passive:false});
+    el.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      if(e.touches.length===1&&this._drag){
+        const dx=e.touches[0].clientX-this._drag.x, dy=e.touches[0].clientY-this._drag.y;
+        if(Math.abs(dx)>3||Math.abs(dy)>3) this._touchMoved=true;
+        const cx=this._lon2x(this._drag.lon,this.zoom)-dx;
+        const cy=this._lat2y(this._drag.lat,this.zoom)-dy;
+        this.lat=this._y2lat(cy,this.zoom); this.lon=this._x2lon(cx,this.zoom);
+        this._draw();
+      } else if(e.touches.length===2&&this._pinch){
+        const d=this._pinchDist(e), ratio=d/this._pinch.dist;
+        this.zoom=Math.max(2,Math.min(18,this._pinch.zoom+Math.log2(ratio)));
+        // Pan to keep pinch center fixed
+        const [lat,lon]=this._px2ll(this._pinch.cx, this._pinch.cy);
+        this.lat=this._pinch.lat+(this._pinch.lat-lat)*0.1;
+        this.lon=this._pinch.lon+(this._pinch.lon-lon)*0.1;
+        this._draw();
+      }
+    },{passive:false});
+    el.addEventListener('touchend',e=>{
+      e.preventDefault();
+      if(!this._touchMoved && Date.now()-this._touchStart<300 && this._drag){
+        const rect=el.getBoundingClientRect();
+        const touch=e.changedTouches[0];
+        const [lat,lon]=this._px2ll(touch.clientX-rect.left,touch.clientY-rect.top);
+        this._emit('click',{latlng:{lat,lng:lon}});
+      }
+      this._drag=null; this._pinch=null;
+    },{passive:false});
+  }
+
+  _pinchDist(e){ const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+  _zoomAt(px,py,delta){
+    const [lat,lon]=this._px2ll(px,py);
+    this.zoom=Math.max(2,Math.min(18,this.zoom+delta));
+    const [npx,npy]=this._ll2px(lat,lon);
+    const cx=this._lon2x(this.lon,this.zoom)+(npx-px);
+    const cy=this._lat2y(this.lat,this.zoom)+(npy-py);
+    this.lat=this._y2lat(cy,this.zoom); this.lon=this._x2lon(cx,this.zoom);
+    this._draw();
+  }
+
+  // ── PUBLIC API (Leaflet-compatible) ───────
+  on(event,fn){ if(!this._listeners[event]) this._listeners[event]=[]; this._listeners[event].push(fn); return this; }
+  _emit(event,data){ (this._listeners[event]||[]).forEach(fn=>fn(data)); }
+
+  setView(latlng,zoom){ this.lat=latlng[0]; this.lon=latlng[1]; if(zoom) this.zoom=zoom; this._draw(); return this; }
+  flyTo(latlng,zoom){ this.setView(latlng,zoom||this.zoom); return this; }
+  invalidateSize(){ this._resize(); this._draw(); return this; }
+
+  addMarker(lat,lon,opts={}){
+    const el=document.createElement('div');
+    el.style.cssText='position:absolute;pointer-events:auto;cursor:pointer;';
+    el.innerHTML=opts.html||`<div style="width:28px;height:28px;border-radius:50%;background:#E8B96A;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0D1B2A;box-shadow:0 2px 12px rgba(0,0,0,.5)">?</div>`;
+    this.overlay.appendChild(el);
+    const aw=opts.iconAnchor?opts.iconAnchor[0]:14;
+    const ah=opts.iconAnchor?opts.iconAnchor[1]:14;
+    const m={lat,lon,el,aw,ah,_listeners:{}};
+
+    // Drag support for markers
+    let mdrag=null;
+    el.addEventListener('pointerdown',e=>{ e.stopPropagation(); mdrag={x:e.clientX,y:e.clientY}; });
+    el.addEventListener('pointermove',e=>{
+      if(!mdrag) return;
+      if(Math.abs(e.clientX-mdrag.x)>5||Math.abs(e.clientY-mdrag.y)>5){
+        mdrag.moved=true;
+        const rect=this.el.getBoundingClientRect();
+        const [lat,lon]=this._px2ll(e.clientX-rect.left,e.clientY-rect.top);
+        m.lat=lat; m.lon=lon;
+        this._updateMarkers(); this._draw();
+      }
+    });
+    el.addEventListener('pointerup',e=>{
+      if(mdrag?.moved){ (m._listeners['dragend']||[]).forEach(fn=>fn({target:{getLatLng:()=>({lat:m.lat,lng:m.lon})}})); }
+      mdrag=null;
+    });
+
+    this.markers.push(m);
+    this._updateMarkers();
+    const api={
+      on:(ev,fn)=>{ if(!m._listeners[ev]) m._listeners[ev]=[]; m._listeners[ev].push(fn); return api; },
+      bindTooltip:(txt)=>{ el.title=txt; return api; },
+      remove:()=>{ el.remove(); this.markers=this.markers.filter(x=>x!==m); this._draw(); },
+      getLatLng:()=>({lat:m.lat,lng:m.lon}),
+      setLatLng:(ll)=>{ m.lat=ll.lat; m.lon=ll.lng; this._updateMarkers(); this._draw(); }
+    };
+    return api;
+  }
+
+  addPolyline(latlngs,opts={}){
+    const pl={latlngs,color:opts.color,weight:opts.weight,dash:opts.dashArray?opts.dashArray.split(' ').map(Number):null,opacity:opts.opacity||1};
+    this.polylines.push(pl);
+    this._draw();
+    return {
+      setLatLngs:(ll)=>{ pl.latlngs=ll; this._draw(); },
+      remove:()=>{ this.polylines=this.polylines.filter(x=>x!==pl); this._draw(); }
+    };
+  }
+
+  zoomIn(){ this._zoomAt(this.w/2,this.h/2,1); }
+  zoomOut(){ this._zoomAt(this.w/2,this.h/2,-1); }
+}
+
+
+// ══════════════════════════════════════════
+// BOATS
+// ══════════════════════════════════════════
+const BOATS = {
+  jeanneau:{ name:'Jeanneau Espace 1000',icon:'⛵',type:'Sejlbåd',length:10,hullSpeed:7.2,desc:'Familiekrydser',maxWind:20,maxWave:1.5,
+    polar:{30:{5:2.5,10:4,15:5,20:5.5,25:5.8},45:{5:3,10:4.8,15:5.8,20:6.3,25:6.5},60:{5:3.5,10:5.2,15:6.2,20:6.8,25:7},75:{5:3.8,10:5.5,15:6.5,20:7,25:7.2},90:{5:4,10:5.8,15:6.8,20:7.1,25:7.2},110:{5:4.2,10:5.6,15:6.5,20:6.9,25:7},135:{5:3.5,10:4.8,15:5.5,20:6,25:6.2},150:{5:2.8,10:4,15:4.8,20:5.2,25:5.5},180:{5:2.5,10:3.5,15:4.2,20:4.8,25:5}}},
+  bavaria:{ name:'Bavaria 34',icon:'⛵',type:'Sejlbåd',length:10.4,hullSpeed:7.4,desc:'Weekendbåd',maxWind:22,maxWave:1.8,
+    polar:{30:{5:2.8,10:4.5,15:5.5,20:6,25:6.3},45:{5:3.3,10:5.2,15:6.2,20:6.8,25:7},60:{5:3.8,10:5.8,15:6.8,20:7.3,25:7.5},75:{5:4,10:6,15:7,20:7.5,25:7.6},90:{5:4.2,10:6.2,15:7.2,20:7.5,25:7.6},110:{5:4,10:6,15:7,20:7.3,25:7.4},135:{5:3.5,10:5.2,15:6,20:6.5,25:6.6},150:{5:3,10:4.5,15:5.2,20:5.8,25:6},180:{5:2.8,10:3.8,15:4.5,20:5,25:5.2}}},
+  hr29:{ name:'Hallberg-Rassy 29',icon:'⛵',type:'Sejlbåd',length:9,hullSpeed:6.8,desc:'Bluewater',maxWind:25,maxWave:2,
+    polar:{30:{5:2.3,10:3.8,15:4.8,20:5.2,25:5.5},45:{5:2.8,10:4.5,15:5.5,20:6,25:6.2},60:{5:3.2,10:5,15:6,20:6.5,25:6.7},75:{5:3.5,10:5.2,15:6.2,20:6.7,25:6.8},90:{5:3.8,10:5.5,15:6.5,20:6.8,25:6.8},110:{5:3.5,10:5.2,15:6.2,20:6.5,25:6.6},135:{5:3,10:4.5,15:5.2,20:5.8,25:6},150:{5:2.5,10:3.8,15:4.5,20:5,25:5.2},180:{5:2.2,10:3.2,15:4,20:4.5,25:4.8}}},
+  motor:{ name:'Motorbåd 10m',icon:'🚤',type:'Motorbåd',length:10,hullSpeed:12,desc:'~10kn cruise',maxWind:18,maxWave:1.2,baseSpeed:10,polar:{} }
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let waypoints=[], weatherHours=[], windows=[], selIdx=0;
+let tab='route', boatId='jeanneau', railOpen=false, sheetPos='peek';
+let cfg={ maxWind:20, maxWave:1.5, dateFrom:fmtD(new Date()), dateTo:fmtD(new Date(Date.now()+3*864e5)), earlyHour:6, lateHour:20, apiKey:'' };
+
+function fmtD(d){ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
+function p2(n){ return String(n).padStart(2,'0'); }
+
+// ══════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════
+const map = new MiniMap('map', {
+  lat:56, lon:11, zoom:6,
+  tileUrl:'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+});
+const routeLine = map.addPolyline([], {color:'#E8B96A', weight:2.5, dashArray:'10 7', opacity:.85});
+let mkrs=[];
+
+map.on('click', e=>{ if(railOpen) closeRail(); addWP(e.latlng.lat, e.latlng.lng, null); });
+
+function addWP(lat,lon,name){
+  const n=waypoints.length+1;
+  waypoints.push({lat,lon,name:name||(n===1?'Afrejse':`WP${n}`)});
+  drawMap(); pillRefresh();
+  if(tab==='route') renderRoute();
+  setSheet(waypoints.length>=2?'half':'peek');
+  windows=[]; weatherHours=[]; updateBadge(); updateSteps();
+}
+function removeWP(i){
+  waypoints.splice(i,1);
+  windows=[]; weatherHours=[];
+  drawMap(); pillRefresh(); renderRoute();
+  setSheet(waypoints.length?'half':'peek');
+  if(!waypoints.length) setSheet('peek');
+  updateBadge(); updateSteps();
+}
+function undoLast(){ if(waypoints.length) removeWP(waypoints.length-1); }
+
+function drawMap(){
+  routeLine.setLatLngs(waypoints.map(w=>[w.lat,w.lon]));
+  mkrs.forEach(m=>m.remove()); mkrs=[];
+  waypoints.forEach((wp,i)=>{
+    const isS=i===0, isE=i===waypoints.length-1&&waypoints.length>1;
+    const bg=isS?'#27AE60':isE?'#E74C3C':'#E8B96A';
+    const fc=isS||isE?'#fff':'#0D1B2A';
+    const m=map.addMarker(wp.lat,wp.lon,{
+      html:`<div style="width:28px;height:28px;border-radius:50%;background:${bg};border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${fc};box-shadow:0 2px 12px rgba(0,0,0,.5)">${i+1}</div>`,
+      iconAnchor:[14,14]
+    });
+    m.bindTooltip(wp.name);
+    m.on('dragend',e=>{
+      const p=e.target.getLatLng(); waypoints[i].lat=p.lat; waypoints[i].lon=p.lng;
+      routeLine.setLatLngs(waypoints.map(w=>[w.lat,w.lon]));
+      pillRefresh(); windows=[]; weatherHours=[];
+    });
+    mkrs.push(m);
+  });
+}
+
+function pillRefresh(){
+  // Update searchbar placeholder to hint next action
+  const el=document.getElementById('srch');
+  if(!el) return;
+  if(!waypoints.length) el.placeholder='Søg afrejsehavn…';
+  else if(waypoints.length===1) el.placeholder='Søg destination…';
+  else el.placeholder='Tilføj mellemstoppe…';
+}
+
+function updateBadge(){
+  const b=document.getElementById('badge');
+  if(windows.length){ b.textContent=windows.length; b.classList.add('on'); }
+  else b.classList.remove('on');
+}
+
+function updateSteps(){
+  const s1=document.getElementById('step1');
+  const s2=document.getElementById('step2');
+  const s3=document.getElementById('step3');
+  s1.className='step'+(waypoints.length>=2?' done':' active');
+  s2.className='step'+(windows.length?' done':waypoints.length>=2?' active':'');
+  s3.className='step'+(selIdx>=0&&windows.length?' active':'');
+}
+
+// ══════════════════════════════════════════
+// RAIL
+// ══════════════════════════════════════════
+function toggleRail(){ railOpen?closeRail():openRail(); }
+function openRail(){
+  railOpen=true; document.body.classList.add('open');
+  setTimeout(()=>{ map._resize(); map._draw(); },400);
+}
+function closeRail(){
+  railOpen=false; document.body.classList.remove('open');
+  setTimeout(()=>{ map._resize(); map._draw(); },400);
+}
+
+// ══════════════════════════════════════════
+// SHEET
+// ══════════════════════════════════════════
+function setSheet(pos){
+  sheetPos=pos;
+  document.getElementById('sheet').className=pos;
+}
+let dragY0=null,dragP0=null;
+document.getElementById('knob-wrap').addEventListener('pointerdown',e=>{
+  dragY0=e.clientY; dragP0=sheetPos;
+  document.addEventListener('pointermove',onDrag);
+  document.addEventListener('pointerup',onDragEnd,{once:true});
+});
+function onDrag(e){
+  if(dragY0===null) return;
+  const dy=e.clientY-dragY0, sh=document.getElementById('sheet');
+  const bases={peek:window.innerHeight-72,half:window.innerHeight-340,full:0};
+  sh.style.transition='none';
+  sh.style.transform=`translateY(${Math.max(0,Math.min(window.innerHeight-72,bases[dragP0]+dy))}px)`;
+}
+function onDragEnd(e){
+  document.removeEventListener('pointermove',onDrag);
+  const sh=document.getElementById('sheet'); sh.style.transition=''; sh.style.transform='';
+  const dy=e.clientY-dragY0;
+  if(dy<-80) setSheet(sheetPos==='peek'?'half':sheetPos==='half'?'full':'full');
+  else if(dy>80) setSheet(sheetPos==='full'?'half':sheetPos==='half'?'peek':'peek');
+  else setSheet(sheetPos);
+  dragY0=null;
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+const RI={'route':'ri-route','results':'ri-results','weather':'ri-weather','ai':'ri-ai','settings':'ri-settings'};
+const DI={'route':'di-route','results':'di-results','weather':'di-weather','ai':'di-ai','settings':'di-settings'};
+const TITLES={route:'Rute',results:'Afgangstider',weather:'Vejr',ai:'AI Analyse',settings:'Indstillinger'};
+
+function go(t){
+  tab=t;
+  // Rail active
+  document.querySelectorAll('.ri').forEach(el=>el.classList.remove('active'));
+  if(RI[t]) document.getElementById(RI[t])?.classList.add('active');
+  // Dock active
+  document.querySelectorAll('.dock-item').forEach(el=>el.classList.remove('active'));
+  if(DI[t]) document.getElementById(DI[t])?.classList.add('active');
+
+  document.getElementById('sheet-title').textContent=TITLES[t]||t;
+  document.getElementById('sheet-action').textContent='';
+
+  if(t==='route')    { renderRoute();    setSheet(waypoints.length?'half':'peek'); }
+  if(t==='results')  { renderResults();  setSheet('half'); }
+  if(t==='weather')  { renderWeather();  setSheet('full'); }
+  if(t==='ai')       { renderAI();       setSheet('full'); }
+  if(t==='settings') { renderSettings(); setSheet('full'); }
+  if(railOpen) closeRail();
+}
+
+// ══════════════════════════════════════════
+// RENDER: ROUTE
+// ══════════════════════════════════════════
+function renderRoute(){
+  const body=document.getElementById('sheet-body');
+  if(!waypoints.length){
+    body.innerHTML=`
+      <div class="empty">
+        <svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="60" cy="72" rx="50" ry="8" fill="#4ECDC4" opacity=".18"/>
+          <path d="M60 65 L60 20 L90 55 Z" fill="#E8B96A" opacity=".6"/>
+          <path d="M60 65 L60 28 L38 52 Z" fill="#F5D49A" opacity=".4"/>
+          <rect x="58" y="20" width="3" height="46" rx="1.5" fill="#E8B96A" opacity=".8"/>
+          <path d="M20 68 Q35 62 60 65 Q85 68 100 64" stroke="#4ECDC4" stroke-width="2.5" stroke-linecap="round" opacity=".5" fill="none"/>
+          <circle cx="22" cy="66" r="3" fill="#4ECDC4" opacity=".4"/>
+          <circle cx="98" cy="63" r="3" fill="#4ECDC4" opacity=".4"/>
+        </svg>
+        <div class="empty-title">Start din sejlplan</div>
+        <div class="empty-sub">Søg en havn øverst eller klik direkte på kortet for at tilføje dit første waypoint.</div>
+      </div>`;
+    return;
+  }
+
+  let h='<div class="sh">Din rute</div>';
+  waypoints.forEach((wp,i)=>{
+    const isS=i===0,isE=i===waypoints.length-1&&waypoints.length>1;
+    const cls=isS?'s':isE?'e':'m';
+    const lbl=isS?'Afrejse':isE?'Destination':`WP${i+1}`;
+    h+=`<div class="wp-row">
+      <div class="wp-dot ${cls}">${i+1}</div>
+      <div style="flex:1;min-width:0">
+        <div class="wp-name">${wp.name}</div>
+        <div class="wp-coord">${wp.lat.toFixed(4)}°N · ${wp.lon.toFixed(4)}°E · ${lbl}</div>
+      </div>
+      <button class="wp-del" onclick="removeWP(${i})">✕</button>
+    </div>`;
+    if(i<waypoints.length-1){
+      const d=haversine(wp.lat,wp.lon,waypoints[i+1].lat,waypoints[i+1].lon);
+      const b=bearing(wp.lat,wp.lon,waypoints[i+1].lat,waypoints[i+1].lon);
+      h+=`<div class="wp-conn"><div class="wp-conn-line"></div><div class="wp-conn-txt">${d.toFixed(1)} sømil · ${Math.round(b)}°</div></div>`;
+    }
+  });
+  if(waypoints.length>=2){
+    const tot=waypoints.slice(0,-1).reduce((s,w,i)=>s+haversine(w.lat,w.lon,waypoints[i+1].lat,waypoints[i+1].lon),0);
+    h+=`<div style="text-align:center;padding:12px 0 4px;font-size:12px;color:var(--txt3)">Total: <b style="color:var(--gold)">${tot.toFixed(1)} sømil</b> · ${waypoints.length-1} ben</div>`;
+    h+=`<button class="btn btn-gold" onclick="runAnalysis()">🌊 Find bedste afgangstider</button>`;
+  }
+  body.innerHTML=h;
+}
+
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
+async function doSearch(){
+  const el=document.getElementById('srch'); const q=el?el.value.trim():''; if(!q) return;
+  showLoader('Søger efter '+q+'…');
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,{headers:{'User-Agent':'Sejlplan/1'}});
+    const d=await r.json();
+    if(d&&d[0]){
+      const lat=parseFloat(d[0].lat),lon=parseFloat(d[0].lon),name=q.split(',')[0].trim();
+      addWP(lat,lon,name); map.flyTo([lat,lon],9,{animate:true,duration:1}); el.value=''; toast('✓ '+name+' tilføjet');
+    } else toast('❌ Ikke fundet – prøv mere specifikt');
+  }catch(e){ toast('❌ Søgefejl'); }
+  hideLoader();
+}
+
+// ══════════════════════════════════════════
+// ANALYSIS
+// ══════════════════════════════════════════
+async function runAnalysis(){
+  if(waypoints.length<2){ toast('Tilføj mindst 2 waypoints'); return; }
+  showLoader('Henter vejrdata…');
+  setLoaderProgress(20);
+  try{
+    weatherHours=await buildWxHours();
+    setLoaderProgress(65);
+    document.getElementById('loader-msg').textContent='Beregner afgangstider…';
+    windows=findWindows(BOATS[boatId],weatherHours);
+    setLoaderProgress(100);
+    if(!windows.length){ toast('Ingen resultater – prøv bredere datointerval'); hideLoader(); return; }
+    selIdx=0; updateBadge(); updateSteps();
+    setTimeout(()=>{ hideLoader(); go('results'); toast('✓ '+windows.length+' afgangstider fundet'); },400);
+  }catch(e){ toast('❌ '+e.message); console.error(e); hideLoader(); }
+}
+
+function setLoaderProgress(pct){
+  // just let animation run, controlled by CSS keyframes
+}
+
+// ══════════════════════════════════════════
+// RENDER: RESULTS
+// ══════════════════════════════════════════
+function renderResults(){
+  const body=document.getElementById('sheet-body');
+  if(!windows.length){
+    body.innerHTML=`<div class="empty"><div class="empty-title">Ingen analyse endnu</div><div class="empty-sub">Gå til Rute-fanen og klik "Find bedste afgangstider".</div><button class="btn btn-gold" onclick="go('route')">← Tilbage til rute</button></div>`;
+    return;
+  }
+  const ranks=['🥇','🥈','🥉','#4','#5','#6','#7','#8'];
+  const cards=windows.slice(0,8).map((w,i)=>{
+    const dep=new Date(w.depart),arr=new Date(w.arrival);
+    const day=dep.toLocaleDateString('da-DK',{weekday:'short',day:'numeric',month:'short'});
+    const clr=w.redHours===0?'go':w.redHours<=2?'warn':'stop';
+    const arrDay=arr.toLocaleDateString('da-DK',{weekday:'short'});
+    return `<div class="wc ${clr}${i===selIdx?' sel':''}" onclick="selIdx=${i};renderResults()">
+      <div class="wc-rank">${ranks[i]}</div>
+      <div class="wc-day">${day}</div>
+      <div class="wc-time">${p2(dep.getHours())}:00</div>
+      <div class="wc-arr">→ ${arrDay} ${p2(arr.getHours())}:00</div>
+      <div class="wc-divider"></div>
+      <div class="wc-stat"><b>${w.hours}t</b> sejltid<br><b>${w.avgSpeed}kn</b> gn.fart<br>💨<b>${w.worstWind}kn</b> 🌊<b>${w.worstWave}m</b><br>🔴${w.redHours} 🟡${w.yellowHours}</div>
+    </div>`;
+  }).join('');
+
+  const w=windows[selIdx], dep=new Date(w.depart), arr=new Date(w.arrival), mw=cfg.maxWind, mv=cfg.maxWave;
+  const mets=[
+    {v:`${w.hours}t`,l:'Sejltid'},
+    {v:`${w.avgSpeed}kn`,l:'Gn.fart'},
+    {v:`${w.worstWind}kn`,l:'Max vind',c:w.worstWind>mw?'red':w.worstWind>mw*.8?'orange':'green'},
+    {v:`${w.worstWave}m`,l:'Max bølger',c:w.worstWave>mv?'red':w.worstWave>mv*.8?'orange':'green'},
+    {v:`${w.redHours}t`,l:'Røde timer',c:w.redHours>0?'red':'green'},
+    {v:`${w.totalNm}nm`,l:'Distance'},
+  ].map(m=>`<div class="metric"><div class="metric-val${m.c?' '+m.c:''}">${m.v}</div><div class="metric-lbl">${m.l}</div></div>`).join('');
+
+  const segs=(w.segments||[]).slice(0,40);
+  const segBar=segs.map(s=>{const c=s.status==='go'?'#27AE60':s.status==='warn'?'#E67E22':'#E74C3C';return `<div class="seg-tick" style="background:${c}"></div>`;}).join('');
+
+  const legMap={};
+  segs.forEach(s=>{
+    if(!legMap[s.leg])legMap[s.leg]={mw:0,mv:0,reds:0,tot:0,course:s.course};
+    legMap[s.leg].mw=Math.max(legMap[s.leg].mw,s.wind_kn);
+    legMap[s.leg].mv=Math.max(legMap[s.leg].mv,s.wave_m);
+    if(s.status==='stop')legMap[s.leg].reds++;
+    legMap[s.leg].tot++;
+  });
+  const legCards=Object.entries(legMap).map(([leg,d])=>{
+    const em=d.reds===0?'🟢':d.reds<=d.tot*.3?'🟡':'🔴';
+    const from=waypoints[parseInt(leg)-1]?.name||'WP'+leg;
+    const to=waypoints[parseInt(leg)]?.name||'WP'+(parseInt(leg)+1);
+    const nm=parseInt(leg)-1<waypoints.length-1?haversine(waypoints[parseInt(leg)-1]?.lat||0,waypoints[parseInt(leg)-1]?.lon||0,waypoints[parseInt(leg)]?.lat||0,waypoints[parseInt(leg)]?.lon||0):0;
+    const ticks=Array(d.tot).fill(0).map((_,ti)=>{
+      const seg=(w.segments||[]).filter(s=>s.leg===parseInt(leg))[ti];
+      const c=!seg||seg.status==='go'?'#27AE60':seg.status==='warn'?'#E67E22':'#E74C3C';
+      return `<div style="flex:1;background:${c}"></div>`;
+    }).join('');
+    return `<div class="lc">
+      <div class="lc-top"><div class="lc-name">${em} Leg ${leg}: ${from} → ${to}</div><div class="lc-dist">${nm.toFixed(1)}nm</div></div>
+      <div class="lc-sub">Kurs ${d.course}° · 💨max ${d.mw.toFixed(0)}kn · 🌊max ${d.mv.toFixed(1)}m</div>
+      <div class="lc-bar">${ticks}</div>
+    </div>`;
+  }).join('');
+
+  const depStr=dep.toLocaleString('da-DK',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+  const arrStr=arr.toLocaleString('da-DK',{weekday:'short',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  body.innerHTML=`
+    <div class="sh">Vælg afgang</div>
+    <div id="win-scroll">${cards}</div>
+    <div class="sh">Detaljer – ${depStr}</div>
+    <div style="font-size:12px;color:var(--txt3);margin-bottom:10px">Ankomst: ${arrStr}</div>
+    <div class="metrics">${mets}</div>
+    <div class="seg-bar">${segBar}</div>
+    <div class="seg-lbl">Vejrstatus time for time · 🟢GO 🟡OK 🔴STOP</div>
+    <div class="sh">Ben</div>
+    ${legCards}
+    <button class="btn btn-ai" onclick="go('ai')">✦ AI Sejlanalyse</button>
+    <button class="btn btn-ghost" onclick="go('route')">← Rediger rute</button>`;
+}
+
+// ══════════════════════════════════════════
+// RENDER: WEATHER
+// ══════════════════════════════════════════
+function renderWeather(){
+  const body=document.getElementById('sheet-body');
+  if(!weatherHours.length){ body.innerHTML=`<div class="empty"><div class="empty-title">Ingen vejrdata</div><div class="empty-sub">Kør analysen fra Rute-fanen for at hente vejrdata.</div></div>`; return; }
+  const mw=cfg.maxWind,mv=cfg.maxWave;
+  const rows=weatherHours.filter((_,i)=>i%2===0).map(r=>{
+    const dt=new Date(r.time);
+    const tid=dt.toLocaleDateString('da-DK',{weekday:'short',day:'numeric',month:'numeric'})+' '+p2(dt.getHours())+':00';
+    const st=r.wind_kn<=mw&&r.wave_m<=mv?'🟢':r.wind_kn<=mw*1.2&&r.wave_m<=mv*1.3?'🟡':'🔴';
+    return `<tr><td style="white-space:nowrap;color:var(--txt2)">${tid}</td><td>${st}</td><td><b style="color:var(--txt1)">${r.wind_kn.toFixed(1)}</b></td><td>${wdTxt(r.wind_dir)}</td><td>${r.gust_kn.toFixed(1)}</td><td><b style="color:var(--txt1)">${r.wave_m.toFixed(2)}</b></td><td style="color:var(--txt3)">${bft(r.wind_kn)}</td></tr>`;
+  }).join('');
+  body.innerHTML=`<div class="wx-wrap"><table class="wx"><thead><tr><th>Tid</th><th></th><th>Vind kn</th><th>Ret.</th><th>Kast</th><th>Bølger m</th><th>Bft</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// ══════════════════════════════════════════
+// RENDER: AI
+// ══════════════════════════════════════════
+function renderAI(){
+  const body=document.getElementById('sheet-body');
+  if(!windows.length){ body.innerHTML=`<div class="empty"><div class="empty-title">Kør analyse først</div><div class="empty-sub">AI-analysen kræver at du først har hentet vejrdata og fundet afgangstider.</div><button class="btn btn-gold" onclick="go('route')">← Til rute</button></div>`; return; }
+  body.innerHTML=`<div style="padding:16px 0 12px"><button class="btn btn-ai" id="ai-btn" onclick="runAI()">✦ Generer AI Sejlanalyse</button></div><div id="ai-out"></div>`;
+}
+
+async function runAI(){
+  if(!cfg.apiKey){ toast('❌ Angiv OpenAI nøgle i Indstillinger'); go('settings'); return; }
+  const w=windows[selIdx]; if(!w) return;
+  const btn=document.getElementById('ai-btn'); if(btn){btn.disabled=true;btn.textContent='⏳ GPT-4o analyserer…';}
+  const boat=BOATS[boatId];
+  const legs=waypoints.slice(0,-1).map((wp,i)=>`Leg ${i+1}: ${wp.name} → ${waypoints[i+1].name}: ${haversine(wp.lat,wp.lon,waypoints[i+1].lat,waypoints[i+1].lon).toFixed(1)} sømil, kurs ${Math.round(bearing(wp.lat,wp.lon,waypoints[i+1].lat,waypoints[i+1].lon))}°`).join('\n');
+  const segs=(w.segments||[]).filter((_,i)=>i%2===0).slice(0,30).map(s=>{const d=new Date(s.time);const em=s.status==='go'?'🟢':s.status==='warn'?'🟡':'🔴';return `${d.toLocaleDateString('da-DK',{weekday:'short'})} ${p2(d.getHours())}:00 [Leg${s.leg} ${s.course}° TWA${s.twa}°]: ${s.wind_kn}kn fra ${wdTxt(s.wind_dir)}, bølger ${s.wave_m}m, fart ${s.speed_kn}kn ${em}`;}).join('\n');
+  const wins=windows.slice(0,5).map((win,i)=>{const d=new Date(win.depart),a=new Date(win.arrival);return `${i+1}. ${d.toLocaleDateString('da-DK',{weekday:'short',day:'numeric',month:'numeric'})} kl.${p2(d.getHours())}:00→${p2(a.getHours())}:00 (${win.hours}t, ${win.avgSpeed}kn, max ${win.worstWind}kn/${win.worstWave}m, 🔴${win.redHours})`;}).join('\n');
+  const prompt=`Du er erfaren dansk sejlkonsulent.\nBÅD: ${boat.name} (${boat.type}, ${boat.length}m, skrogfart ${boat.hullSpeed}kn)\nRUTE: ${waypoints.map(w=>w.name).join(' → ')}\nLEGS:\n${legs}\nAFGANG: ${new Date(w.depart).toLocaleString('da-DK')} → ${new Date(w.arrival).toLocaleString('da-DK')}\nMax vind observeret: ${w.worstWind}kn, Max bølger: ${w.worstWave}m, Røde timer: ${w.redHours}\nVEJR TIME FOR TIME:\n${segs}\nTOP 5 AFGANGSTIDER:\n${wins}\n\nAnalyser:\n## 🎯 Overordnet vurdering\n## ⚓ Leg-for-leg vurdering\n## ⏰ Anbefalet afrejse og begrundelse\n## ⚠️ Risici og forbehold\n## 🌊 Sejlstrategi og tips\nBrug danske søfartsudtryk. Maks 500 ord.`;
+  try{
+    const resp=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:prompt}],max_tokens:1200,temperature:.3})});
+    const data=await resp.json();
+    const txt=data.choices?.[0]?.message?.content||'Intet svar fra API';
+    const out=document.getElementById('ai-out');
+    if(out) out.innerHTML=txt.replace(/## (.*)/g,'<h2>$1</h2>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  }catch(e){const out=document.getElementById('ai-out');if(out)out.innerHTML='<span style="color:var(--stop)">❌ '+e.message+'</span>';}
+  const b2=document.getElementById('ai-btn');if(b2){b2.disabled=false;b2.textContent='✦ Generer igen';}
+}
+
+// ══════════════════════════════════════════
+// RENDER: SETTINGS
+// ══════════════════════════════════════════
+function renderSettings(){
+  const chips=Object.entries(BOATS).map(([id,b])=>
+    `<div class="bc${id===boatId?' sel':''}" onclick="selectBoat('${id}')">
+      <div class="bc-icon">${b.icon}</div>
+      <div class="bc-name">${b.name}</div>
+      <div class="bc-sub">${b.length}m · ${b.hullSpeed}kn</div>
+    </div>`).join('');
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="sh">Båd</div>
+    <div class="boat-row">${chips}</div>
+    <div class="sh">Komfortgrænser</div>
+    <div class="sg">
+      <div class="sr"><div class="sl">Max vind</div><input type="range" min="5" max="40" step="1" value="${cfg.maxWind}" oninput="cfg.maxWind=+this.value;this.nextElementSibling.textContent=this.value+'kn'"><div class="sv">${cfg.maxWind}kn</div></div>
+      <div class="sr"><div class="sl">Max bølger</div><input type="range" min="0.3" max="4" step="0.1" value="${cfg.maxWave}" oninput="cfg.maxWave=+this.value;this.nextElementSibling.textContent=(+this.value).toFixed(1)+'m'"><div class="sv">${cfg.maxWave.toFixed(1)}m</div></div>
+    </div>
+    <div class="sh">Tidsvindue</div>
+    <div class="sg">
+      <div class="sr"><div class="sl">Tidligste afgang</div><input type="date" value="${cfg.dateFrom}" onchange="cfg.dateFrom=this.value"></div>
+      <div class="sr"><div class="sl">Seneste ankomst</div><input type="date" value="${cfg.dateTo}" onchange="cfg.dateTo=this.value"></div>
+      <div class="sr"><div class="sl">Tidligste kl.</div><input type="range" min="0" max="23" step="1" value="${cfg.earlyHour}" oninput="cfg.earlyHour=+this.value;this.nextElementSibling.textContent=this.value+':00'"><div class="sv">${cfg.earlyHour}:00</div></div>
+      <div class="sr"><div class="sl">Seneste kl.</div><input type="range" min="0" max="23" step="1" value="${cfg.lateHour}" oninput="cfg.lateHour=+this.value;this.nextElementSibling.textContent=this.value+':00'"><div class="sv">${cfg.lateHour}:00</div></div>
+    </div>
+    <div class="sh">OpenAI API</div>
+    <div class="sg">
+      <div class="sr"><div class="sl">API Nøgle</div><input type="password" placeholder="sk-…" value="${cfg.apiKey}" oninput="cfg.apiKey=this.value"></div>
+    </div>`;
+}
+function selectBoat(id){ boatId=id; cfg.maxWind=BOATS[id].maxWind; cfg.maxWave=BOATS[id].maxWave; renderSettings(); }
+
+// ══════════════════════════════════════════
+// WEATHER + SAILING MATH (unchanged, verified)
+// ══════════════════════════════════════════
+async function buildWxHours(){
+  const mid=waypoints[Math.floor(waypoints.length/2)];
+  const[wr,mr]=await Promise.all([
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${mid.lat}&longitude=${mid.lon}&hourly=windspeed_10m,winddirection_10m,windgusts_10m&wind_speed_unit=kn&forecast_days=7&timezone=Europe/Copenhagen`),
+    fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${mid.lat}&longitude=${mid.lon}&hourly=wave_height&forecast_days=7&timezone=Europe/Copenhagen`)
+  ]);
+  const w=wr.ok?await wr.json():{}, m=mr.ok?await mr.json():{};
+  const h=w.hourly||{}, mh=m.hourly||{};
+  const times=h.time||[];
+  const start=new Date(cfg.dateFrom); start.setHours(0,0,0,0);
+  const end=new Date(cfg.dateTo); end.setHours(23,59,59,0);
+  return times.map((t,i)=>({time:t,wind_kn:h.windspeed_10m?.[i]||0,wind_dir:h.winddirection_10m?.[i]||0,gust_kn:h.windgusts_10m?.[i]||0,wave_m:mh.wave_height?.[i]||0})).filter(r=>{const d=new Date(r.time);return d>=start&&d<=end;});
+}
+
+function haversine(lat1,lon1,lat2,lon2){const R=3440.065,r=d=>d*Math.PI/180;const a=Math.sin(r(lat2-lat1)/2)**2+Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(r(lon2-lon1)/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
+function bearing(lat1,lon1,lat2,lon2){const r=d=>d*Math.PI/180,deg=r=>r*180/Math.PI;const dl=r(lon2-lon1);const x=Math.sin(dl)*Math.cos(r(lat2));const y=Math.cos(r(lat1))*Math.sin(r(lat2))-Math.sin(r(lat1))*Math.cos(r(lat2))*Math.cos(dl);return(deg(Math.atan2(x,y))+360)%360;}
+function twa(crs,wd){return Math.abs(((crs-wd+180)%360)-180);}
+function polSpeed(boat,TWA,TWS){if(boat.type==='Motorbåd')return boat.baseSpeed||10;const p=boat.polar,angs=Object.keys(p).map(Number).sort((a,b)=>a-b);TWA=Math.max(30,Math.min(180,TWA));TWS=Math.max(0,Math.min(25,TWS));const a1=angs.filter(a=>a<=TWA).pop()||angs[0],a2=angs.filter(a=>a>=TWA)[0]||angs[angs.length-1];function sat(ang,tws){const ws=Object.keys(p[ang]).map(Number).sort((a,b)=>a-b);const w1=ws.filter(w=>w<=tws).pop()||ws[0],w2=ws.filter(w=>w>=tws)[0]||ws[ws.length-1];if(w1===w2)return p[ang][w1];return p[ang][w1]+(p[ang][w2]-p[ang][w1])*(tws-w1)/(w2-w1);}const s1=sat(a1,TWS),s2=sat(a2,TWS);if(a1===a2)return s1;return s1+(s2-s1)*(TWA-a1)/(a2-a1);}
+function wavePen(spd,wv,type){if(!wv)return spd;const p=type==='Motorbåd'?Math.min(.5,wv*.2):wv<.5?0:wv<1.5?wv*.08:.12+(wv-1.5)*.15;return Math.max(spd*(1-p),spd*.3);}
+function wdTxt(d){return['N','NNØ','NØ','ØNØ','Ø','ØSØ','SØ','SSØ','S','SSV','SV','VSV','V','VNV','NV','NNV'][Math.round(d/22.5)%16];}
+function bft(kn){for(const[l,n] of[[1,'Stille'],[4,'Svag'],[7,'Let'],[11,'Let brise'],[17,'Jævn'],[22,'Frisk'],[28,'Stiv'],[34,'Hård'],[41,'Storm']])if(kn<l)return n;return'Orkan';}
+function stOf(wind,wave,mw,mv){return wind<=mw&&wave<=mv?'go':wind<=mw*1.2&&wave<=mv*1.3?'warn':'stop';}
+
+function simTrip(boat,wps,dep,wxH,mw,mv){
+  const segs=[];let t=new Date(dep);
+  for(let li=0;li<wps.length-1;li++){
+    const a=wps[li],b=wps[li+1],nm=haversine(a.lat,a.lon,b.lat,b.lon),crs=bearing(a.lat,a.lon,b.lat,b.lon);
+    let left=nm,g=0;
+    while(left>0.01&&g<120){
+      let wind=0,wd=0,wv=0,gust=0;
+      if(wxH.length){const wx=wxH.reduce((best,h)=>{const d=Math.abs(new Date(h.time)-t);return !best||d<Math.abs(new Date(best.time)-t)?h:best},null);if(wx){wind=wx.wind_kn||0;wd=wx.wind_dir||0;wv=wx.wave_m||0;gust=wx.gust_kn||wind;}}
+      const ang=twa(crs,wd);let spd=polSpeed(boat,ang,wind);spd=wavePen(spd,wv,boat.type);if(wind>mw)spd*=Math.max(.4,1-(wind-mw)*.05);spd=Math.max(spd,.5);
+      const nm2=Math.min(spd,left);
+      segs.push({time:new Date(t),leg:li+1,course:Math.round(crs),twa:Math.round(ang),wind_kn:Math.round(wind*10)/10,wind_dir:Math.round(wd),gust_kn:Math.round(gust*10)/10,wave_m:Math.round(wv*100)/100,speed_kn:Math.round(spd*10)/10,status:stOf(wind,wv,mw,mv)});
+      left-=nm2;t=new Date(t.getTime()+3600000);g++;
+    }
+  }
+  const tot=wps.slice(0,-1).reduce((s,w,i)=>s+haversine(w.lat,w.lon,wps[i+1].lat,wps[i+1].lon),0);
+  const hrs=segs.length,avg=hrs>0?tot/hrs:0;
+  return{totalNm:Math.round(tot*10)/10,hours:hrs,avgSpeed:Math.round(avg*10)/10,arrival:t,segments:segs,worstWind:Math.round(Math.max(...segs.map(s=>s.wind_kn),0)),worstWave:Math.round(Math.max(...segs.map(s=>s.wave_m),0)*10)/10,redHours:segs.filter(s=>s.status==='stop').length,yellowHours:segs.filter(s=>s.status==='warn').length,legs:wps.length-1};
+}
+
+function findWindows(boat,wxH){
+  const res=[];
+  let cur=new Date(cfg.dateFrom);cur.setHours(cfg.earlyHour,0,0,0);
+  const end=new Date(cfg.dateTo);end.setHours(23,0,0,0);
+  const mw=cfg.maxWind,mv=cfg.maxWave;
+  while(cur<=end){
+    const r=simTrip(boat,waypoints,cur,wxH,mw,mv);
+    if(r.hours>0){const sc=r.redHours*10+Math.max(0,r.worstWind-mw)*5+Math.max(0,r.worstWave-mv)*8+r.yellowHours*2;res.push({depart:new Date(cur),score:sc,...r});}
+    cur=new Date(cur.getTime()+3600000);
+  }
+  res.sort((a,b)=>a.score-b.score);return res.slice(0,10);
+}
+
+function showLoader(msg){document.getElementById('loader').classList.add('on');document.getElementById('loader-msg').textContent=msg||'';}
+function hideLoader(){document.getElementById('loader').classList.remove('on');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800);}
+
+// INIT
+go('route');
+</script>
+</body>
+</html>
