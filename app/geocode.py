@@ -35,6 +35,13 @@ HAVN, ISLAND, TOWN, SPOT = 'havn', 'ø', 'by', 'position'
 # brugeren mente. Fem sømil dækker en havneby og dens forstæder.
 SNAP_NM = 5.0
 
+# Rammer man kortet inden for den her afstand af en havn, er det havnen man
+# pegede på. Længere væk er det et punkt i vandet.
+HIT_NM = 0.8
+
+# Og så langt væk kan en havn stadig bruges til at sige hvor man er.
+NEAR_NM = 12.0
+
 # Søger man efter en by, mener man den havn, gæstesejlere faktisk ligger i —
 # ikke rådhuspladsen og ikke den nærmeste jollebro. De store byer har ikke en
 # havn, der hedder det samme som byen, så dem peger vi selv på.
@@ -171,6 +178,41 @@ async def search_remote(query: str, limit: int = 6) -> list[Place]:
 
     _cache[key] = places
     return places[:limit]
+
+
+def at_point(lat: float, lon: float) -> Place:
+    """Hvad er dét her sted, brugeren har sat på kortet?
+
+    Rammer man en havn, er det havnen — også når man har trukket en markør
+    derhen. Rammer man vandet, får punktet navn efter det nærmeste sted, så
+    planen kan sige "ud for Stevns" i stedet for at hedde noget, der passede
+    et helt andet sted på kortet.
+    """
+    near = harbours.nearest(lat, lon, 1)
+    if near:
+        h = near[0]
+        distance = _nm(lat, lon, h.lat, h.lon)
+        if distance <= HIT_NM:
+            return from_harbour(h)
+        if distance <= NEAR_NM:
+            return Place(f'Ud for {short_name(h.name)}', h.detail, lat, lon, SPOT)
+    return _spot(lat, lon) or Place(f'{lat:.3f}°N {lon:.3f}°Ø',
+                                    'Position', lat, lon, SPOT)
+
+
+# Ord man ikke siger, når man peger på et sted på søkortet: "ud for Køge" er
+# hvad en skipper siger, "ud for Køge Marina" er hvad en database siger.
+_HARBOUR_WORDS = ('lystbådehavn', 'bådehavn', 'marina', 'sejlklub', 'havn',
+                  'baadelaug', 'bådelaug', 'hamn', 'hafen', 'sportshafen')
+
+
+def short_name(name: str) -> str:
+    """Havnens navn skåret ned til det, stedet hedder."""
+    out = name
+    for word in _HARBOUR_WORDS:
+        if out.lower().endswith(' ' + word):
+            out = out[:-(len(word) + 1)]
+    return out.strip(' -–,') or name
 
 
 def snap_to_harbour(place: Place) -> Place:

@@ -27,7 +27,13 @@ OCEAN_TILES = ('https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/'
 OCEAN_LABELS = ('https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/'
                 'World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}')
 OCEAN_ATTRIBUTION = 'Esri, GEBCO, NOAA, National Geographic'
-OCEAN_MAX_ZOOM = 13   # Esris havkort går ikke tættere på
+# Esri har kun fliser til zoom 10 i vores farvande. Uden `maxNativeZoom` beder
+# Leaflet om fliser, der ikke findes, og så står der "Map data not yet
+# available" hen over hele kortet — præcis dér, hvor man zoomer ind for at
+# finde havneindløbet. Med den sat strækker Leaflet flisen fra niveau 10 i
+# stedet. Lidt uskarpt, men et kort.
+OCEAN_NATIVE_ZOOM = 10
+OCEAN_MAX_ZOOM = 18
 
 STREET_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
 STREET_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
@@ -45,7 +51,9 @@ HOME_ZOOM = 7
 
 # Under dette zoomniveau ville havnene ligge oven i hinanden som konfetti.
 HARBOUR_ZOOM = 8
-HARBOUR_MAX = 350
+# Og herfra er der plads til at skrive, hvad de hedder.
+HARBOUR_LABEL_ZOOM = 10
+HARBOUR_MAX = 300
 
 # Kortet bygges på serveren, før Vue har monteret komponenten i browseren.
 # Kører vores JavaScript for tidligt, findes `c.map` ikke endnu — og så fik en
@@ -60,6 +68,12 @@ _WHEN_READY = """
   }
   %(body)s
 })(0);
+"""
+
+# Kortets egen lys/mørk-tilstand. Den følger grundkortet, ikke appens tema:
+# havkortet er lyst, også når resten af fladen er mørk.
+_BASE_MODE_BODY = """
+  c.map.getContainer().classList.toggle('map-dark', %(dark)s);
 """
 
 _RESIZE_BODY = """
@@ -102,33 +116,70 @@ _MARKERS_BODY = """
 
 # Havnene tegnes i browseren ud fra én liste, der kun sendes én gang. Ved hvert
 # kortryk vises de, der er i billedet — resten koster ingenting at have med.
+#
+# Fra zoomniveau 10 skrives navnene på. Uden dem er en havn bare en blå prik, og
+# så kan man ikke se om den ene er Mosede og den anden Greve. Navnene sættes med
+# en simpel kollisionstest: den største havn får pladsen, og en etiket, der ville
+# lægge sig oven i en anden, springes over. Det er sådan et rigtigt kort gør det,
+# og det er dét, der gør forskellen på et kort og en samling prikker.
 _HARBOURS_BODY = """
   if (!c.__harbourData) {
     c.__harbourData = %(data)s;
     c.__harbourLayer = L.layerGroup();
+
     c.__harbourDraw = () => {
       const layer = c.__harbourLayer;
       layer.clearLayers();
-      if (!c.__harboursOn || c.map.getZoom() < %(min_zoom)d) return;
+      if (!c.__harboursOn) return;
+      const zoom = c.map.getZoom();
+      if (zoom < %(min_zoom)d) return;
+
       const bounds = c.map.getBounds();
-      const big = c.map.getZoom() >= 10;
-      let shown = 0;
+      const named = zoom >= %(label_zoom)d;
+      const big = zoom >= 11;
+
+      const seen = [];
       for (const h of c.__harbourData) {
-        if (!bounds.contains([h[0], h[1]])) continue;
+        if (bounds.contains([h[0], h[1]])) seen.push(h);
+        if (seen.length > 1500) break;
+      }
+      // Størst først: har to etiketter ikke plads, er det den lille, der viger.
+      seen.sort((a, b) => (b[4] || 0) - (a[4] || 0));
+
+      const taken = [];
+      let shown = 0;
+      for (const h of seen) {
         if (++shown > %(max)d) break;
-        const dot = L.circleMarker([h[0], h[1]], {
-          radius: big ? 5.5 : 4, weight: 2,
-          color: '#ffffff', opacity: .9,
-          fillColor: '#2C7FB8', fillOpacity: .95,
-          className: 'harbour-dot',
+
+        let label = '';
+        if (named) {
+          const p = c.map.latLngToContainerPoint([h[0], h[1]]);
+          const w = 10 + h[2].length * 5.8;
+          const box = [p.x - 6, p.y - 9, p.x + 11 + w, p.y + 9];
+          const clash = taken.some((t) => !(box[2] < t[0] || box[0] > t[2]
+                                         || box[3] < t[1] || box[1] > t[3]));
+          if (!clash) {
+            taken.push(box);
+            label = '<b>' + h[2] + '</b>';
+          }
+        }
+
+        const marker = L.marker([h[0], h[1]], {
+          icon: L.divIcon({
+            className: 'hb-icon',
+            html: '<span class="hb' + (big ? ' hb--big' : '') + '"><i></i>'
+                  + label + '</span>',
+            iconSize: [0, 0], iconAnchor: [0, 0],
+          }),
+          keyboard: false, riseOnHover: true, zIndexOffset: -500,
         });
-        dot.bindTooltip(h[2] + (h[3] ? ' · ' + h[3] : ''),
-                        {direction: 'top', offset: [0, -6]});
-        dot.on('click', (ev) => {
+        marker.bindTooltip(h[2] + (h[3] ? ' · ' + h[3] : ''),
+                           {direction: 'top', offset: [0, -10], className: 'hb-tip'});
+        marker.on('click', (ev) => {
           L.DomEvent.stopPropagation(ev);
           emitEvent('harbour_pick', {lat: h[0], lng: h[1], name: h[2]});
         });
-        layer.addLayer(dot);
+        layer.addLayer(marker);
       }
     };
     c.map.on('moveend zoomend', c.__harbourDraw);
@@ -183,6 +234,7 @@ class RouteMap:
         # måle op igen — helt i browseren, så intet kan fyre efter at siden
         # er lukket.
         self._run(_RESIZE_BODY)
+        self._paint_mode()
         self._push_harbours()
 
     def _run(self, body: str) -> None:
@@ -194,10 +246,12 @@ class RouteMap:
         if self._style == CHART:
             self._base = [
                 self.map.tile_layer(url_template=OCEAN_TILES, options={
-                    'attribution': OCEAN_ATTRIBUTION, 'maxZoom': OCEAN_MAX_ZOOM,
+                    'attribution': OCEAN_ATTRIBUTION,
+                    'maxZoom': OCEAN_MAX_ZOOM, 'maxNativeZoom': OCEAN_NATIVE_ZOOM,
                     'className': 'chart-tiles', 'zIndex': 1}),
                 self.map.tile_layer(url_template=OCEAN_LABELS, options={
-                    'maxZoom': OCEAN_MAX_ZOOM, 'className': 'chart-tiles', 'zIndex': 2}),
+                    'maxZoom': OCEAN_MAX_ZOOM, 'maxNativeZoom': OCEAN_NATIVE_ZOOM,
+                    'className': 'chart-tiles', 'zIndex': 2}),
             ]
         else:
             self._base = [self.map.tile_layer(
@@ -209,6 +263,12 @@ class RouteMap:
         for layer in self._base or []:
             self.map.remove_layer(layer)
         self._add_base()
+        self._paint_mode()
+
+    def _paint_mode(self) -> None:
+        """Fortæl kortet om dets eget grundkort er mørkt."""
+        dark = self._style == STREET and self._dark
+        self._run(_BASE_MODE_BODY % {'dark': 'true' if dark else 'false'})
 
     def set_dark(self, dark: bool) -> None:
         """Skift grundkort, når brugeren skifter tema."""
@@ -258,12 +318,17 @@ class RouteMap:
         """Send havnelisten til browseren — kun første gang, den er stor."""
         data = 'null'
         if not self._harbours_sent:
-            rows = [[round(h.lat, 5), round(h.lon, 5), h.name, h.detail]
+            # Navnene skrives ind i HTML af browseren, så vinkelparenteser skal
+            # ikke med. Ingen havn hedder noget med < eller >.
+            rows = [[round(h.lat, 5), round(h.lon, 5),
+                     h.name.replace('<', '').replace('>', ''),
+                     h.detail.replace('<', '').replace('>', ''), h.berths]
                     for h in harbours.all_harbours()]
             data = json.dumps(rows, ensure_ascii=False, separators=(',', ':'))
             self._harbours_sent = bool(rows)
         self._run(_HARBOURS_BODY % {
-            'data': data, 'min_zoom': HARBOUR_ZOOM, 'max': HARBOUR_MAX,
+            'data': data, 'min_zoom': HARBOUR_ZOOM,
+            'label_zoom': HARBOUR_LABEL_ZOOM, 'max': HARBOUR_MAX,
             'on': 'true' if self._harbours_on else 'false'})
 
     # ── Begivenheder ────────────────────────────────────────────────

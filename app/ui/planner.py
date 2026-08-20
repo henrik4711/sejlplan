@@ -168,37 +168,36 @@ class Planner:
         with ui.element('div').classes(
                 'absolute top-3 right-3 z-[500] flex flex-col items-end gap-2'):
 
-            with ui.element('div').classes('card flex overflow-hidden p-0.5 gap-0.5'):
+            with ui.element('div').classes('seg'):
                 self.style_btns = {}
                 for key, label, tip in (
                         ('chart', 'Søkort', 'Havkort med dybdeforhold'),
                         ('street', 'Landkort', 'Almindeligt kort med veje og byer')):
-                    btn = ui.button(label, on_click=lambda _, k=key: self._set_map_style(k)) \
-                        .props('flat dense no-caps size=sm') \
-                        .classes('!px-2.5 !py-1 text-[11.5px] rounded-[8px]') \
-                        .tooltip(tip)
-                    self.style_btns[key] = btn
+                    item = ui.element('div').classes('seg-item')
+                    with item:
+                        ui.label(label)
+                    item.tooltip(tip)
+                    item.on('click', lambda _, k=key: self._set_map_style(k))
+                    self.style_btns[key] = item
                 self._paint_style_buttons()
 
             self.harbour_btn = ui.button(icon='sailing', on_click=self._toggle_harbours) \
-                .props('flat dense square').classes('map-btn w-9 h-9') \
+                .props('flat dense square').classes('map-btn map-btn--on w-10 h-10') \
                 .tooltip('Vis alle lystbådehavne — klik på en for at lægge den i ruten')
             self.seamark_btn = ui.button(icon='anchor', on_click=self._toggle_seamarks) \
-                .props('flat dense square').classes('map-btn w-9 h-9') \
+                .props('flat dense square').classes('map-btn w-10 h-10') \
                 .tooltip('Vis bøjer, fyr og sejlløb fra OpenSeaMap')
             ui.button(icon='center_focus_strong',
                       on_click=lambda: self.map and self.map.fit(self.s.route)) \
-                .props('flat dense square').classes('map-btn w-9 h-9') \
+                .props('flat dense square').classes('map-btn w-10 h-10') \
                 .tooltip('Zoom til hele ruten')
 
     def _paint_style_buttons(self) -> None:
         active = self.map.style if self.map else 'chart'
-        for key, btn in self.style_btns.items():
+        for key, item in self.style_btns.items():
             on = key == active
-            btn.classes(add='bg-[var(--accent-soft)] text-[var(--accent)] font-bold' if on
-                        else 'text-[var(--txt-3)]',
-                        remove='text-[var(--txt-3)]' if on
-                        else 'bg-[var(--accent-soft)] text-[var(--accent)] font-bold')
+            item.classes(add='seg-item--on' if on else '',
+                         remove='' if on else 'seg-item--on')
 
     def _set_map_style(self, style: str) -> None:
         if not self.map:
@@ -235,8 +234,8 @@ class Planner:
     def map_hint(self) -> None:
         if self.s.routing:
             ui.html(
-                '<div class="card px-3.5 py-2 text-[12.5px] text-[var(--txt-2)] '
-                'flex items-center gap-2 shadow-lg">'
+                '<div class="float px-4 py-2 text-[12.5px] text-[var(--txt-2)] '
+                'flex items-center gap-2.5">'
                 '<span class="spinner-dot"></span>Lægger ruten udenom land…</div>')
             return
         if len(self.s.waypoints) >= 2:
@@ -244,8 +243,8 @@ class Planner:
         text = ('Klik på kortet, eller søg efter en havn, for at sætte afgangshavnen'
                 if not self.s.waypoints else 'Klik igen for at sætte destinationen')
         ui.html(
-            f'<div class="card px-3.5 py-2 text-[12.5px] text-[var(--txt-2)] '
-            f'flex items-center gap-2 shadow-lg">'
+            f'<div class="float px-4 py-2 text-[12.5px] text-[var(--txt-2)] '
+            f'flex items-center gap-2.5">'
             f'<span class="material-icons text-[16px] text-[var(--accent)]">touch_app</span>'
             f'{esc(text)}</div>')
 
@@ -312,8 +311,8 @@ class Planner:
         with ui.element('div').classes('relative mb-2'):
             self.search_input = ui.input(placeholder='Søg havn, ø eller position…') \
                 .props('outlined dense clearable autocomplete=off '
-                       'input-class="text-[14px]"') \
-                .classes('w-full') \
+                       'input-class="text-[14.5px]"') \
+                .classes('w-full search') \
                 .on('keydown.enter', self._accept_first_suggestion)
             with self.search_input.add_slot('prepend'):
                 ui.icon('search').classes('text-[19px] text-[var(--txt-3)]')
@@ -435,6 +434,49 @@ class Planner:
         if self.s.route_ready and not route.ok:
             ui.html('<div class="chip chip--warn mt-2">Et ben kunne ikke lægges '
                     'sikkert udenom land — kontrollér det selv på søkortet.</div>')
+        self._stopover_preview(route)
+
+    def _stopover_preview(self, route) -> None:
+        """Havnene langs ruten — dem man kan søge ind i, hvis vejret skifter.
+
+        De er regnet ud alligevel, fordi planlæggeren skal bruge dem til
+        overnatninger. At vise dem allerede her koster ingenting og svarer på
+        det spørgsmål, enhver stiller sig selv inden en længere tur: hvor kan
+        jeg gå ind undervejs?
+        """
+        if not self.s.route_ready:
+            return
+        # Rutens egne punkter er ikke "undervejs" — de er dér, man skal hen.
+        margin = min(2.0, route.total_nm / 6)
+        found = [(h, along, detour) for h, along, detour in harbours.stopovers(route)
+                 if margin < along < route.total_nm - margin]
+        if len(found) < 2:
+            return
+
+        # Spred dem ud over ruten i stedet for at vise ti havne i samme bugt.
+        step = max(1, len(found) // 6)
+        picked = found[::step][:6]
+
+        ui.label('Havne undervejs').classes('section-label mt-4 mb-1 block')
+        ui.label('Steder du kan søge ind, hvis vejret skifter. Klik for at lægge '
+                 'en ind som mellemstop.') \
+            .classes('text-[11.5px] text-[var(--txt-3)] mb-2 block leading-snug')
+
+        with ui.element('div').classes('card overflow-hidden'):
+            for i, (h, along, detour) in enumerate(picked):
+                if i:
+                    ui.html('<div class="hairline"></div>')
+                row = ui.element('div').classes(
+                    'flex items-center gap-3 px-3 py-2 cursor-pointer '
+                    'hover:bg-[var(--sea-3)] transition-colors')
+                with row:
+                    ui.icon('anchor').classes('text-[15px] text-[var(--txt-3)] shrink-0')
+                    with ui.element('div').classes('min-w-0 flex-1'):
+                        ui.label(h.name).classes('text-[13px] font-medium truncate block')
+                        ui.label(f'efter {nm(along)} sm · {nm(detour)} sm ind fra ruten') \
+                            .classes('text-[11px] text-[var(--txt-3)] tnum truncate block')
+                    ui.icon('add').classes('text-[16px] text-[var(--txt-3)] shrink-0')
+                row.on('click', lambda _, x=h: self._add_place(geocode.from_harbour(x)))
 
     # ── Fast handlingslinje i bunden af panelet ─────────────────────
     @ui.refreshable_method
@@ -1115,31 +1157,30 @@ class Planner:
             self._redraw_map(fit=fit)
 
     # ── Waypoints ───────────────────────────────────────────────────
-    def _map_clicked(self, lat: float, lon: float) -> None:
-        """Et klik på kortet. Rammer det en havn eller land, retter vi det op.
+    def _point_on_map(self, lat: float, lon: float) -> geocode.Place | None:
+        """Hvad brugeren ramte. None hvis det er land, man ikke kan sejle på.
 
-        Man sigter sjældent efter et punkt i det åbne vand. Rammer klikket en
-        havn, er det havnen man mener. Rammer det land, er det som regel kysten
-        lige ved siden af — og ellers er det en fejl, der er værd at sige fra om,
-        i stedet for at lægge en rute til midten af Sverige.
+        Man sigter sjældent efter et punkt i det åbne vand. Rammer man en havn,
+        er det havnen man mener. Rammer man kysten, er det som regel vandet lige
+        ved siden af — og ellers er det en fejl, der er værd at sige fra om, i
+        stedet for at lægge en rute til midten af Sverige.
         """
-        near = harbours.nearest(lat, lon, 1)
-        if near and haversine(lat, lon, near[0].lat, near[0].lon) < 0.8:
-            self._add_place(geocode.from_harbour(near[0]))
-            return
-
         if not landmask.is_water(lat, lon):
+            near = harbours.nearest(lat, lon, 1)
+            if near and haversine(lat, lon, near[0].lat, near[0].lon) < geocode.HIT_NM:
+                return geocode.from_harbour(near[0])
             water = landmask.nearest_water(lat, lon, max_nm=1.5)
             if water == (lat, lon):
-                ui.notify('Der er land her. Klik i vandet, eller søg efter en havn.',
-                          type='warning', position='bottom')
-                return
+                ui.notify('Der er land her. Vælg et sted i vandet, eller søg '
+                          'efter en havn.', type='warning', position='bottom')
+                return None
             lat, lon = water
+        return geocode.at_point(lat, lon)
 
-        n = len(self.s.waypoints)
-        self.s.add(Waypoint(lat, lon, 'Afgang' if n == 0 else f'Punkt {n + 1}'))
-        self.refresh()
-        self._schedule_route()
+    def _map_clicked(self, lat: float, lon: float) -> None:
+        place = self._point_on_map(lat, lon)
+        if place:
+            self._add_place(place)
 
     def _harbour_clicked(self, lat: float, lon: float, name: str) -> None:
         found = [h for h in harbours.nearest(lat, lon, 3) if h.name == name]
@@ -1148,14 +1189,27 @@ class Planner:
         self._add_place(place)
 
     def _marker_dragged(self, index: int, lat: float, lon: float) -> None:
+        """Markøren er trukket et nyt sted hen — så hedder punktet også noget nyt.
+
+        Trak man slutpunktet fra Præstø til Skanör, flyttede ruten sig, men
+        navnet blev stående. Resten af planen — overskriften, dagene, GPX-filen,
+        briefingen til Claude — talte så om Præstø, mens man sejlede til Sverige.
+        Navnet skal følge med positionen.
+        """
         if not (0 <= index < len(self.s.waypoints)):
             return
+        place = self._point_on_map(lat, lon)
+        if place is None:
+            self.refresh()      # tegn markøren tilbage hvor den lå
+            return
+
         wp = self.s.waypoints[index]
-        wp.lat, wp.lon = lat, lon
+        wp.lat, wp.lon, wp.name = place.lat, place.lon, place.name
         self.s.invalidate()
         self.s.persist()
         self.refresh()
         self._schedule_route()
+        ui.notify(f'Punkt {index + 1} flyttet til {place.name}', position='bottom')
 
     def _add_place(self, place: geocode.Place) -> None:
         wp = Waypoint(place.lat, place.lon, place.name)

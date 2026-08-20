@@ -37,8 +37,15 @@ body {
   --stop:    #D64545;
   --shadow:  0 1px 2px rgba(13,27,42,.06), 0 8px 24px rgba(13,27,42,.07);
   --shadow-lift: 0 2px 6px rgba(13,27,42,.10), 0 16px 40px rgba(13,27,42,.14);
-  --r:       14px;
-  --r-sm:    10px;
+  /* Flydende flader oven på kortet er halvgennemsigtige og slørede, så man kan
+     ane havet bagved. Det er dét, der gør at knapperne hører til kortet i
+     stedet for at ligge som et lag papir hen over det. */
+  --glass:      rgba(255,255,255,.82);
+  --glass-firm: rgba(255,255,255,.94);
+  --glass-line: rgba(13,27,42,.09);
+  --r:       16px;
+  --r-sm:    11px;
+  --r-lg:    22px;
 }
 
 body.body--dark {
@@ -58,6 +65,9 @@ body.body--dark {
   --stop:    #E4645C;
   --shadow:  0 1px 2px rgba(0,0,0,.30), 0 8px 24px rgba(0,0,0,.34);
   --shadow-lift: 0 2px 8px rgba(0,0,0,.38), 0 18px 44px rgba(0,0,0,.46);
+  --glass:      rgba(22,35,47,.80);
+  --glass-firm: rgba(22,35,47,.93);
+  --glass-line: rgba(240,237,232,.12);
 }
 
 /* Siden bag app-skallen må hverken rulle eller vokse. */
@@ -119,6 +129,26 @@ body {
 .section-label {
   font-size: 11px; font-weight: 700; letter-spacing: .09em;
   text-transform: uppercase; color: var(--txt-3);
+}
+
+/* Flydende boble over kortet — samme glas som knapperne. */
+.float {
+  background: var(--glass); border: 1px solid var(--glass-line);
+  border-radius: 999px; box-shadow: var(--shadow-lift);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+}
+
+/* ═══ Søgefelt ═══════════════════════════════════════════════════ */
+/* Fyldt frem for kantet. Et søgefelt skal invitere, ikke ligne en formular. */
+.q-field--outlined .q-field__control:before { border-color: transparent; }
+.search .q-field__control {
+  background: var(--sea-3); border-radius: 12px; height: 42px;
+}
+.search .q-field__control:hover:before { border-color: transparent; }
+.search.q-field--focused .q-field__control {
+  background: var(--sea-1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 /* ═══ Trinviser ══════════════════════════════════════════════════ */
@@ -236,6 +266,11 @@ body {
 .plan-view {
   position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
   z-index: 600; background: var(--sea-2);
+  animation: plan-in .34s cubic-bezier(.22,.9,.3,1);
+}
+@keyframes plan-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 @media (min-width: 768px) {
   .plan-view { position: absolute; top: 0; }
@@ -257,9 +292,45 @@ body {
   background: var(--accent); color: var(--sea-1);
 }
 
-/* ═══ Havneprikker på kortet ═════════════════════════════════════ */
-.harbour-dot { cursor: pointer; transition: r .12s; }
-.harbour-dot:hover { stroke-width: 3; }
+/* ═══ Havnene på kortet ══════════════════════════════════════════ */
+/* Ikonet er et punkt uden størrelse. Prikken og navnet placeres i forhold til
+   det, så etiketten kan stå ved siden af uden at flytte selve positionen. */
+.hb-icon { background: none; border: 0; }
+.hb { position: relative; display: block; cursor: pointer; }
+.hb i {
+  position: absolute; left: -4px; top: -4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #2C7FB8; border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.45);
+  transition: transform .12s;
+}
+.hb--big i { left: -5px; top: -5px; width: 10px; height: 10px; border-width: 2px; }
+.hb:hover i { transform: scale(1.35); }
+.hb b {
+  position: absolute; left: 9px; top: -8px;
+  white-space: nowrap; font-size: 11px; font-weight: 650;
+  letter-spacing: -.005em; color: #0D1B2A;
+  /* Halo i stedet for en boks: navnet kan læses over både lyst og mørkt kort,
+     uden at der ligger en firkant og dækker for søkortet. */
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 5px #fff, 0 0 8px #fff;
+  pointer-events: none;
+}
+.hb--big b { font-size: 12px; left: 11px; top: -9px; }
+/* Etiketten retter sig efter kortet, ikke efter appen. Havkortet er lyst også i
+   mørk tilstand, så dér skal navnene blive ved med at være mørke — kun på det
+   mørke landkort vender de om. */
+.map-dark .hb b {
+  color: #F2F6FA;
+  text-shadow: 0 0 3px #0B1622, 0 0 3px #0B1622, 0 0 6px #0B1622, 0 0 9px #0B1622;
+}
+.hb-tip.leaflet-tooltip {
+  background: var(--glass); color: var(--txt-1);
+  border: 1px solid var(--line); border-radius: 8px;
+  backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: var(--shadow);
+  font-size: 11.5px; font-weight: 600; padding: 3px 8px;
+}
+.hb-tip.leaflet-tooltip-top::before { border-top-color: var(--line); }
 
 /* Lille roterende prik til "vi regner på det" uden en hel spinner. */
 .spinner-dot {
@@ -327,12 +398,43 @@ body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.
 .leaflet-control-zoom a:hover { background: var(--sea-3); }
 
 /* Knapper der svæver over kortet. */
+/* Knapper der svæver over kortet. Glasset gør dem lette; skyggen holder dem
+   læselige over både et hvidt isbjerg og et mørkeblåt dyb. */
 .map-btn {
-  background: var(--sea-1); border: 1px solid var(--line);
-  border-radius: var(--r-sm); box-shadow: var(--shadow);
+  background: var(--glass); border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  box-shadow: var(--shadow);
   color: var(--txt-2);
+  transition: background .16s, color .16s, transform .12s;
 }
-.map-btn--on { color: var(--accent); border-color: var(--accent); }
+.map-btn:hover { background: var(--glass-firm); color: var(--txt-1); }
+.map-btn:active { transform: scale(.94); }
+.map-btn--on { color: var(--accent); background: var(--glass-firm); }
+
+/* ═══ Segmentvælger ══════════════════════════════════════════════ */
+/* To valg, ét spor, og en markør der glider. Den fylder mindre end to knapper
+   og siger tydeligere, at man vælger mellem dem — ikke trykker på dem begge. */
+.seg {
+  display: inline-flex; padding: 3px; gap: 2px;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  border-radius: 999px; box-shadow: var(--shadow);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+}
+.seg-item {
+  padding: 5px 13px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--txt-3);
+  cursor: pointer; user-select: none; white-space: nowrap;
+  transition: background .18s, color .18s;
+}
+.seg-item:hover { color: var(--txt-1); }
+.seg-item--on {
+  background: var(--sea-1); color: var(--txt-1);
+  box-shadow: 0 1px 3px rgba(13,27,42,.14);
+}
+body.body--dark .seg-item--on { box-shadow: 0 1px 3px rgba(0,0,0,.5); }
 
 .wp-marker {
   display: grid; place-items: center;
