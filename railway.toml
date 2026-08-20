@@ -1,0 +1,11 @@
+# Railway bygger med Nixpacks ud fra requirements.txt og starter med
+# kommandoen herunder. Porten kommer fra $PORT, som `app/config.py` læser.
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python main.py"
+healthcheckPath = "/"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
