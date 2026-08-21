@@ -19,7 +19,7 @@ from datetime import date
 from nicegui import ui
 
 from .. import (ai, geocode, harbours, landmask, narrative, searoute, share,
-                weather)
+                theme, weather)
 from ..config import settings
 from ..dates import clock, day, day_time, duration, full, month
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
@@ -639,7 +639,7 @@ class Planner:
                 ui.button('Se sejlplanen', icon='arrow_forward',
                           on_click=lambda: self._go_to_step(3)) \
                     .props('unelevated no-caps size=lg') \
-                    .classes('w-full bg-[var(--accent)] text-[var(--sea-1)] font-bold')
+                    .classes('w-full btn-primary')
         elif self.s.step == 3 and len(self.s.windows) > 1:
             with self._bar():
                 ui.button('Vælg en anden afgang', icon='schedule',
@@ -663,7 +663,7 @@ class Planner:
             ui.button('Find bedste afgangstider', icon='travel_explore',
                       on_click=self.run_analysis) \
                 .props('unelevated no-caps size=lg') \
-                .classes('w-full bg-[var(--accent)] text-[var(--sea-1)] font-bold')
+                .classes('w-full btn-primary')
 
     @staticmethod
     def _short_date(iso: str) -> str:
@@ -1045,7 +1045,7 @@ class Planner:
         label = 'Lav analysen om' if self.s.ai_text else 'Analysér ruten'
         ui.button(label, icon='auto_awesome', on_click=self.run_ai) \
             .props('unelevated no-caps size=lg') \
-            .classes('w-full mt-3 bg-[var(--teal)] text-white font-bold')
+            .props('color=secondary').classes('w-full mt-3 font-bold')
 
     @ui.refreshable_method
     def ai_output(self) -> None:
@@ -1449,6 +1449,8 @@ class Planner:
     # ── Indstillinger ───────────────────────────────────────────────
     def _toggle_theme(self) -> None:
         self.dark.value = not self.dark.value
+        # Quasars egne farver skal med over — guldet er lysere i mørk tilstand.
+        theme.palette(bool(self.dark.value))
         if self.map:
             self.map.set_dark(bool(self.dark.value))
 

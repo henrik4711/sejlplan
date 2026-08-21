@@ -134,7 +134,7 @@ def editor(s, refresh_boats, refresh_limits) -> None:
                       on_click=lambda: _save(s, fields, dialog,
                                              refresh_boats, refresh_limits)) \
                 .props('unelevated no-caps') \
-                .classes('bg-[var(--accent)] text-[var(--sea-1)] font-bold px-4')
+                .classes('btn-primary px-4')
 
     dialog.open()
 

@@ -150,7 +150,7 @@ def settings_dialog(planner) -> None:
             ui.element('div').classes('flex-1')
             ui.button('Færdig', on_click=dialog.close) \
                 .props('unelevated no-caps') \
-                .classes('bg-[var(--accent)] text-[var(--sea-1)] font-bold px-5')
+                .classes('btn-primary px-5')
 
     def _closed() -> None:
         if _snapshot(s) != before:

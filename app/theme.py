@@ -510,6 +510,10 @@ body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.
   line-height: 1; white-space: nowrap;
 }
 
+/* Den store handlingsknap. Quasar farver den selv efter `primary`, men
+   teksten skal være mørk på guld — hvid på guld kan man ikke læse. */
+.btn-primary.q-btn { color: var(--sea-1) !important; font-weight: 700; }
+
 /* ═══ Segmentvælger ══════════════════════════════════════════════ */
 /* To valg, ét spor, og en markør der glider. Den fylder mindre end to knapper
    og siger tydeligere, at man vælger mellem dem — ikke trykker på dem begge. */
@@ -592,8 +596,24 @@ body.body--dark .seg-item--on { box-shadow: 0 1px 3px rgba(0,0,0,.5); }
 """
 
 
+def palette(dark: bool = False) -> None:
+    """Giv Quasar appens egne farver.
+
+    Quasars hjælpeklasser — `bg-primary`, `text-primary` — er sat med
+    `!important`, så en klasse udefra kan ikke overtrumfe dem. Resultatet var,
+    at hver eneste knap, kontakt, skyder og spinner stod i Quasars standardblå
+    midt i en flade, der ellers var guld og hav. Vi sætter farverne dér, hvor
+    Quasar selv henter dem, i stedet for at kæmpe med dem bagefter.
+    """
+    ui.colors(primary=GOLD_DARK if dark else GOLD,
+              secondary=TEAL_DARK if dark else TEAL,
+              accent=GOLD_DARK if dark else GOLD,
+              positive=GREEN, negative=RED, warning=AMBER)
+
+
 def apply() -> None:
     """Indlæs skrifttype og stilark. Kaldes én gang pr. side."""
+    palette()
     ui.add_head_html(
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
