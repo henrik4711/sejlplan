@@ -457,9 +457,19 @@ body.body--dark .seamark-tiles { filter: brightness(1.35) saturate(1.15); }
    passer til resten af fladen uden at miste dybdekurverne. */
 body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.04); }
 
+/* Leaflets egne zoomknapper er hvide firkanter med skarpe hjørner. De stak af
+   fra alt andet på kortet, så de får samme glas og samme runding. */
+.leaflet-control-zoom {
+  border: 1px solid var(--glass-line) !important;
+  border-radius: var(--r-sm) !important;
+  overflow: hidden; box-shadow: var(--shadow) !important;
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+}
 .leaflet-control-zoom a {
-  background: var(--sea-1); color: var(--txt-1);
-  border-color: var(--line-2);
+  background: var(--glass); color: var(--txt-2);
+  border-color: var(--glass-line);
+  width: 32px; height: 32px; line-height: 30px; font-size: 17px;
 }
 .leaflet-control-zoom a:hover { background: var(--sea-3); }
 
@@ -478,11 +488,23 @@ body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.
 .map-btn:hover { background: var(--glass-firm); color: var(--txt-1); }
 .map-btn:active { transform: scale(.94); }
 .map-btn--on { color: var(--accent); background: var(--glass-firm); }
-/* Knap med tekst under ikonet. Bredden er sat, så de tre står i én kolonne
-   med samme kant — ikke som tre forskellige klodser. */
-.map-btn--tall {
-  width: 74px; height: 54px; padding: 0;
+/* Knapperne står i én flade med skillelinjer imellem — som et enkelt stykke
+   glas, ikke tre løse klodser der svæver hver for sig. */
+.map-stack {
+  display: flex; flex-direction: column;
+  border-radius: var(--r-sm); overflow: hidden;
+  background: var(--glass); border: 1px solid var(--glass-line);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  box-shadow: var(--shadow);
 }
+.map-stack .map-btn {
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.map-stack .map-btn + .map-btn { border-top: 1px solid var(--glass-line); }
+.map-stack .map-btn:active { transform: none; }
+.map-btn--tall { width: 76px; height: 54px; padding: 0; }
 .map-btn-label {
   font-size: 9.5px; font-weight: 650; letter-spacing: .01em;
   line-height: 1; white-space: nowrap;

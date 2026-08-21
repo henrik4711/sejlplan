@@ -238,20 +238,21 @@ class Planner:
                     self.style_btns[key] = item
                 self._paint_style_buttons()
 
-            # Knapperne har tekst under ikonet. Et anker og en bølge er ikke
-            # tegn, man bare kan regne ud, og på en telefon findes der ingen
-            # tooltip at holde musen over. Havnelaget er det, appen kan — så
-            # skal man kunne se, at knappen findes.
-            self.harbour_btn = self._map_button(
-                'anchor', 'Havne', self._toggle_harbours, on=True,
-                tip='Vis alle lystbådehavne — klik på en for at lægge den i ruten')
-            self.seamark_btn = self._map_button(
-                'waves', 'Sømærker', self._toggle_seamarks,
-                tip='Bøjer, fyr og sejlløb fra OpenSeaMap')
-            self._map_button(
-                'zoom_out_map', 'Hele ruten',
-                lambda: self.map and self.map.fit(self.s.route),
-                tip='Zoom ud, så hele ruten er i billedet')
+            # Knapperne har tekst under ikonet og står i én flade. Et anker og
+            # en bølge er ikke tegn, man bare kan regne ud, og på en telefon
+            # findes der ingen tooltip at holde musen over. Havnelaget er dét,
+            # appen kan — så skal man kunne se, at knappen findes.
+            with ui.element('div').classes('map-stack'):
+                self.harbour_btn = self._map_button(
+                    'anchor', 'Havne', self._toggle_harbours, on=True,
+                    tip='Vis alle lystbådehavne — klik på en for at lægge den i ruten')
+                self.seamark_btn = self._map_button(
+                    'waves', 'Sømærker', self._toggle_seamarks,
+                    tip='Bøjer, fyr og sejlløb fra OpenSeaMap')
+                self._map_button(
+                    'zoom_out_map', 'Hele ruten',
+                    lambda: self.map and self.map.fit(self.s.route),
+                    tip='Zoom ud, så hele ruten er i billedet')
 
     @staticmethod
     def _map_button(icon: str, label: str, on_click, on: bool = False,

@@ -34,8 +34,10 @@ OCEAN_ATTRIBUTION = 'Esri, GEBCO, NOAA, National Geographic'
 # stedet. Lidt uskarpt, men et kort.
 OCEAN_NATIVE_ZOOM = 10
 # Over det her niveau er den strakte flise ikke længere et kort at navigere
-# efter, og det skarpe landkort nedenunder tager over.
-CHART_FADE_ZOOM = 12
+# efter, og det skarpe landkort nedenunder tager over. Sat lig med Esris egen
+# grænse: så snart der ikke er rigtige fliser mere, er der ingen grund til at
+# vise en forstørrelse af dem.
+CHART_FADE_ZOOM = 10
 
 STREET_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
 STREET_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
@@ -194,7 +196,16 @@ _HARBOURS_BODY = """
       // Størst først: har to etiketter ikke plads, er det den lille, der viger.
       seen.sort((a, b) => (b[4] || 0) - (a[4] || 0));
 
+      // Rutens egne markører har fortrinsret. Uden det kunne en havneetiket
+      // lægge sig hen over destinationen, så det så ud som om ruten gik til
+      // et helt andet sted.
       const taken = [];
+      c.map.eachLayer((l) => {
+        if (!l.setIcon || !l.getLatLng) return;
+        const p = c.map.latLngToContainerPoint(l.getLatLng());
+        taken.push([p.x - 20, p.y - 20, p.x + 20, p.y + 20]);
+      });
+
       let shown = 0;
       for (const h of seen) {
         if (++shown > %(max)d) break;
