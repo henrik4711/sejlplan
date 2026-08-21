@@ -40,7 +40,13 @@ def settings_dialog(planner) -> None:
             # ── Båd ──
             @ui.refreshable
             def boat_block() -> None:
-                own_boat_block(s, boat_block.refresh, limits_block.refresh)
+                # `limits_block` findes først længere nede i funktionen her.
+                # `boat_block()` kaldes før da, så en direkte henvisning til
+                # `limits_block.refresh` blev slået op med det samme og kastede
+                # NameError — hele indstillingsdialogen kunne ikke åbnes. En
+                # lambda venter med opslaget, til brugeren rent faktisk trykker.
+                own_boat_block(s, boat_block.refresh,
+                               lambda: limits_block.refresh())
                 ui.html('<span class="section-label">Eller et eksempel</span>')
                 ui.label('Vælg den, der ligner din mest, hvis du ikke vil taste '
                          'din egen ind.')                     .classes('text-[11px] text-[var(--txt-3)] mt-1 mb-2 block')
