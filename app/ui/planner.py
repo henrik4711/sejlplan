@@ -91,6 +91,19 @@ def nm(value: float) -> str:
     return dk(value, 1)
 
 
+def chip(icon: str, text: str, kind: str = '') -> str:
+    """En lille mærkat med ikon og tal.
+
+    Der stod emoji her før — 💨 🌊 ⛽. De tegnes af styresystemet, ikke af os,
+    så de så forskellige ud på Windows og på en iPhone og passede ingen af
+    stederne til resten af skriften. Material-ikonerne er de samme, appen
+    bruger alle andre steder.
+    """
+    css = f'chip chip--{kind}' if kind else 'chip'
+    return (f'<span class="{css} tnum">'
+            f'<span class="material-icons chip-ico">{icon}</span>{esc(text)}</span>')
+
+
 class Planner:
     """Hele planlæggeren for én bruger."""
 
@@ -175,8 +188,9 @@ class Planner:
 
             ui.element('div').classes('flex-1')
 
-            self.boat_button()
-
+            # Båden stod også her som en knap, der åbnede den samme dialog som
+            # tandhjulet. To veje til det samme sted er én for meget — og båden
+            # står nu tydeligt i panelets "Turen"-liste.
             ui.button(icon='tune', on_click=self._open_settings) \
                 .props('flat round dense').tooltip('Båd, grænser og sejldøgn')
             self.share_button()
@@ -195,14 +209,6 @@ class Planner:
             ui.label(f'{self.s.waypoints[0].name} → {self.s.waypoints[-1].name}') \
                 .classes('text-[13px] font-semibold truncate max-w-[26ch]')
             ui.html(f'<span class="chip tnum">{self.s.total_nm:.0f} sm</span>')
-
-    @ui.refreshable_method
-    def boat_button(self) -> None:
-        boat = self.s.boat
-        ui.button(boat.name, icon=boat.icon, on_click=self._open_settings) \
-            .props('flat dense no-caps') \
-            .classes('text-[var(--txt-2)] text-[13px] max-sm:hidden') \
-            .tooltip('Skift båd og grænser')
 
     def share_button(self) -> None:
         with ui.button(icon='ios_share').props('flat round dense') \
@@ -232,16 +238,16 @@ class Planner:
                     self.style_btns[key] = item
                 self._paint_style_buttons()
 
-            self.harbour_btn = ui.button(icon='sailing', on_click=self._toggle_harbours) \
+            self.harbour_btn = ui.button(icon='anchor', on_click=self._toggle_harbours) \
                 .props('flat dense square').classes('map-btn map-btn--on w-10 h-10') \
                 .tooltip('Vis alle lystbådehavne — klik på en for at lægge den i ruten')
-            self.seamark_btn = ui.button(icon='anchor', on_click=self._toggle_seamarks) \
+            self.seamark_btn = ui.button(icon='waves', on_click=self._toggle_seamarks) \
                 .props('flat dense square').classes('map-btn w-10 h-10') \
                 .tooltip('Vis bøjer, fyr og sejlløb fra OpenSeaMap')
             ui.button(icon='center_focus_strong',
                       on_click=lambda: self.map and self.map.fit(self.s.route)) \
                 .props('flat dense square').classes('map-btn w-10 h-10') \
-                .tooltip('Zoom til hele ruten')
+                .tooltip('Zoom ud til hele ruten')
 
     def _paint_style_buttons(self) -> None:
         active = self.map.style if self.map else 'chart'
@@ -270,9 +276,8 @@ class Planner:
         on = self.map.toggle_harbours()
         self.harbour_btn.classes(add='map-btn--on' if on else '',
                                  remove='' if on else 'map-btn--on')
-        ui.notify('Havnene vises fra zoomniveau 8 — klik på en prik for at '
-                  'lægge havnen i ruten' if on else 'Havnene er skjult',
-                  position='bottom')
+        ui.notify('Havnene vises, når du zoomer ind. Klik på en for at lægge '
+                  'den i ruten.' if on else 'Havnene er skjult', position='bottom')
 
     def _map_overlay(self) -> None:
         """Diskret hjælpetekst nederst på kortet."""
@@ -398,7 +403,8 @@ class Planner:
                     ui.html('<div class="hairline"></div>')
                 row = ui.element('div').classes(
                     'flex items-center gap-3 px-3 py-2.5 cursor-pointer '
-                    'hover:bg-[var(--sea-3)] transition-colors')
+                    'hover:bg-[var(--sea-3)] transition-colors').props(
+                    f'data-spot="{place.lat:.5f},{place.lon:.5f}"')
                 with row:
                     ui.icon(place.icon).classes('text-[18px] text-[var(--accent)] shrink-0')
                     with ui.element('div').classes('min-w-0 flex-1'):
@@ -433,18 +439,20 @@ class Planner:
         kind = 'start' if i == 0 else 'end' if i == last and last > 0 else 'via'
         role = {'start': 'Afgang', 'end': 'Destination', 'via': 'Mellemstop'}[kind]
 
-        with ui.element('div').classes('wp group'):
+        with ui.element('div').classes('wp group').props(
+                f'data-spot="{wp.lat:.5f},{wp.lon:.5f}"'):
             ui.html(f'<div class="wp-pin wp-pin--{kind}">{i + 1}</div>')
 
             info = ui.element('div').classes('min-w-0 flex-1 cursor-pointer')
             with info:
                 ui.label(wp.name).classes('wp-name truncate')
-                ui.label(f'{role} · {wp.lat:.3f}°N {wp.lon:.3f}°Ø').classes('wp-meta truncate')
+                ui.label(f'{role} · {wp.where}').classes('wp-meta truncate')
             info.on('click', lambda _, w=wp: self.map and self.map.focus(w.lat, w.lon))
             info.tooltip('Vis på kortet')
 
-            with ui.element('div').classes('flex items-center shrink-0 '
-                                           'opacity-40 group-hover:opacity-100 transition-opacity'):
+            # `wp-tools` dæmper kun knapperne på skærme med mus. På en telefon
+            # er der ingen hover, og halvgennemsigtige knapper ligner slukkede.
+            with ui.element('div').classes('wp-tools flex items-center shrink-0'):
                 ui.button(icon='keyboard_arrow_up', on_click=lambda _, k=i: self._move(k, -1)) \
                     .props('flat dense round size=sm').set_enabled(i > 0)
                 ui.button(icon='keyboard_arrow_down', on_click=lambda _, k=i: self._move(k, 1)) \
@@ -586,7 +594,8 @@ class Planner:
                     ui.html('<div class="hairline"></div>')
                 row = ui.element('div').classes(
                     'flex items-center gap-3 px-3 py-2 cursor-pointer '
-                    'hover:bg-[var(--sea-3)] transition-colors')
+                    'hover:bg-[var(--sea-3)] transition-colors').props(
+                    f'data-spot="{h.lat:.5f},{h.lon:.5f}"')
                 with row:
                     ui.icon('anchor').classes('text-[15px] text-[var(--txt-3)] shrink-0')
                     with ui.element('div').classes('min-w-0 flex-1'):
@@ -695,17 +704,17 @@ class Planner:
             ui.html(f'<div class="hourbar mt-2.5">{self._hourbar(w)}</div>')
 
             with ui.element('div').classes('flex gap-1.5 mt-2.5 flex-wrap'):
-                ui.html(f'<span class="chip tnum">💨 {w.worst_wind_kn:.0f} kn</span>')
-                ui.html(f'<span class="chip tnum">🌊 {dk(w.worst_wave_m)} m</span>')
-                ui.html(f'<span class="chip tnum">⌀ {dk(w.avg_speed_kn)} kn</span>')
+                ui.html(chip('air', f'{w.worst_wind_kn:.0f} kn'))
+                ui.html(chip('waves', f'{dk(w.worst_wave_m)} m'))
+                ui.html(chip('speed', f'{dk(w.avg_speed_kn)} kn'))
                 if w.stops:
-                    ui.html(f'<span class="chip tnum">🛏 {w.nights} nat</span>')
+                    ui.html(chip('hotel', f'{w.nights} nat'))
                 if w.night_hours:
-                    ui.html(f'<span class="chip tnum">🌙 {w.night_hours} t</span>')
+                    ui.html(chip('dark_mode', f'{w.night_hours} t mørke'))
                 if self.s.boat.is_motor and w.fuel_l:
-                    ui.html(f'<span class="chip tnum">⛽ {w.fuel_l:.0f} l</span>')
+                    ui.html(chip('local_gas_station', f'{w.fuel_l:.0f} l'))
                 elif w.motor_hours:
-                    ui.html(f'<span class="chip tnum">⚙ {w.motor_hours} t motor</span>')
+                    ui.html(chip('settings', f'{w.motor_hours} t motor'))
 
         card.on('click', lambda _, k=i: self._select_window(k))
 
@@ -764,7 +773,7 @@ class Planner:
             ui.label(f'→ {day_time(w.arrival)}').classes(
                 'text-[11.5px] text-[var(--txt-3)] tnum flex-1 truncate')
             if w.stops:
-                ui.html(f'<span class="chip tnum shrink-0">🛏 {w.nights}</span>')
+                ui.html(chip('hotel', str(w.nights)).replace('chip ', 'chip shrink-0 '))
         row.on('click', lambda _, k=i: self._select_window(k))
 
     # ── Sejlplanen i hovedfeltet ────────────────────────────────────
@@ -799,9 +808,10 @@ class Planner:
                             .props('outline dense no-caps').classes('text-[var(--txt-2)]')
                         ui.button('Kopiér', icon='content_copy', on_click=self._copy_plan) \
                             .props('outline dense no-caps').classes('text-[var(--txt-2)]')
-                        ui.button(icon='map', on_click=lambda: self._go_to_step(2)) \
-                            .props('outline dense round').classes('text-[var(--txt-2)]') \
-                            .tooltip('Tilbage til kortet')
+                        ui.button('Kortet', icon='arrow_back',
+                                  on_click=lambda: self._go_to_step(2)) \
+                            .props('outline dense no-caps') \
+                            .classes('text-[var(--txt-2)]')
 
                 self._plan_overview(p, boat, route)
                 self._plan_warnings(p, boat)
@@ -1034,7 +1044,6 @@ class Planner:
         self.action_bar.refresh()
         self.plan_view.refresh()
         self.header_summary.refresh()
-        self.boat_button.refresh()
         self.map_hint.refresh()
         self._redraw_map(fit=fit)
         # Retningen gælder ét skift. Ellers ville panelet glide hver gang ruten
@@ -1150,7 +1159,8 @@ class Planner:
 
         had_plan = bool(self.s.windows)
         wp = self.s.waypoints[index]
-        wp.lat, wp.lon, wp.name = place.lat, place.lon, place.name
+        wp.lat, wp.lon = place.lat, place.lon
+        wp.name, wp.detail = place.name, place.detail
         self.s.invalidate()
         self.s.persist()
         self.refresh()
@@ -1160,7 +1170,7 @@ class Planner:
 
     def _add_place(self, place: geocode.Place) -> None:
         had_plan = bool(self.s.windows)
-        wp = Waypoint(place.lat, place.lon, place.name)
+        wp = Waypoint(place.lat, place.lon, place.name, place.detail)
         index = self._best_position(wp)
         self.s.insert(index, wp)
         self._suggestions = []

@@ -131,13 +131,24 @@ class Waypoint:
     lat: float
     lon: float
     name: str
+    # Hvor stedet ligger, sagt som en sejler ville sige det: "Køge Bugt",
+    # "Det Sydfynske Øhav". Punktet er valgt på navn, ikke på koordinater, så
+    # det er farvandet man vil mindes om — ikke decimalgraderne.
+    detail: str = ''
+
+    @property
+    def where(self) -> str:
+        """Undertekst til listen. Koordinater kun når der ikke er andet."""
+        return self.detail or f'{self.lat:.3f}°N {self.lon:.3f}°Ø'
 
     def as_dict(self) -> dict:
-        return {'lat': self.lat, 'lon': self.lon, 'name': self.name}
+        return {'lat': self.lat, 'lon': self.lon, 'name': self.name,
+                'detail': self.detail}
 
     @staticmethod
     def from_dict(d: dict) -> 'Waypoint':
-        return Waypoint(float(d['lat']), float(d['lon']), str(d.get('name') or 'Waypoint'))
+        return Waypoint(float(d['lat']), float(d['lon']),
+                        str(d.get('name') or 'Waypoint'), str(d.get('detail') or ''))
 
 
 @dataclass

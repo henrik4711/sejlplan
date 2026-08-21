@@ -249,6 +249,17 @@ body {
 .wp-pin--end   { background: var(--stop); }
 .wp-pin--via   { background: var(--accent); color: var(--sea-1); }
 .wp-name { font-size: 14px; font-weight: 600; line-height: 1.25; }
+
+/* Knapperne i rækken dæmpes kun dér, hvor der er en mus at pege med. På en
+   telefon findes hover ikke, og en halvgennemsigtig knap ligner en slukket. */
+.wp-tools { opacity: 1; transition: opacity .15s; }
+@media (hover: hover) {
+  .wp-tools { opacity: .35; }
+  .wp:hover .wp-tools { opacity: 1; }
+}
+
+/* Ringen der viser hvor et sted i listen ligger på kortet. */
+.spot-ring { pointer-events: none; transition: opacity .18s, fill-opacity .18s; }
 .wp-meta { font-size: 11.5px; color: var(--txt-3); line-height: 1.35; }
 
 .leg {
@@ -303,6 +314,7 @@ body {
 }
 .hourbar--tall { height: 11px; }
 
+.chip-ico { font-size: 13px; opacity: .62; }
 .chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; border-radius: 7px;

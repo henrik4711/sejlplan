@@ -91,6 +91,39 @@ _FIT_BODY = """
   });
 """
 
+# Kobling mellem panel og kort. Peger man på et sted i listen, skal kortet vise
+# hvilket. Det sker helt i browseren: rækkerne bærer deres position i et
+# data-attribut, og én lytter oversætter det til en ring på kortet. Havde vi
+# sendt hver mus-bevægelse til serveren og svaret tilbage, ville ringen komme
+# et halvt sekund efter fingeren — og så er den værre end ingenting.
+_LINK_BODY = """
+  if (c.__sejlplanLink) return;
+  c.__sejlplanLink = true;
+
+  const ring = L.circleMarker([0, 0], {
+    radius: 15, weight: 3, color: '#C8933B', opacity: 0,
+    fillColor: '#C8933B', fillOpacity: 0, interactive: false,
+    className: 'spot-ring',
+  }).addTo(c.map);
+
+  const show = (lat, lon) => {
+    ring.setLatLng([lat, lon]);
+    ring.setStyle({opacity: .95, fillOpacity: .18});
+  };
+  const hide = () => ring.setStyle({opacity: 0, fillOpacity: 0});
+
+  const spot = (e) => e.target.closest && e.target.closest('[data-spot]');
+  document.addEventListener('mouseover', (e) => {
+    const el = spot(e);
+    if (!el) return;
+    const [lat, lon] = el.dataset.spot.split(',').map(Number);
+    show(lat, lon);
+  });
+  document.addEventListener('mouseout', (e) => { if (spot(e)) hide(); });
+  // Ruller listen væk under fingeren, skal ringen ikke blive hængende.
+  document.addEventListener('scroll', hide, true);
+"""
+
 _RESIZE_BODY = """
   if (c.__sejlplanResize) return;
   c.__sejlplanResize = true;
@@ -249,6 +282,7 @@ class RouteMap:
         # måle op igen — helt i browseren, så intet kan fyre efter at siden
         # er lukket.
         self._run(_RESIZE_BODY)
+        self._run(_LINK_BODY)
         self._paint_mode()
         self._push_harbours()
 
