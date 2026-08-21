@@ -514,7 +514,12 @@ body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.
    skal være mørk. Hvid på guld giver et kontrastforhold på under 3:1 — det er
    under grænsen for læsbar tekst, og knappen er guld i begge temaer, så farven
    må ikke følge temaet. */
-.btn-primary.q-btn { color: #12212F !important; font-weight: 700; }
+/* Farven sættes på knappens indhold, ikke på knappen. Quasar lægger selv
+   `text-white` på selve knappen, og den kamp er ikke værd at tage: en direkte
+   regel på indholdet slår altid en nedarvet farve, uanset hvem der råber
+   højest med !important. */
+.btn-primary.q-btn { font-weight: 700; }
+.btn-primary .q-btn__content { color: #12212F !important; }
 
 /* ═══ Segmentvælger ══════════════════════════════════════════════ */
 /* To valg, ét spor, og en markør der glider. Den fylder mindre end to knapper
