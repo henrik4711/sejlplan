@@ -510,9 +510,11 @@ body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.
   line-height: 1; white-space: nowrap;
 }
 
-/* Den store handlingsknap. Quasar farver den selv efter `primary`, men
-   teksten skal være mørk på guld — hvid på guld kan man ikke læse. */
-.btn-primary.q-btn { color: var(--sea-1) !important; font-weight: 700; }
+/* Den store handlingsknap. Quasar farver den selv efter `primary`, men teksten
+   skal være mørk. Hvid på guld giver et kontrastforhold på under 3:1 — det er
+   under grænsen for læsbar tekst, og knappen er guld i begge temaer, så farven
+   må ikke følge temaet. */
+.btn-primary.q-btn { color: #12212F !important; font-weight: 700; }
 
 /* ═══ Segmentvælger ══════════════════════════════════════════════ */
 /* To valg, ét spor, og en markør der glider. Den fylder mindre end to knapper
