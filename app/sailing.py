@@ -305,10 +305,11 @@ def polar_speed(boat: Boat, twa: float, tws: float) -> float:
         return boat.motor_speed_kn
 
     angles = sorted(boat.polar)
-    twa = max(angles[0], min(angles[-1], twa))
+    beating = angles[0]
+    twa = max(0.0, min(angles[-1], twa))
     tws = max(0.0, min(25.0, tws))
 
-    lo_a = max((a for a in angles if a <= twa), default=angles[0])
+    lo_a = max((a for a in angles if a <= twa), default=beating)
     hi_a = min((a for a in angles if a >= twa), default=angles[-1])
 
     def at_angle(angle: int) -> float:
@@ -326,6 +327,15 @@ def polar_speed(boat: Boat, twa: float, tws: float) -> float:
             return row[lo_w]
         t = (tws - lo_w) / (hi_w - lo_w)
         return row[lo_w] + (row[hi_w] - row[lo_w]) * t
+
+    if twa < beating:
+        # Under bådens højeste kryds kan kursen ikke sejles. Før klemte vi
+        # vinklen op til diagrammets laveste og gav båden fem knob lige op i
+        # vinden — det kan ingen sejlbåd, og ankomsten blev derefter. Man
+        # krydser, og det, der tæller, er fremdriften mod målet: farten på
+        # krydsbenet gange cosinus til vinklen. Resten sejles sidelæns.
+        return max(at_angle(a) * math.cos(math.radians(a))
+                   for a in angles if a <= 90) or 0.5
 
     s_lo = at_angle(lo_a)
     if lo_a == hi_a:
