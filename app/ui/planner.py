@@ -34,6 +34,48 @@ STEPS = [(1, 'Rute'), (2, 'Afgang'), (3, 'Sejlplan')]
 QUICK_START = ['København', 'Helsingør', 'Aarhus', 'Svendborg',
                'Bornholm', 'Skagen', 'Samsø', 'Marstal']
 
+# Bundskuffen på telefonen. Tre stop: et kig, halvdelen, og næsten hele skærmen.
+# Det er de tre, man har brug for — se kortet med ruten nedenunder, arbejde med
+# begge dele, eller læse en lang liste.
+SHEET_JS = """
+(function () {
+  const shell = document.querySelector('.app-shell');
+  const grip = document.querySelector('.sheet-grip');
+  if (!shell || !grip || grip.dataset.wired) return;
+  grip.dataset.wired = '1';
+
+  const STOPS = [0.26, 0.58, 0.94];
+  // Mindst 1, så en skjult fane ikke kan dividere med nul og slå skuffen i.
+  const height = () => Math.max(1, shell.getBoundingClientRect().height - 56);
+  const now = () => parseFloat(getComputedStyle(shell).getPropertyValue('--sheet')) || 0.58;
+  const set = (f) => shell.style.setProperty('--sheet', String(f));
+
+  let from = 0, at = 0, dragging = false;
+
+  grip.addEventListener('pointerdown', (e) => {
+    dragging = true; from = e.clientY; at = now();
+    shell.classList.add('sheet-dragging');
+    grip.setPointerCapture(e.pointerId);
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    set(Math.min(0.95, Math.max(0.10, at + (from - e.clientY) / height())));
+  });
+  const settle = () => {
+    if (!dragging) return;
+    dragging = false;
+    shell.classList.remove('sheet-dragging');
+    const here = now();
+    // Nærmeste stop vinder. Et lille ryk skal ikke kunne smide skuffen helt væk.
+    set(STOPS.reduce((a, b) => Math.abs(b - here) < Math.abs(a - here) ? b : a));
+  };
+  grip.addEventListener('pointerup', settle);
+  grip.addEventListener('pointercancel', settle);
+  // Et tryk på håndtaget skifter mellem halv og fuld — hurtigere end at trække.
+  grip.addEventListener('dblclick', () => set(now() > 0.7 ? STOPS[1] : STOPS[2]));
+})();
+"""
+
 
 def esc(text: str) -> str:
     return html.escape(str(text), quote=True)
@@ -60,6 +102,7 @@ class Planner:
         self._searching = False
         self._busy = ''
         self._settings_open = False
+        self._nav = 'none'      # retning for skiftet mellem trin: fwd, back, none
         self.search_input: ui.input | None = None
         # Baggrundsopgaver skal opdatere netop den her browser. NiceGUI's
         # underforståede klient er ikke sat, når en opgave vågner op igen, så
@@ -76,20 +119,26 @@ class Planner:
             self._header()
 
             with ui.element('div').classes(
-                    'flex flex-col-reverse md:flex-row w-full flex-1 min-h-0 '
+                    'work flex flex-col-reverse md:flex-row w-full flex-1 min-h-0 '
                     'gap-0 overflow-hidden'):
 
                 # ── Arbejdspanel ──
+                # På en stor skærm er det en spalte ved siden af kortet. På en
+                # telefon er det en skuffe, der ligger oven på kortet og kan
+                # trækkes op og ned — dér er der ikke plads til at dele skærmen
+                # i to, og kortet er alligevel dét, man peger på.
+                #
                 # `md:h-full` er ikke pynt. Uden en fast højde bliver en flex-
                 # række så høj som sit højeste barn, og så vokser panelet med
                 # sit indhold i stedet for at rulle: ti afgangskort blev til
                 # 1679 px inde i en række på 722, og resten blev klippet væk.
                 with ui.element('aside').classes(
-                        'w-full md:w-[430px] md:h-full flex flex-col min-h-0 '
+                        'sheet w-full md:w-[430px] md:h-full flex flex-col min-h-0 '
                         'basis-[58%] md:basis-auto md:flex-none '
                         'border-t md:border-t-0 md:border-r '
                         'border-[var(--line)] bg-[var(--sea-2)] z-10'):
-                    with ui.element('div').classes('px-4 pt-3 pb-2 shrink-0'):
+                    ui.html('<div class="sheet-grip"><i></i></div>')
+                    with ui.element('div').classes('px-4 pt-1 md:pt-3 pb-2 shrink-0'):
                         self.stepbar()
                     with ui.element('div').classes('scroll-y flex-1 min-h-0 px-4 pb-4'):
                         self.panel()
@@ -101,7 +150,7 @@ class Planner:
 
                 # ── Kort ──
                 with ui.element('div').classes(
-                        'relative min-h-0 basis-[42%] shrink-0 md:h-full '
+                        'mapwrap relative min-h-0 basis-[42%] shrink-0 md:h-full '
                         'md:basis-auto md:flex-1 md:shrink'):
                     self.map = RouteMap(on_click=self._map_clicked,
                                         on_drag=self._marker_dragged,
@@ -111,6 +160,7 @@ class Planner:
                     self._map_overlay()
                     self.plan_view()
 
+        ui.run_javascript(SHEET_JS)
         self._redraw_map(fit=True)
         self._schedule_route()
 
@@ -279,6 +329,10 @@ class Planner:
     def _go_to_step(self, num: int) -> None:
         if not self._step_unlocked(num):
             return
+        # Retningen huskes, så panelet glider den vej, man går. Det er det, der
+        # gør at man kan mærke om man er på vej frem eller tilbage, i stedet for
+        # at indholdet bare bliver skiftet ud under næsen på én.
+        self._nav = 'back' if num < self.s.step else 'fwd'
         self.s.step = num
         self.refresh()
 
@@ -287,14 +341,15 @@ class Planner:
     # ════════════════════════════════════════════════════════════════
     @ui.refreshable_method
     def panel(self) -> None:
-        if self._busy:
-            self._busy_panel()
-        elif self.s.step == 1:
-            self._route_panel()
-        elif self.s.step == 2:
-            self._windows_panel()
-        else:
-            self._analysis_panel()
+        with ui.element('div').classes(f'swap swap--{self._nav}'):
+            if self._busy:
+                self._busy_panel()
+            elif self.s.step == 1:
+                self._route_panel()
+            elif self.s.step == 2:
+                self._windows_panel()
+            else:
+                self._analysis_panel()
 
     def _busy_panel(self) -> None:
         with ui.column().classes('w-full items-center justify-center gap-4 pt-24'):
@@ -1105,6 +1160,9 @@ class Planner:
         self.boat_button.refresh()
         self.map_hint.refresh()
         self._redraw_map(fit=fit)
+        # Retningen gælder ét skift. Ellers ville panelet glide hver gang ruten
+        # blev regnet om i baggrunden.
+        self._nav = 'none'
 
     def _refresh_panel(self) -> None:
         self.panel.refresh()
@@ -1348,6 +1406,7 @@ class Planner:
 
         if not self.s.windows:
             self.s.step = 1
+            self._nav = 'back'
             self.refresh()
             ui.notify('Ingen afgange passer til dine grænser. Prøv et bredere '
                       'datointerval, et længere sejldøgn eller en højere vindgrænse.',
@@ -1355,6 +1414,7 @@ class Planner:
             return
 
         self.s.step = 2
+        self._nav = 'fwd'
         self.refresh()
 
         best = self.s.windows[0]

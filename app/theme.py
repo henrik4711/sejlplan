@@ -93,6 +93,60 @@ html, body { height: 100%; overflow: hidden; }
   overflow: hidden;
   background: var(--sea-2);
 }
+/* ═══ Bundskuffe på telefonen ════════════════════════════════════ */
+/* På en stor skærm er panelet en spalte. På en telefon er der ikke plads til
+   at dele skærmen i to, og kortet er alligevel dét, man peger på — så bliver
+   panelet en skuffe, der ligger oven på og kan trækkes op og ned. */
+.sheet-grip { display: none; }
+
+@media (max-width: 767px) {
+  .work { position: relative; }
+  .mapwrap { position: absolute; inset: 0; }
+  aside.sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: calc(var(--sheet, .58) * (100dvh - 56px));
+    border-radius: 20px 20px 0 0;
+    border: 0; border-top: 1px solid var(--line);
+    box-shadow: 0 -2px 6px rgba(13,27,42,.06), 0 -14px 40px rgba(13,27,42,.18);
+    transition: height .34s cubic-bezier(.22,.9,.3,1);
+    z-index: 20;
+  }
+  body.body--dark aside.sheet {
+    box-shadow: 0 -2px 8px rgba(0,0,0,.4), 0 -16px 44px rgba(0,0,0,.5);
+  }
+  /* Mens man trækker, skal skuffen følge fingeren — ikke glide bagefter. */
+  .sheet-dragging aside.sheet { transition: none; }
+
+  .sheet-grip {
+    display: flex; justify-content: center; align-items: center;
+    height: 22px; flex: none;
+    cursor: grab; touch-action: none;
+  }
+  .sheet-grip:active { cursor: grabbing; }
+  .sheet-grip i {
+    display: block; width: 38px; height: 5px; border-radius: 3px;
+    background: var(--line-2);
+    transition: background .15s, width .15s;
+  }
+  .sheet-grip:hover i, .sheet-dragging .sheet-grip i {
+    background: var(--txt-3); width: 46px;
+  }
+}
+
+/* ═══ Skift mellem trin ══════════════════════════════════════════ */
+/* Panelet glider den vej, man går. Så kan man mærke om man er på vej frem
+   eller tilbage, i stedet for at indholdet bliver skiftet ud under næsen. */
+.swap--fwd  { animation: swap-fwd .26s cubic-bezier(.22,.9,.3,1); }
+.swap--back { animation: swap-back .26s cubic-bezier(.22,.9,.3,1); }
+@keyframes swap-fwd {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes swap-back {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: none; }
+}
+
 .app-header {
   flex: 0 0 auto; height: 56px;
   display: flex; align-items: center; gap: 8px;
@@ -475,7 +529,9 @@ body.body--dark .seg-item--on { box-shadow: 0 1px 3px rgba(0,0,0,.5); }
              margin: 0 auto; }
 
 /* ═══ Diverse ════════════════════════════════════════════════════ */
-.scroll-y { overflow-y: auto; overscroll-behavior: contain; }
+/* `overflow-x: clip` fordi glide-animationen ellers kan blinke med en
+   vandret rullebjælke, mens indholdet står 16 px ude til siden. */
+.scroll-y { overflow-y: auto; overflow-x: clip; overscroll-behavior: contain; }
 .scroll-y::-webkit-scrollbar { width: 9px; height: 9px; }
 .scroll-y::-webkit-scrollbar-thumb {
   background: var(--line-2); border-radius: 5px;
