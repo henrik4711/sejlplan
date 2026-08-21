@@ -437,6 +437,7 @@ class Day:
     arrive: datetime
     nm: float
     hours: int
+    under_way_h: float
     red_hours: int
     yellow_hours: int
     night_hours: int
@@ -448,7 +449,8 @@ class Plan:
     depart: datetime
     arrival: datetime
     total_nm: float
-    hours: int              # timer med fart i
+    hours: int              # antal sejltimer, opdelt i timeblokke
+    under_way_h: float      # rigtig tid under vejs, fra kaj til kaj
     avg_speed_kn: float
     worst_wind_kn: float
     worst_wave_m: float
@@ -690,13 +692,14 @@ def sail(boat: Boat, route: Route, depart: datetime,
     # ruten tilbage til havnen, og strækningen derfra sejles igen i morgen. De
     # timer ville blive talt to gange, og snitfarten faldt til 3,4 knob paa en
     # tur, der blev sejlet med knap 5.
-    under_way = sum((d.arrive - d.depart).total_seconds() for d in days) / 3600.0
+    under_way = sum(d.under_way_h for d in days)
 
     return Plan(
         depart=depart,
         arrival=t,
         total_nm=total,
         hours=hours,
+        under_way_h=under_way,
         avg_speed_kn=round(total / under_way, 1) if under_way > 0 else 0.0,
         worst_wind_kn=round(max(s.wind_kn for s in segments), 1),
         worst_wave_m=round(max(s.wave_m for s in segments), 1),
@@ -729,6 +732,7 @@ def _day(frm: str, to: str, depart: datetime, arrive: datetime,
     return Day(
         date=depart.date(), frm=frm, to=to, depart=depart, arrive=arrive,
         nm=round(nm, 1), hours=len(rows),
+        under_way_h=max(0.0, (arrive - depart).total_seconds() / 3600.0),
         red_hours=sum(1 for s in rows if s.status == STOP),
         yellow_hours=sum(1 for s in rows if s.status == WARN),
         night_hours=sum(1 for s in rows if s.night),

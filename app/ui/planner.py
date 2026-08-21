@@ -21,7 +21,7 @@ from nicegui import ui
 from .. import (ai, geocode, harbours, landmask, narrative, searoute, share,
                 theme, weather)
 from ..config import settings
-from ..dates import clock, day, day_time, duration, full, month
+from ..dates import clock, day, day_time, full, month, spell
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
                        beaufort, compass, find_windows, haversine,
                        point_of_sail)
@@ -712,7 +712,7 @@ class Planner:
             with ui.element('div').classes('flex items-baseline gap-2'):
                 ui.html(f'<div class="win-time tnum">{clock(w.depart)}</div>')
                 ui.html(f'<div class="win-arrive tnum">→ {esc(day_time(w.arrival))} '
-                        f'· {esc(duration(w.hours))} med fart i</div>')
+                        f'· {esc(spell(w.under_way_h))} under vejs</div>')
 
             if w.stops:
                 names = ' · '.join(f'{s.name} {day_time(s.arrive)}' for s in w.stops)
@@ -877,7 +877,7 @@ class Planner:
                             .classes('text-[13.5px] font-semibold truncate flex-1')
                         ui.html(f'<span class="chip tnum">{nm(d.nm)} sm</span>')
                     ui.label(f'{day(d.date, short=False)} · {clock(d.depart)}–'
-                             f'{clock(d.arrive)} · {duration(d.hours)} med fart i') \
+                             f'{clock(d.arrive)} · {spell(d.under_way_h)} under vejs') \
                         .classes('text-[11.5px] text-[var(--txt-3)] block')
                     if stop:
                         ui.label(f'Overnatning i {stop.name}, {stop.detail}. '
@@ -889,7 +889,7 @@ class Planner:
     def _key_figures(self, p, boat) -> None:
         lim = self.s.limits
         metrics = [
-            (duration(p.hours), 'Sejltid', ''),
+            (spell(p.under_way_h), 'Sejltid', ''),
             (f'{dk(p.avg_speed_kn)} kn', 'Gns. fart', ''),
             (f'{p.total_nm:.0f} sm', 'Distance', ''),
             (f'{p.worst_wind_kn:.0f} kn', 'Højeste vind',
@@ -1025,14 +1025,13 @@ class Planner:
             .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mt-2 block')
 
     def _ai_tab(self) -> None:
-        ui.label('Skippervurdering').classes('section-label mt-5 mb-1.5 block')
+        # Er vurderingen ikke slået til, findes afsnittet ikke. En bruger kan
+        # ikke sætte en nøgle på vores server, og en besked om .env-filer i et
+        # dokument, man har betalt for, er vores problem — ikke hans.
         if not settings.ai_available:
-            ui.html('<div class="card px-4 py-3.5 text-[12.5px] text-[var(--txt-3)] '
-                    'leading-relaxed">Den AI-skrevne vurdering er ikke slået til på '
-                    'denne server. Planen ovenfor er komplet uden den — sæt '
-                    '<b>ANTHROPIC_API_KEY</b> i <b>.env</b> og genstart, hvis du også '
-                    'vil have Claudes gennemgang.</div>')
             return
+
+        ui.label('Skippervurdering').classes('section-label mt-5 mb-1.5 block')
 
         if not self.s.ai_text:
             with ui.element('div').classes('empty pb-4'):

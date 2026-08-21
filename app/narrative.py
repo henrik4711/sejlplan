@@ -86,6 +86,10 @@ class StretchBrief:
     starts: str
     ends: str
     is_motor: bool
+    # Havnen, hvis strækket bliver brudt af en overnatning. Uden den stod der
+    # "6,1 sømil, 1 t undervejs" over et tidsrum på et døgn, og læseren måtte
+    # selv gætte, at natten lå indeni.
+    night: str = ''
 
     @property
     def headline(self) -> str:
@@ -129,6 +133,9 @@ class StretchBrief:
             parts.append(f'Bølger op til {num(self.wave_max)} meter{where}.')
         if not self.is_motor and 0 < self.motor_share <= 0.6:
             parts.append(f'{spell(self.hours * self.motor_share)} af det for motor.')
+        if self.night:
+            parts.append(f'Strækket brydes af natten i {self.night} — '
+                         f'timerne dér er ikke talt med.')
         return ' '.join(parts)
 
 
@@ -150,6 +157,27 @@ def _passed(trace: list, along: float):
                 return t1 if along - a1 < a2 - along else t2
             return t1 + (t2 - t1) * ((along - a1) / span)
     return trace[-1][1]
+
+
+def _night_in(trace: list, plan: Plan, start: float, end: float) -> str:
+    """Havnen, hvis der ligger en overnatning inde i strækket.
+
+    Et hul i sporet, hvor tiden går uden at sømilene gør, er en nat ved kaj.
+    Hvilken havn det var, findes ved at se, hvilket ophold der begynder dér.
+    """
+    for (a1, t1), (a2, t2) in zip(trace, trace[1:]):
+        if (t2 - t1).total_seconds() / 3600 <= 2:
+            continue
+        # Natten hører til dét stræk, hvor døgnet sluttede. Hullet i sporet
+        # strækker sig over kanten mellem to stræk, og uden det her stod den
+        # samme nat på dem begge.
+        if not start - 0.01 <= a1 < end - 0.01:
+            continue
+        if not plan.stops:
+            return ''
+        near = min(plan.stops, key=lambda s: abs((s.arrive - t1).total_seconds()))
+        return near.name
+    return ''
 
 
 def _sailing_hours(trace: list, start: float, end: float) -> float:
@@ -222,6 +250,7 @@ def stretch_briefs(route: Route, plan: Plan, boat: Boat) -> list[StretchBrief]:
             starts=day_time(_passed(trace, st.start_nm)),
             ends=day_time(_passed(trace, st.end_nm)),
             is_motor=boat.is_motor,
+            night=_night_in(trace, plan, st.start_nm, st.end_nm),
         ))
     return briefs
 
@@ -322,7 +351,7 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
 
     opening = (f'Ruten {names} er på {num(plan.total_nm)} sømil fordelt på '
                f'{plural(legs, "ben", "ben")}. Med {boat.name} tager den beregnet '
-               f'{duration(plan.hours)} med fart i. Du kaster los {full(plan.depart)} '
+               f'{spell(plan.under_way_h)} under vejs. Du kaster los {full(plan.depart)} '
                f'og er fremme {full(plan.arrival)}')
     if plan.stops:
         nights = plural(plan.nights, 'overnatning', 'overnatninger')
@@ -386,7 +415,7 @@ def day_lines(plan: Plan) -> list[str]:
     for i, d in enumerate(plan.days, start=1):
         out.append(f'Dag {i} · {day(d.date, short=False)}: {d.frm} → {d.to}, '
                    f'{num(d.nm)} sømil, {clock(d.depart)}–{clock(d.arrive)} '
-                   f'({duration(d.hours)} med fart i).')
+                   f'({spell(d.under_way_h)} under vejs).')
     return out
 
 
@@ -479,7 +508,7 @@ def as_text(boat: Boat, route: Route, plan: Plan, limits: Limits) -> str:
         f'Afgang:   {full(plan.depart)}',
         f'Ankomst:  {full(plan.arrival)}',
         f'Distance: {num(plan.total_nm)} sømil',
-        f'Varighed: {duration(plan.hours)} med fart i · '
+        f'Varighed: {spell(plan.under_way_h)} under vejs · '
         f'snitfart {num(plan.avg_speed_kn)} knob',
     ]
     if boat.is_motor:
