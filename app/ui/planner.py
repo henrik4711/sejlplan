@@ -50,7 +50,13 @@ SHEET_JS = """
   // Mindst 1, så en skjult fane ikke kan dividere med nul og slå skuffen i.
   const height = () => Math.max(1, shell.getBoundingClientRect().height - 56);
   const now = () => parseFloat(getComputedStyle(shell).getPropertyValue('--sheet')) || 0.58;
-  const set = (f) => shell.style.setProperty('--sheet', String(f));
+  const set = (f) => {
+    shell.style.setProperty('--sheet', String(f));
+    // Er skuffen naesten helt oppe, er kortet alligevel daekket. Saa skal
+    // kortknapperne ikke stikke halvt op bag skuffekanten og se knaekkede ud
+    // - de skal traede af.
+    shell.classList.toggle('sheet-tall', f > 0.72);
+  };
 
   let from = 0, at = 0, dragging = false;
 
@@ -227,7 +233,7 @@ class Planner:
     def _map_controls(self) -> None:
         """Kortvælger og genveje i kortets øverste højre hjørne."""
         with ui.element('div').classes(
-                'absolute top-3 right-3 z-[500] flex flex-col items-end gap-2'):
+                'map-tools absolute top-3 right-3 z-[500] flex flex-col items-end gap-2'):
 
             with ui.element('div').classes('seg'):
                 self.style_btns = {}

@@ -99,6 +99,15 @@ html, body { height: 100%; overflow: hidden; }
    panelet en skuffe, der ligger oven på og kan trækkes op og ned. */
 .sheet-grip { display: none; }
 
+/* Kortet skal danne sin egen stak. Leaflet lægger sine lag på z-index 200 til
+   1000, og så længe `.mapwrap` står med `z-index: auto`, danner den ikke en
+   stak — så konkurrerer kortets lag med resten af siden i stedet for at blive
+   inde i kortet. På telefonen ligger skuffen oven på kortet med z-index 20, og
+   den tabte til Leaflets 400: man så intet andet end kortet, og der var hverken
+   trin, søgefelt eller knap at trykke på. Med en stak her kan kortets tal ikke
+   slippe ud, og nul holder hele kortet under skuffen. */
+.mapwrap { z-index: 0; }
+
 @media (max-width: 767px) {
   .work { position: relative; }
   .mapwrap { position: absolute; inset: 0; }
@@ -130,6 +139,17 @@ html, body { height: 100%; overflow: hidden; }
   }
   .sheet-grip:hover i, .sheet-dragging .sheet-grip i {
     background: var(--txt-3); width: 46px;
+  }
+
+  /* Trækker man skuffen næsten helt op, er kortet dækket alligevel. Så skal
+     kortknapperne ikke blive stående og stikke halvt op bag skuffekanten —
+     halve knapper ser i stykker ud. De træder af og kommer igen, når man
+     trækker skuffen ned. */
+  .map-tools, .leaflet-control-zoom {
+    transition: opacity .22s ease, transform .22s ease;
+  }
+  .sheet-tall .map-tools, .sheet-tall .leaflet-control-zoom {
+    opacity: 0; pointer-events: none; transform: translateY(-8px);
   }
 }
 
