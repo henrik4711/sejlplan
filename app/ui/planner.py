@@ -852,10 +852,14 @@ class Planner:
                 with ui.element('div').classes(
                         'flex items-start gap-4 flex-wrap pb-4 mb-5 '
                         'border-b border-[var(--line)]'):
-                    with ui.element('div').classes('min-w-0 flex-1'):
+                    # `basis-full` paa telefonen: ellers klemmer knapperne
+                    # teksten sammen i stedet for selv at rykke ned, og
+                    # undertitlen blev brudt til ét ord per linje.
+                    with ui.element('div').classes(
+                            'min-w-0 basis-full md:basis-0 md:flex-1'):
                         ui.label('Sejlplan').classes('section-label')
                         ui.label(names).classes(
-                            'text-[26px] md:text-[30px] font-bold leading-tight '
+                            'text-[19px] md:text-[30px] font-bold leading-tight '
                             'tracking-tight mt-1 block')
                         # Nåede planen ikke frem, står der ingen ankomst i
                         # hovedet. Det er dét, øjet falder på først, og en

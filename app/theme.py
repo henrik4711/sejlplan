@@ -151,6 +151,12 @@ html, body { height: 100%; overflow: hidden; }
   .sheet-tall .map-tools, .sheet-tall .leaflet-control-zoom {
     opacity: 0; pointer-events: none; transform: translateY(-8px);
   }
+
+  /* Sejlplanen er et dokument, man læser — på en telefon fylder den skærmen,
+     og så har skuffen ingen rolle imens. Den skal væk, ikke ligge bagved: den
+     bor inde i kortets stak og kan derfor ikke komme over den. Tilbage til
+     afgangene kommer man med Kortet-knappen øverst i planen. */
+  .work:has(.plan-view) aside.sheet { display: none; }
 }
 
 /* ═══ Skift mellem trin ══════════════════════════════════════════ */
@@ -351,7 +357,9 @@ body {
    den hele fladen under headeren i stedet. */
 .plan-view {
   position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
-  z-index: 600; background: var(--sea-2);
+  /* Over Leaflets egne lag, som gaar til 1000. Planen bor inde i kortets stak,
+     saa zoomknapperne laa oven paa dokumentet med 600 herinde. */
+  z-index: 1100; background: var(--sea-2);
   animation: plan-in .34s cubic-bezier(.22,.9,.3,1);
 }
 @keyframes plan-in {
