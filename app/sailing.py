@@ -314,7 +314,13 @@ def polar_speed(boat: Boat, twa: float, tws: float) -> float:
     def at_angle(angle: int) -> float:
         row = boat.polar[angle]
         speeds = sorted(row)
-        lo_w = max((w for w in speeds if w <= tws), default=speeds[0])
+        if tws <= speeds[0]:
+            # Under diagrammets laveste vindstyrke står der ingenting. Brugte vi
+            # bare tallet for 5 knob, ville båden gøre tre knob i én knobs vind,
+            # og planen ville aldrig indse, at motoren skal tændes. Vi trækker
+            # en linje ned mod nul i stedet — i svag vind står båden stille.
+            return row[speeds[0]] * (tws / speeds[0])
+        lo_w = max(w for w in speeds if w <= tws)
         hi_w = min((w for w in speeds if w >= tws), default=speeds[-1])
         if lo_w == hi_w:
             return row[lo_w]

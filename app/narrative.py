@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from . import harbours
 from .boats import PLANING, Boat
 from .dates import clock, day, day_time, duration, full, spell
-from .sailing import (CALM, GO, HEAD, STOP, WARN, Limits, Plan, Route, Segment,
+from .sailing import (CALM, GO, HEAD, STOP, WARN, Limits, Plan, Route,
                       beaufort, compass, haversine, point_of_sail, tack)
 
 
@@ -77,7 +77,11 @@ class StretchBrief:
     tack: str
     speed_min: float
     speed_max: float
-    motor_hours: int
+    # Hvor stor en del af strækket der går for motor, som en andel mellem 0 og 1.
+    # Det stod før som et antal timer, talt op blandt de sejltimer der faldt
+    # inden for strækket — og så kunne der stå "3 af timerne for motor" på et
+    # stræk, der varede to. Andelen kan ikke komme i modstrid med varigheden.
+    motor_share: float
     status: str
     starts: str
     ends: str
@@ -110,6 +114,11 @@ class StretchBrief:
                              f'{num(self.speed_max)} knob.')
             else:
                 parts.append(f'Der holdes {num(self.speed_max)} knob.')
+        elif self.motor_share > 0.6:
+            # Står motoren på det meste af strækket, er sejlføringen ikke det,
+            # der beskriver turen. Så er det motorsejlads.
+            parts.append('Der er for lidt vind til at sejle strækket — '
+                         'motoren må trække det meste af vejen.')
         elif self.sail == 'i vindøjet':
             parts.append('Kursen ligger så tæt på vinden, at strækket skal krydses.')
         else:
@@ -118,8 +127,8 @@ class StretchBrief:
         if self.wave_max >= 0.1:
             where = f' i {self.sea}' if self.sea != CALM else ''
             parts.append(f'Bølger op til {num(self.wave_max)} meter{where}.')
-        if self.motor_hours and not self.is_motor:
-            parts.append(f'{self.motor_hours} af timerne for motor.')
+        if not self.is_motor and 0 < self.motor_share <= 0.6:
+            parts.append(f'{spell(self.hours * self.motor_share)} af det for motor.')
         return ' '.join(parts)
 
 
@@ -207,7 +216,7 @@ def stretch_briefs(route: Route, plan: Plan, boat: Boat) -> list[StretchBrief]:
             sail=point_of_sail(twa),
             tack=Counter(tack(s.course, s.wind_dir) for s in rows).most_common(1)[0][0],
             speed_min=min(speeds), speed_max=max(speeds),
-            motor_hours=sum(1 for s in rows if s.motoring),
+            motor_share=sum(1 for s in rows if s.motoring) / len(rows),
             status=(STOP if any(s.status == STOP for s in rows)
                     else WARN if any(s.status == WARN for s in rows) else GO),
             starts=day_time(_passed(trace, st.start_nm)),
@@ -217,123 +226,7 @@ def stretch_briefs(route: Route, plan: Plan, boat: Boat) -> list[StretchBrief]:
     return briefs
 
 
-# ── Ben for ben ───────────────────────────────────────────────────────────────
-@dataclass
-class LegBrief:
-    """Alt hvad der er værd at vide om ét ben."""
-    number: int
-    frm: str
-    to: str
-    distance_nm: float
-    course: int
-    hours: int
-    wind_min: float
-    wind_max: float
-    wind_from: str
-    wave_max: float
-    gust_max: float
-    sea: str
-    sail: str
-    tack: str
-    speed_min: float
-    speed_max: float
-    motor_hours: int
-    status: str
-    starts: str
-    ends: str
-    is_motor: bool
-
-    @property
-    def headline(self) -> str:
-        return f'Ben {self.number}: {self.frm} → {self.to}'
-
-    turns: int = 1          # hvor mange stræk benet falder i
-
-    @property
-    def sentence(self) -> str:
-        heading = (f'kurs {self.course}° ({compass(self.course)})' if self.turns < 2
-                   else f'{self.turns} stræk, første kurs {self.course}° '
-                        f'({compass(self.course)})')
-        parts = [f'{num(self.distance_nm)} sømil i {heading}, '
-                 f'{duration(self.hours)} undervejs.']
-
-        if self.wind_min == self.wind_max:
-            parts.append(f'Vinden står {num(self.wind_max, 0)} knob fra {self.wind_from}.')
-        else:
-            parts.append(f'Vinden står mellem {num(self.wind_min, 0)} og '
-                         f'{num(self.wind_max, 0)} knob, overvejende fra {self.wind_from}.')
-
-        if self.is_motor:
-            if self.speed_min < self.speed_max - 0.5:
-                parts.append(f'Farten svinger mellem {num(self.speed_min)} og '
-                             f'{num(self.speed_max)} knob, alt efter søen.')
-            else:
-                parts.append(f'Der holdes {num(self.speed_max)} knob hele vejen.')
-        elif self.sail == 'i vindøjet':
-            parts.append('Kursen ligger så tæt på vinden, at benet skal krydses.')
-        else:
-            parts.append(f'Det sejles for {self.sail} på {self.tack}.')
-
-        if self.wave_max >= 0.1:
-            where = f' i {self.sea}' if self.sea != CALM else ''
-            parts.append(f'Bølgerne når {num(self.wave_max)} meter{where}.')
-
-        if self.motor_hours and not self.is_motor:
-            parts.append(f'{plural(self.motor_hours, "af timerne er", "af timerne er")} for motor.')
-        return ' '.join(parts)
-
-
-def leg_briefs(route: Route, plan: Plan, boat: Boat) -> list[LegBrief]:
-    """Saml prognosen op i ét resumé pr. ben."""
-    by_leg: dict[int, list[Segment]] = {}
-    for s in plan.segments:
-        by_leg.setdefault(s.leg, []).append(s)
-
-    briefs = []
-    waypoints = route.waypoints
-    for leg, rows in sorted(by_leg.items()):
-        a = waypoints[leg - 1] if leg - 1 < len(waypoints) else None
-        b = waypoints[leg] if leg < len(waypoints) else None
-
-        winds = [s.wind_kn for s in rows]
-        speeds = [s.speed_kn for s in rows]
-        sails = Counter(point_of_sail(s.twa) for s in rows)
-        tacks = Counter(tack(s.course, s.wind_dir) for s in rows)
-        dirs = Counter(compass(s.wind_dir) for s in rows)
-        seas = Counter(s.sea for s in rows if s.sea != CALM)
-
-        if any(s.status == STOP for s in rows):
-            status = STOP
-        elif any(s.status == WARN for s in rows):
-            status = WARN
-        else:
-            status = GO
-
-        briefs.append(LegBrief(
-            number=leg,
-            frm=a.name if a else f'Punkt {leg}',
-            to=b.name if b else f'Punkt {leg + 1}',
-            distance_nm=route.leg_nm(leg - 1),
-            course=rows[0].course,
-            hours=len(rows),
-            wind_min=min(winds), wind_max=max(winds),
-            wind_from=dirs.most_common(1)[0][0],
-            wave_max=max(s.wave_m for s in rows),
-            gust_max=max(s.gust_kn for s in rows),
-            sea=seas.most_common(1)[0][0] if seas else CALM,
-            sail=sails.most_common(1)[0][0],
-            tack=tacks.most_common(1)[0][0],
-            speed_min=min(speeds), speed_max=max(speeds),
-            motor_hours=sum(1 for s in rows if s.motoring),
-            status=status,
-            starts=day_time(rows[0].time),
-            ends=day_time(rows[-1].time),
-            is_motor=boat.is_motor,
-            turns=sum(1 for st in route.stretches() if st.leg == leg - 1),
-        ))
-    return briefs
-
-
+# ── Hvordan turen føles ───────────────────────────────────────────────────────
 # ── Hvad turen ser ud til at blive, før vejret er hentet ──────────────────────
 # Ruten kender vi med det samme; vejret tager tid at hente. I mellemtiden kan vi
 # godt sige noget nyttigt: hvor langt, hvor længe ved almindelig vind, og om det
