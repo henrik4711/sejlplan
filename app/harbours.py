@@ -187,12 +187,21 @@ def along_route(route, max_detour_nm: float = MAX_DETOUR_NM) -> list[tuple]:
     return out
 
 
+# Så meget land må indsejlingen gerne skære igennem. En mole er tyndere end
+# landmaskens celler og fylder derfor en hel celle, så et krav om helt fri vej
+# ville kassere netop de havne, der ligger tættest på ruten: Gilleleje ligger
+# halvfems meter fra ruten og blev vraget, mens Hornbæk en sømil væk slap
+# igennem. En ø, man skal hele vejen rundt om, er meget bredere end det her.
+MAX_LAND_CROSS_NM = 0.25
+
+
 def reachable(route, candidates: list[tuple]) -> list[tuple]:
     """Frasortér de havne, man ikke kan sejle lige ind til fra ruten.
 
     En havn kan ligge to sømil fra ruten og alligevel ligge på den anden side
-    af en ø. Vi tjekker linjen fra ruten ind mod havnen, så et forslag om at
-    overnatte aldrig kræver, at man sejler over land.
+    af en ø. Vi måler, hvor meget land linjen ind mod havnen skærer igennem, så
+    et forslag om at overnatte aldrig kræver, at man sejler uden om en ø — men
+    en havnemole må gerne ligge i vejen, for det gør den altid.
     """
     from . import landmask
     if not landmask.available():
@@ -202,7 +211,7 @@ def reachable(route, candidates: list[tuple]) -> list[tuple]:
     for h, along, detour in candidates:
         lat, lon, _course, _leg = route.at(along)
         entry = landmask.nearest_water(h.lat, h.lon)
-        if landmask.clear(lat, lon, entry[0], entry[1]):
+        if landmask.land_run(lat, lon, entry[0], entry[1]) <= MAX_LAND_CROSS_NM:
             out.append((h, along, detour))
     return out
 

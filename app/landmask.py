@@ -113,6 +113,43 @@ def _all_water(lats: np.ndarray, lons: np.ndarray, g: Grid) -> bool:
     return not bool(g.land[r[inside], c[inside]].any())
 
 
+def land_run(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Det længste ubrudte stykke land på den lige linje, i sømil.
+
+    `clear` svarer ja eller nej, og det er for groft, når man skal ind i en
+    havn. Gitteret her har celler på godt to hundrede meter, og en havnemole
+    er smallere end det — så molen fylder en hel celle, og indsejlingen
+    forsvinder. En havn kan altså ikke skelnes fra en ø, hvis man kun spørger,
+    om der er land på vejen. Man må spørge, hvor meget.
+    """
+    g = grid()
+    if g is None:
+        return 0.0
+
+    lats, lons = _samples(lat1, lon1, lat2, lon2, g)
+    if len(lats) < 2:
+        return 0.0
+
+    r = ((lats - g.lat0) / g.res).astype(np.int64)
+    c = ((lons - g.lon0) / g.res).astype(np.int64)
+    inside = (r >= 0) & (r < g.rows) & (c >= 0) & (c < g.cols)
+    land = np.zeros(len(lats), dtype=bool)
+    land[inside] = g.land[r[inside], c[inside]]
+    if not land.any():
+        return 0.0
+
+    mid = math.radians((lat1 + lat2) / 2)
+    scale = max(0.2, math.cos(mid))
+    length = math.hypot(lat2 - lat1, (lon2 - lon1) * scale) * NM_PER_DEGREE
+    per_sample = length / (len(lats) - 1)
+
+    longest = run = 0
+    for is_land in land:
+        run = run + 1 if is_land else 0
+        longest = max(longest, run)
+    return longest * per_sample
+
+
 def clear(lat1: float, lon1: float, lat2: float, lon2: float,
           clearance_nm: float = 0.0) -> bool:
     """Kan man sejle lige fra det ene punkt til det andet uden at ramme land?
