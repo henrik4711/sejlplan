@@ -618,7 +618,6 @@ def sail(boat: Boat, route: Route, depart: datetime,
     incomplete = False
 
     day_from_nm = 0.0
-    sailed_hours = 0.0      # rigtig sejltid, ikke antal påbegyndte timer
     arrived_late = False
     deadline = _day_end(t, limits)
 
@@ -638,7 +637,6 @@ def sail(boat: Boat, route: Route, depart: datetime,
         share = step / seg.speed_kn if seg.speed_kn else 1.0
         along = min(total, along + step)
         t += timedelta(hours=share)
-        sailed_hours += share
         reached.append((along, t))
 
         home = along >= total - 0.01
@@ -687,12 +685,19 @@ def sail(boat: Boat, route: Route, depart: datetime,
     hours = len(segments)
     fuel = sum(_fuel_for(boat, s) for s in segments)
 
+    # Tiden under vejs er summen af døgnene, fra kaj til kaj. At tælle den op
+    # undervejs holder ikke: når planen vælger en havn at overnatte i, spoles
+    # ruten tilbage til havnen, og strækningen derfra sejles igen i morgen. De
+    # timer ville blive talt to gange, og snitfarten faldt til 3,4 knob paa en
+    # tur, der blev sejlet med knap 5.
+    under_way = sum((d.arrive - d.depart).total_seconds() for d in days) / 3600.0
+
     return Plan(
         depart=depart,
         arrival=t,
         total_nm=total,
         hours=hours,
-        avg_speed_kn=round(total / sailed_hours, 1) if sailed_hours else 0.0,
+        avg_speed_kn=round(total / under_way, 1) if under_way > 0 else 0.0,
         worst_wind_kn=round(max(s.wind_kn for s in segments), 1),
         worst_wave_m=round(max(s.wave_m for s in segments), 1),
         red_hours=sum(1 for s in segments if s.status == STOP),
