@@ -444,8 +444,12 @@ class Planner:
         with ui.element('div').classes('flex items-center gap-2 mt-3 mb-1.5'):
             ui.html('<span class="section-label">Ruten</span>')
             if self.s.saved_name:
-                # Arbejder man i en gemt rute, skal man kunne se hvilken.
-                ui.html(f'<span class="chip">{esc(self.s.saved_name)}</span>')
+                # Arbejder man i en gemt rute, skal man kunne se hvilken. Navnet
+                # er brugerens eget og kan være langt — det må ikke kunne skubbe
+                # Gem-knappen ud over kanten på en telefon.
+                ui.html('<span class="chip" style="max-width:16ch;overflow:hidden;'
+                        'text-overflow:ellipsis;white-space:nowrap">'
+                        f'{esc(self.s.saved_name)}</span>')
             ui.element('div').classes('flex-1')
             if self.s.routing:
                 ui.html('<span class="text-[11px] text-[var(--txt-3)]">'
