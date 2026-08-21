@@ -711,8 +711,14 @@ class Planner:
 
             with ui.element('div').classes('flex items-baseline gap-2'):
                 ui.html(f'<div class="win-time tnum">{clock(w.depart)}</div>')
-                ui.html(f'<div class="win-arrive tnum">→ {esc(day_time(w.arrival))} '
-                        f'· {esc(spell(w.under_way_h))} under vejs</div>')
+                # En afgang, der ikke når frem, må ikke stå med en ankomsttid.
+                # Kortet viser så, hvor langt man kommer.
+                if w.incomplete:
+                    ui.html(f'<div class="win-arrive tnum">→ når '
+                            f'{w.reached_nm:.0f} af {w.total_nm:.0f} sømil</div>')
+                else:
+                    ui.html(f'<div class="win-arrive tnum">→ {esc(day_time(w.arrival))} '
+                            f'· {esc(spell(w.under_way_h))} under vejs</div>')
 
             if w.stops:
                 names = ' · '.join(f'{s.name} {day_time(s.arrive)}' for s in w.stops)
@@ -789,7 +795,8 @@ class Planner:
             ui.label(clock(w.depart)).classes(
                 'text-[14px] font-bold tnum w-[46px] shrink-0'
                 + (' text-[var(--accent)]' if chosen else ''))
-            ui.label(f'→ {day_time(w.arrival)}').classes(
+            ui.label(f'→ {w.reached_nm:.0f}/{w.total_nm:.0f} sm'
+                     if w.incomplete else f'→ {day_time(w.arrival)}').classes(
                 'text-[11.5px] text-[var(--txt-3)] tnum flex-1 truncate')
             if w.stops:
                 ui.html(chip('hotel', str(w.nights)).replace('chip ', 'chip shrink-0 '))
@@ -819,8 +826,12 @@ class Planner:
                         ui.label(names).classes(
                             'text-[26px] md:text-[30px] font-bold leading-tight '
                             'tracking-tight mt-1 block')
-                        ui.label(f'{boat.name} · afgang {full(p.depart)} · '
-                                 f'ankomst {full(p.arrival)}') \
+                        # Nåede planen ikke frem, står der ingen ankomst i
+                        # hovedet. Det er dét, øjet falder på først, og en
+                        # ankomsttid, der ikke findes, er værre end ingen.
+                        tail = (f'når {p.reached_nm:.0f} af {p.total_nm:.0f} sømil'
+                                if p.incomplete else f'ankomst {full(p.arrival)}')
+                        ui.label(f'{boat.name} · afgang {full(p.depart)} · {tail}') \
                             .classes('text-[13.5px] text-[var(--txt-2)] mt-1.5 block')
                     with ui.row().classes('gap-1.5 shrink-0'):
                         ui.button('Udskriv', icon='print', on_click=self._print_plan) \

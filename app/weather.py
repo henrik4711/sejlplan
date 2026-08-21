@@ -29,7 +29,11 @@ from .sailing import Route
 FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 MARINE_URL = 'https://marine-api.open-meteo.com/v1/marine'
 
-FORECAST_DAYS = 7
+# Så langt vil tjenesterne give os tal. Vinden rækker til fjorten døgn, men
+# bølgerne stopper ved ti, og en sejlplan uden søen er en halv plan. Ti er
+# altså loftet — ikke fordi vi ikke kan spørge om mere, men fordi svaret er
+# tomt derefter.
+FORECAST_DAYS = 10
 MAX_POINTS = 12              # Open-Meteo tillader flere, men vi holder os høflige
 SPACING_NM = 18.0            # ét prognosepunkt for hver ~18 sømil rute
 CACHE_TTL_SECONDS = 30 * 60  # prognoserne opdateres langtfra hvert minut

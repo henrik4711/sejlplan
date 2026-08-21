@@ -459,6 +459,7 @@ class Plan:
     depart: datetime
     arrival: datetime
     total_nm: float
+    reached_nm: float       # hvor langt planen faktisk nåede
     hours: int              # antal sejltimer, opdelt i timeblokke
     under_way_h: float      # rigtig tid under vejs, fra kaj til kaj
     avg_speed_kn: float
@@ -691,8 +692,21 @@ def sail(boat: Boat, route: Route, depart: datetime,
     if not segments:
         return None
 
-    days.append(_day(day_from, route.waypoints[-1].name, day_start_t, t,
-                     max(0.0, along - day_from_nm), segments[day_first:]))
+    # Nåede vi ikke frem, må sidste dag ikke bære destinationens navn. Ellers
+    # stod der "Anholt havn → Marstal, 0,0 sømil" på otte minutter, fordi
+    # prognosen slap op lige efter et havneophold — og hele dokumentet påstod
+    # en ankomst, der ikke findes.
+    if incomplete:
+        _lat, _lon, _course, leg = route.at(along)
+        nxt = min(leg + 1, len(route.waypoints) - 1)
+        last_to = (f'mellem {route.waypoints[leg].name} '
+                   f'og {route.waypoints[nxt].name}')
+    else:
+        last_to = route.waypoints[-1].name
+
+    if segments[day_first:] or along - day_from_nm > 0.05 or not days:
+        days.append(_day(day_from, last_to, day_start_t, t,
+                         max(0.0, along - day_from_nm), segments[day_first:]))
 
     hours = len(segments)
     fuel = sum(_fuel_for(boat, s) for s in segments)
@@ -708,6 +722,7 @@ def sail(boat: Boat, route: Route, depart: datetime,
         depart=depart,
         arrival=t,
         total_nm=total,
+        reached_nm=round(along, 1),
         hours=hours,
         under_way_h=under_way,
         avg_speed_kn=round(total / under_way, 1) if under_way > 0 else 0.0,

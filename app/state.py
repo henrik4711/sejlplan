@@ -21,7 +21,7 @@ from .sailing import Limits, Plan, Route, Waypoint
 
 STORAGE_KEY = 'sejlplan'
 PLANNING_DAYS = 3          # standard: i dag og tre dage frem
-MAX_FORECAST_DAYS = 7      # så langt rækker prognosen
+MAX_FORECAST_DAYS = 10     # så langt rækker prognosen — bølgerne er loftet
 
 
 def default_limits() -> Limits:

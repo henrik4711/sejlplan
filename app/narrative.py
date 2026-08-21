@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import math
 from collections import Counter
+from datetime import date
 from dataclasses import dataclass
 
 from . import harbours
@@ -349,16 +350,26 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
     names = ' → '.join(w.name for w in route.waypoints)
     legs = len(route.waypoints) - 1
 
-    opening = (f'Ruten {names} er på {num(plan.total_nm)} sømil fordelt på '
-               f'{plural(legs, "ben", "ben")}. Med {boat.name} tager den beregnet '
-               f'{spell(plan.under_way_h)} under vejs. Du kaster los {full(plan.depart)} '
-               f'og er fremme {full(plan.arrival)}')
+    head = (f'Ruten {names} er på {num(plan.total_nm)} sømil fordelt på '
+            f'{plural(legs, "ben", "ben")}. ')
+    if plan.incomplete:
+        # Planen rakte ikke hele vejen. Så hører timetallet til dét, den nåede
+        # — ikke til hele ruten — og der er ingen ankomst at melde.
+        opening = (head + f'Vejrudsigten rækker ikke hele vejen. Kaster du los '
+                          f'{full(plan.depart)}, når du {num(plan.reached_nm)} '
+                          f'sømil på {spell(plan.under_way_h)} under vejs med '
+                          f'{boat.name}, før prognosen slipper op '
+                          f'{full(plan.arrival)}')
+    else:
+        opening = (head + f'Med {boat.name} tager den beregnet '
+                          f'{spell(plan.under_way_h)} under vejs. Du kaster los '
+                          f'{full(plan.depart)} og er fremme {full(plan.arrival)}')
     if plan.stops:
         nights = plural(plan.nights, 'overnatning', 'overnatninger')
         stops = ', '.join(s.name for s in plan.stops)
         opening += f' — med {nights} undervejs i {stops}.'
     else:
-        opening += ' i én stræk.'
+        opening += '.' if plan.incomplete else ' i én stræk.'
 
     paragraphs = [opening]
 
@@ -420,13 +431,32 @@ def day_lines(plan: Plan) -> list[str]:
 
 
 # ── Advarsler ─────────────────────────────────────────────────────────────────
+# Fra og med her ude regnes en vejrudsigt for en tendens. De første tre-fire
+# døgn holder ret godt; derefter er det retningen, der overlever, ikke timerne.
+UNCERTAIN_AFTER_DAYS = 5
 def warnings(plan: Plan, limits: Limits, boat: Boat) -> list[str]:
     """Det skipperen skal tage stilling til, før der kastes los."""
     out = []
 
+    # Hvor langt ude i prognosen slutter turen? En vejrudsigt på ni døgn er
+    # ikke samme vare som en på to. Vinden kan ligge anderledes, og timerne kan
+    # rykke — og det skal stå der, ikke gemmes i en disclaimer.
+    ahead = (plan.arrival.date() - date.today()).days
+    if ahead >= UNCERTAIN_AFTER_DAYS and not plan.incomplete:
+        out.append(
+            f'Turen slutter {plural(ahead, "døgn", "døgn")} ude i prognosen. '
+            f'Så langt frem er en vejrudsigt en tendens, ikke en tidsplan: '
+            f'retningen holder tit, men styrken og timerne rykker sig. Læg '
+            f'planen, og se den efter igen et par dage før afgang.')
+
     if plan.incomplete:
-        out.append('Turen når ikke frem inden for den vejrudsigt, vi har. '
-                   'Del den op, eller planlæg den sidste del senere.')
+        rest = max(0.0, plan.total_nm - plan.reached_nm)
+        out.append(
+            f'Turen når ikke frem inden for den vejrudsigt, vi har. Du kommer '
+            f'{num(plan.reached_nm)} af {num(plan.total_nm)} sømil — de sidste '
+            f'{num(rest)} sømil kan først planlægges, når prognosen rækker så '
+            f'langt. Læg turen tidligere, eller planlæg den sidste del om nogle '
+            f'dage.')
 
     for stop in plan.stops:
         if stop.late:
