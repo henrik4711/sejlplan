@@ -11,6 +11,7 @@ lever i et felt for sig og bliver lagt på plads, når den er klar.
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
@@ -20,6 +21,7 @@ from .boats import BOATS, CUSTOM_ID, DEFAULT_BOAT, Boat, custom_boat
 from .sailing import Limits, Plan, Route, Waypoint
 
 STORAGE_KEY = 'sejlplan'
+MAX_ROUTES = 60            # flere end nogen har brug for, færre end der fylder
 PLANNING_DAYS = 3          # standard: i dag og tre dage frem
 MAX_FORECAST_DAYS = 10     # så langt rækker prognosen — bølgerne er loftet
 
@@ -60,6 +62,13 @@ class Session:
     # Browseren, sessionen hører til. Sat af brugerfladen, så vi kan lægge en
     # kopi af det gemte hos brugeren selv.
     client: object | None = None
+
+    # Gemte ruter. De ligger i sessionen sammen med alt andet, så de rejser
+    # med den samme kopi ud i browserens eget lager — en udrulning kan ikke
+    # tage dem. `route_id` er den gemte rute, man arbejder i lige nu, så et
+    # tryk på Gem opdaterer den i stedet for at lave en tvilling.
+    routes: list[dict] = field(default_factory=list)
+    route_id: str = ''
 
     # Beregnet – ryddes så snart ruten eller grænserne ændrer sig.
     weather: list = field(default_factory=list)
@@ -171,6 +180,9 @@ class Session:
     def clear(self) -> None:
         self.waypoints.clear()
         self.tracks, self.exact, self.tracks_for = [], [], ()
+        # Kun arbejdsbordet ryddes. De gemte ruter bliver liggende — man rydder
+        # for at begynde forfra, ikke for at kaste sin samling væk.
+        self.route_id = ''
         self.invalidate()
         self.persist()
 
@@ -186,6 +198,77 @@ class Session:
         self.invalidate()
         self.persist()
 
+    # ── Gemte ruter ─────────────────────────────────────────────────
+    @property
+    def route_title(self) -> str:
+        """Et navn, der giver sig selv: hvorfra og hvortil."""
+        if not self.waypoints:
+            return 'Ny rute'
+        if len(self.waypoints) == 1:
+            return self.waypoints[0].name
+        return f'{self.waypoints[0].name} → {self.waypoints[-1].name}'
+
+    @property
+    def saved_name(self) -> str:
+        """Navnet på den gemte rute, man arbejder i. Tom, hvis ingen."""
+        row = self.saved_route(self.route_id)
+        return str(row.get('name') or '') if row else ''
+
+    def saved_route(self, rid: str) -> dict | None:
+        return next((r for r in self.routes if r.get('id') == rid), None)
+
+    def save_route(self, name: str = '', as_new: bool = False) -> str:
+        """Læg ruten på hylden. Uden `as_new` opdateres den, man arbejder i."""
+        if not self.waypoints:
+            return ''
+        rid = '' if as_new else self.route_id
+        old = self.saved_route(rid) if rid else None
+        entry = {
+            'id': rid or uuid.uuid4().hex[:10],
+            'name': ((name or '').strip() or (old or {}).get('name')
+                     or self.route_title)[:60],
+            'saved': date.today().isoformat(),
+            'nm': round(self.total_nm, 1),
+            'waypoints': [w.as_dict() for w in self.waypoints],
+        }
+        self.routes = [r for r in self.routes if r.get('id') != entry['id']]
+        self.routes.insert(0, entry)
+        del self.routes[MAX_ROUTES:]
+        self.route_id = entry['id']
+        self.persist()
+        return entry['id']
+
+    def open_route(self, rid: str) -> bool:
+        """Læg en gemt rute på bordet. Havvejen regnes forfra af den, der kalder."""
+        row = self.saved_route(rid)
+        if not row:
+            return False
+        try:
+            wps = [Waypoint.from_dict(d) for d in row.get('waypoints') or []]
+        except (KeyError, TypeError, ValueError):
+            return False
+        if not wps:
+            return False
+        self.waypoints = wps
+        self.tracks, self.exact, self.tracks_for = [], [], ()
+        self.route_id = rid
+        self.invalidate()
+        self.persist()
+        return True
+
+    def rename_route(self, rid: str, name: str) -> None:
+        name = (name or '').strip()
+        row = self.saved_route(rid)
+        if row and name:
+            row['name'] = name[:60]
+            self.persist()
+
+    def delete_route(self, rid: str) -> None:
+        self.routes = [r for r in self.routes if r.get('id') != rid]
+        if self.route_id == rid:
+            self.route_id = ''
+        self.persist()
+
     # ── Lagring ─────────────────────────────────────────────────────
     def snapshot(self) -> dict:
         """Det, der er værd at gemme. Alt andet kan regnes ud igen."""
@@ -194,6 +277,8 @@ class Session:
             'boat_id': self.boat_id,
             'custom': self.custom,
             'waypoints': [w.as_dict() for w in self.waypoints],
+            'routes': self.routes,
+            'route_id': self.route_id,
             'limits': {
                 'max_wind': lim.max_wind,
                 'max_wave': lim.max_wave,
@@ -246,7 +331,7 @@ class Session:
             await self.client.connected(timeout=8.0)
         except Exception:
             return False
-        if self.waypoints or self.custom:
+        if self.waypoints or self.custom or self.routes:
             # Serveren havde noget. Så er browserens kopi den, der skal rettes.
             self.mirror()
             return False
@@ -262,9 +347,10 @@ class Session:
         except (TypeError, ValueError):
             return False
         if not isinstance(saved, dict) or not saved.get('waypoints'):
-            # Uden ruten er der intet at redde — båd og grænser alene er ikke
-            # nok til at retfærdiggøre at gå uden om serverens svar.
-            if not (saved or {}).get('custom'):
+            # Uden ruten er der intet at redde — grænser alene er ikke nok til
+            # at retfærdiggøre at gå uden om serverens svar. Men har man en båd
+            # eller en samling gemte ruter, er der.
+            if not (saved or {}).get('custom') and not (saved or {}).get('routes'):
                 return False
         self.load(saved)
         try:
@@ -288,6 +374,9 @@ class Session:
         """Læg en gemt session ind over den her. Ukendte felter springes over."""
         s = self
         s.custom = dict(saved.get('custom') or {})
+        rows = saved.get('routes')
+        s.routes = [r for r in rows if isinstance(r, dict) and r.get('id')]             if isinstance(rows, list) else []
+        s.route_id = str(saved.get('route_id') or '')
         s.boat_id = saved.get('boat_id') or DEFAULT_BOAT
         if s.boat_id == CUSTOM_ID and not s.custom:
             s.boat_id = DEFAULT_BOAT

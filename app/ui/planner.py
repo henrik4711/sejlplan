@@ -26,6 +26,7 @@ from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
                        beaufort, compass, find_windows, haversine,
                        point_of_sail)
 from ..state import Session, signature
+from . import myroutes
 from .mapview import RouteMap
 
 # "Afgang" er også en havns rolle i ruten. Trinnet hedder derfor
@@ -192,6 +193,8 @@ class Planner:
             # Båden stod også her som en knap, der åbnede den samme dialog som
             # tandhjulet. To veje til det samme sted er én for meget — og båden
             # står nu tydeligt i panelets "Turen"-liste.
+            ui.button(icon='bookmarks', on_click=self._open_routes) \
+                .props('flat round dense').tooltip('Mine gemte ruter')
             ui.button(icon='tune', on_click=self._open_settings) \
                 .props('flat round dense').tooltip('Båd, grænser og sejldøgn')
             self.share_button()
@@ -438,12 +441,19 @@ class Planner:
             self._empty_route()
             return
 
-        with ui.element('div').classes('flex items-baseline gap-2 mt-3 mb-1.5'):
+        with ui.element('div').classes('flex items-center gap-2 mt-3 mb-1.5'):
             ui.html('<span class="section-label">Ruten</span>')
+            if self.s.saved_name:
+                # Arbejder man i en gemt rute, skal man kunne se hvilken.
+                ui.html(f'<span class="chip">{esc(self.s.saved_name)}</span>')
             ui.element('div').classes('flex-1')
             if self.s.routing:
                 ui.html('<span class="text-[11px] text-[var(--txt-3)]">'
                         'beregner havvejen…</span>')
+            else:
+                ui.button('Gem', icon='bookmark_border', on_click=self._save_route) \
+                    .props('flat dense no-caps size=sm') \
+                    .classes('text-[var(--accent)] shrink-0')
 
         with ui.element('div').classes('card px-1.5 py-1.5 mb-3'):
             last = len(self.s.waypoints) - 1
@@ -502,6 +512,17 @@ class Planner:
             ui.label('Søg efter en havn foroven, klik direkte på kortet, eller slå '
                      'havnelaget til og vælg en havn. Du skal bruge mindst to punkter.') \
                 .classes('empty-sub')
+
+        if self.s.routes:
+            # Har man ruter på hylden, er det her, man vil have fat i dem —
+            # ikke bag et ikon oppe i hjørnet.
+            with ui.element('div').classes('flex items-center gap-2 mt-1 mb-2'):
+                ui.html('<span class="section-label">Mine ruter</span>')
+                ui.element('div').classes('flex-1')
+                ui.button('Se alle', on_click=self._open_routes) \
+                    .props('flat dense no-caps size=sm') \
+                    .classes('text-[var(--accent)] shrink-0')
+            myroutes.rows(self.s, self._open_saved, lambda: self.refresh(fit=True))
 
         ui.label('Kom hurtigt i gang').classes('section-label mt-2 mb-2 block')
         with ui.row().classes('gap-1.5 flex-wrap'):
@@ -1266,6 +1287,25 @@ class Planner:
         self._schedule_route()
         ui.notify('Ruten er vendt om', position='bottom')
         self._plan_lost(had_plan)
+
+    # ── Mine ruter ──────────────────────────────────────────────────
+    def _save_route(self) -> None:
+        myroutes.save_dialog(self.s, lambda: self.refresh())
+
+    def _open_routes(self) -> None:
+        myroutes.open_dialog(self.s, self._open_saved, lambda: self.refresh())
+
+    def _open_saved(self, rid: str) -> None:
+        """Læg en gemt rute på bordet. Havvejen skal regnes forfra."""
+        if not self.s.open_route(rid):
+            ui.notify('Ruten kunne ikke åbnes', type='warning', position='bottom')
+            return
+        self._suggestions = []
+        if self.search_input:
+            self.search_input.value = ''
+        self.refresh(fit=True)
+        self._schedule_route(fit=True)
+        ui.notify(f'"{self.s.saved_name}" er åbnet', position='bottom')
 
     def _clear_route(self) -> None:
         """Spørg først. Det her sletter hele arbejdet, og der er ingen fortryd."""
