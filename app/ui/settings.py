@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from nicegui import ui
 
 from ..boats import MOTORBOATS, SAILBOATS
+from .myboat import own_boat_block
 from ..dates import day
 from ..state import MAX_FORECAST_DAYS
 
@@ -39,6 +40,10 @@ def settings_dialog(planner) -> None:
             # ── Båd ──
             @ui.refreshable
             def boat_block() -> None:
+                own_boat_block(s, boat_block.refresh, limits_block.refresh)
+                ui.html('<span class="section-label">Eller et eksempel</span>')
+                ui.label('Vælg den, der ligner din mest, hvis du ikke vil taste '
+                         'din egen ind.')                     .classes('text-[11px] text-[var(--txt-3)] mt-1 mb-2 block')
                 for title, boats, note in (
                         ('Sejlbåde', SAILBOATS, 'Farten kommer fra polardiagrammet.'),
                         ('Motorbåde', MOTORBOATS,
@@ -160,7 +165,8 @@ def settings_dialog(planner) -> None:
 
 def _snapshot(s) -> tuple:
     lim = s.limits
-    return (s.boat_id, lim.max_wind, lim.max_wave, lim.date_from, lim.date_to,
+    return (s.boat_id, tuple(sorted((k, str(v)) for k, v in s.custom.items())),
+            lim.max_wind, lim.max_wave, lim.date_from, lim.date_to,
             lim.day_start, lim.day_end, lim.night_ok, lim.use_motor)
 
 

@@ -211,7 +211,7 @@ class Planner:
             ui.html(f'<span class="chip tnum">{self.s.total_nm:.0f} sm</span>')
 
     def share_button(self) -> None:
-        with ui.button(icon='ios_share').props('flat round dense') \
+        with ui.button(icon='share').props('flat round dense') \
                 .tooltip('Del eller eksportér ruten'):
             with ui.menu().classes('min-w-[230px]'):
                 ui.menu_item('Kopiér delelink', self._copy_link)
@@ -238,16 +238,33 @@ class Planner:
                     self.style_btns[key] = item
                 self._paint_style_buttons()
 
-            self.harbour_btn = ui.button(icon='anchor', on_click=self._toggle_harbours) \
-                .props('flat dense square').classes('map-btn map-btn--on w-10 h-10') \
-                .tooltip('Vis alle lystbådehavne — klik på en for at lægge den i ruten')
-            self.seamark_btn = ui.button(icon='waves', on_click=self._toggle_seamarks) \
-                .props('flat dense square').classes('map-btn w-10 h-10') \
-                .tooltip('Vis bøjer, fyr og sejlløb fra OpenSeaMap')
-            ui.button(icon='center_focus_strong',
-                      on_click=lambda: self.map and self.map.fit(self.s.route)) \
-                .props('flat dense square').classes('map-btn w-10 h-10') \
-                .tooltip('Zoom ud til hele ruten')
+            # Knapperne har tekst under ikonet. Et anker og en bølge er ikke
+            # tegn, man bare kan regne ud, og på en telefon findes der ingen
+            # tooltip at holde musen over. Havnelaget er det, appen kan — så
+            # skal man kunne se, at knappen findes.
+            self.harbour_btn = self._map_button(
+                'anchor', 'Havne', self._toggle_harbours, on=True,
+                tip='Vis alle lystbådehavne — klik på en for at lægge den i ruten')
+            self.seamark_btn = self._map_button(
+                'waves', 'Sømærker', self._toggle_seamarks,
+                tip='Bøjer, fyr og sejlløb fra OpenSeaMap')
+            self._map_button(
+                'zoom_out_map', 'Hele ruten',
+                lambda: self.map and self.map.fit(self.s.route),
+                tip='Zoom ud, så hele ruten er i billedet')
+
+    @staticmethod
+    def _map_button(icon: str, label: str, on_click, on: bool = False,
+                    tip: str = ''):
+        btn = ui.button(on_click=on_click).props('flat dense no-caps') \
+            .classes('map-btn map-btn--tall' + (' map-btn--on' if on else ''))
+        with btn:
+            with ui.element('div').classes('flex flex-col items-center gap-0.5'):
+                ui.icon(icon).classes('text-[19px]')
+                ui.label(label).classes('map-btn-label')
+        if tip:
+            btn.tooltip(tip)
+        return btn
 
     def _paint_style_buttons(self) -> None:
         active = self.map.style if self.map else 'chart'

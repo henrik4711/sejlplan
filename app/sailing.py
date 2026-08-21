@@ -618,6 +618,7 @@ def sail(boat: Boat, route: Route, depart: datetime,
     incomplete = False
 
     day_from_nm = 0.0
+    sailed_hours = 0.0      # rigtig sejltid, ikke antal påbegyndte timer
     arrived_late = False
     deadline = _day_end(t, limits)
 
@@ -628,8 +629,16 @@ def sail(boat: Boat, route: Route, depart: datetime,
 
         seg = _hour(boat, route, along, t, weather, limits)
         segments.append(seg)
-        along = min(total, along + seg.speed_kn)
-        t += timedelta(hours=1)
+
+        # Den sidste time er sjældent en hel time. Talte vi den med som én,
+        # ville ankomsten rykke op mod en time for sent, og snitfarten blive
+        # regnet på en tid, båden ikke havde brugt — en planende motorbåd stod
+        # med "17,7 knob undervejs" og "9,8 knob i snit" på samme tur.
+        step = min(seg.speed_kn, total - along)
+        share = step / seg.speed_kn if seg.speed_kn else 1.0
+        along = min(total, along + step)
+        t += timedelta(hours=share)
+        sailed_hours += share
         reached.append((along, t))
 
         home = along >= total - 0.01
@@ -683,7 +692,7 @@ def sail(boat: Boat, route: Route, depart: datetime,
         arrival=t,
         total_nm=total,
         hours=hours,
-        avg_speed_kn=round(total / hours, 1) if hours else 0.0,
+        avg_speed_kn=round(total / sailed_hours, 1) if sailed_hours else 0.0,
         worst_wind_kn=round(max(s.wind_kn for s in segments), 1),
         worst_wave_m=round(max(s.wave_m for s in segments), 1),
         red_hours=sum(1 for s in segments if s.status == STOP),

@@ -149,3 +149,81 @@ DEFAULT_BOAT = 'jeanneau'
 
 SAILBOATS = [b for b in BOATS.values() if not b.is_motor]
 MOTORBOATS = [b for b in BOATS.values() if b.is_motor]
+
+
+# ── Din egen båd ─────────────────────────────────────────────────────────────
+# De syv både ovenfor er eksempler. Ingen sejler ejer et eksempel — man ejer en
+# bestemt båd med en bestemt fart og et bestemt forbrug, og det er den, planen
+# skal regne på.
+#
+# For en motorbåd er det ligetil: marchfart, skrogtype, forbrug. For en sejlbåd
+# ville det rigtige være et polardiagram, men det har de færreste liggende. I
+# stedet spørger vi om ét tal, enhver sejler kender — farten ved halvvind i
+# jævn vind — og skalerer en almindelig krydsers diagram, så det rammer dét
+# tal. Formen på kurven er den samme; niveauet er brugerens eget.
+CUSTOM_ID = 'min'
+
+REFERENCE = 'jeanneau'          # diagrammet, der skaleres
+REFERENCE_TWA = 90              # halvvind
+REFERENCE_TWS = 10              # jævn vind
+
+
+def reference_speed() -> float:
+    """Krydserens fart ved halvvind i 10 knob — det tal, brugerens fart måles mod."""
+    row = BOATS[REFERENCE].polar[REFERENCE_TWA]
+    return row[REFERENCE_TWS]
+
+
+def scaled_polar(speed_kn: float) -> dict[int, dict[int, float]]:
+    """Referencediagrammet skaleret, så halvvind i 10 knob giver `speed_kn`."""
+    factor = max(0.3, min(2.5, speed_kn / reference_speed()))
+    return {angle: {wind: round(value * factor, 2) for wind, value in row.items()}
+            for angle, row in BOATS[REFERENCE].polar.items()}
+
+
+def custom_boat(spec: dict) -> Boat:
+    """Byg brugerens egen båd ud af det, han har tastet ind."""
+    motor = str(spec.get('kind') or SAIL) == MOTOR
+    name = str(spec.get('name') or '').strip() or 'Min båd'
+    length = _number(spec.get('length_m'), 10.0, 3, 40)
+
+    if motor:
+        cruise = _number(spec.get('cruise_kn'), 12.0, 3, 60)
+        return Boat(
+            id=CUSTOM_ID, name=name, icon='directions_boat', kind=MOTOR,
+            length_m=length, desc='Din egen', crew_note='som du har tastet den ind',
+            max_wind_kn=_number(spec.get('max_wind_kn'), 18.0, 5, 40),
+            max_wave_m=_number(spec.get('max_wave_m'), 1.2, 0.3, 4),
+            cruise_kn=cruise,
+            hull=str(spec.get('hull') or SEMI),
+            hull_speed_kn=_hull_speed(length),
+            fuel_lph=_number(spec.get('fuel_lph'), 40.0, 1, 400))
+
+    reach = _number(spec.get('reach_kn'), reference_speed(), 2, 20)
+    return Boat(
+        id=CUSTOM_ID, name=name, icon='sailing', kind=SAIL,
+        length_m=length, desc='Din egen', crew_note='som du har tastet den ind',
+        max_wind_kn=_number(spec.get('max_wind_kn'), 20.0, 5, 40),
+        max_wave_m=_number(spec.get('max_wave_m'), 1.5, 0.3, 4),
+        hull_speed_kn=_hull_speed(length),
+        motor_speed_kn=_number(spec.get('motor_speed_kn'), 5.5, 2, 12),
+        fuel_lph=_number(spec.get('fuel_lph'), 3.0, 0.5, 40),
+        polar=scaled_polar(reach))
+
+
+def _hull_speed(length_m: float) -> float:
+    """Skrogfart efter den gamle tommelfingerregel: 1,34 · √(vandlinje i fod).
+
+    Vandlinjen sættes til 85 % af længden overalt — det passer nogenlunde for
+    en almindelig lystbåd og er bedre end at gætte på et rundt tal.
+    """
+    waterline_ft = max(1.0, length_m * 0.85) * 3.28084
+    return round(1.34 * waterline_ft ** 0.5, 1)
+
+
+def _number(value, fallback: float, low: float, high: float) -> float:
+    """Læs et tal fra brugerens indtastning og hold det inden for det mulige."""
+    try:
+        return max(low, min(high, float(value)))
+    except (TypeError, ValueError):
+        return fallback

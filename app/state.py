@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 from nicegui import app
 
-from .boats import BOATS, DEFAULT_BOAT, Boat
+from .boats import BOATS, CUSTOM_ID, DEFAULT_BOAT, Boat, custom_boat
 from .sailing import Limits, Plan, Route, Waypoint
 
 STORAGE_KEY = 'sejlplan'
@@ -53,6 +53,9 @@ class Session:
     tracks_for: tuple = ()
     routing: bool = False
 
+    # Brugerens egen båd. Tom indtil han har tastet den ind.
+    custom: dict = field(default_factory=dict)
+
     # Beregnet – ryddes så snart ruten eller grænserne ændrer sig.
     weather: list = field(default_factory=list)
     windows: list[Plan] = field(default_factory=list)
@@ -65,7 +68,23 @@ class Session:
     # ── Afledt ──────────────────────────────────────────────────────
     @property
     def boat(self) -> Boat:
+        if self.boat_id == CUSTOM_ID and self.custom:
+            return custom_boat(self.custom)
         return BOATS.get(self.boat_id) or BOATS[DEFAULT_BOAT]
+
+    @property
+    def has_custom(self) -> bool:
+        return bool(self.custom)
+
+    def set_custom(self, spec: dict) -> None:
+        """Gem brugerens egen båd og tag den i brug."""
+        self.custom = dict(spec)
+        self.boat_id = CUSTOM_ID
+        boat = self.boat
+        self.limits.max_wind = boat.max_wind_kn
+        self.limits.max_wave = boat.max_wave_m
+        self.invalidate()
+        self.persist()
 
     @property
     def route(self) -> Route:
@@ -152,11 +171,13 @@ class Session:
 
     def set_boat(self, boat_id: str) -> None:
         """Bådskiftet trækker komfortgrænserne med sig — de hører til båden."""
-        if boat_id not in BOATS:
+        if boat_id != CUSTOM_ID and boat_id not in BOATS:
+            return
+        if boat_id == CUSTOM_ID and not self.custom:
             return
         self.boat_id = boat_id
-        self.limits.max_wind = BOATS[boat_id].max_wind_kn
-        self.limits.max_wave = BOATS[boat_id].max_wave_m
+        self.limits.max_wind = self.boat.max_wind_kn
+        self.limits.max_wave = self.boat.max_wave_m
         self.invalidate()
         self.persist()
 
@@ -166,6 +187,7 @@ class Session:
         try:
             app.storage.user[STORAGE_KEY] = {
                 'boat_id': self.boat_id,
+                'custom': self.custom,
                 'waypoints': [w.as_dict() for w in self.waypoints],
                 'limits': {
                     'max_wind': lim.max_wind,
@@ -191,8 +213,11 @@ class Session:
         except (RuntimeError, KeyError):
             return s
 
+        s.custom = dict(saved.get('custom') or {})
         s.boat_id = saved.get('boat_id') or DEFAULT_BOAT
-        if s.boat_id not in BOATS:
+        if s.boat_id == CUSTOM_ID and not s.custom:
+            s.boat_id = DEFAULT_BOAT
+        elif s.boat_id != CUSTOM_ID and s.boat_id not in BOATS:
             s.boat_id = DEFAULT_BOAT
 
         try:

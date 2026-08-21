@@ -478,6 +478,15 @@ body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.
 .map-btn:hover { background: var(--glass-firm); color: var(--txt-1); }
 .map-btn:active { transform: scale(.94); }
 .map-btn--on { color: var(--accent); background: var(--glass-firm); }
+/* Knap med tekst under ikonet. Bredden er sat, så de tre står i én kolonne
+   med samme kant — ikke som tre forskellige klodser. */
+.map-btn--tall {
+  width: 74px; height: 54px; padding: 0;
+}
+.map-btn-label {
+  font-size: 9.5px; font-weight: 650; letter-spacing: .01em;
+  line-height: 1; white-space: nowrap;
+}
 
 /* ═══ Segmentvælger ══════════════════════════════════════════════ */
 /* To valg, ét spor, og en markør der glider. Den fylder mindre end to knapper
