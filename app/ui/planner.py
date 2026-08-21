@@ -122,6 +122,7 @@ class Planner:
         # underforståede klient er ikke sat, når en opgave vågner op igen, så
         # vi holder fast i vores egen og går ind i den, før vi rører fladen.
         self.client = ui.context.client
+        self.s.client = self.client
 
     # ════════════════════════════════════════════════════════════════
     # Opbygning

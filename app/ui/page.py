@@ -13,13 +13,17 @@ from .planner import Planner
 
 
 @ui.page('/')
-def index(rute: str = '') -> None:
+async def index(rute: str = '') -> None:
     """Forsiden. `?rute=…` åbner en rute, nogen har delt."""
     ui.page_title('Sejlplan – find den bedste afgang')
     theme.apply()
 
     planner = Planner()
 
+    # Et delelink er altid stærkest: det er dét, brugeren står med i hånden.
+    # Ellers spørger vi browseren, om den har en rute liggende, som serveren har
+    # glemt. Begge dele skal ske før `build`, så fladen bygges rigtigt fra
+    # starten i stedet for at blive skiftet ud for øjnene af brugeren.
     if rute:
         waypoints, boat_id = share.decode_route(rute)
         if waypoints:
@@ -30,6 +34,8 @@ def index(rute: str = '') -> None:
             planner.s.persist()
         else:
             ui.notify('Delelinket kunne ikke læses', type='warning', position='bottom')
+
+    await planner.s.adopt_browser_copy()
 
     planner.build()
 

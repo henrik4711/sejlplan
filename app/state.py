@@ -10,6 +10,7 @@ lever i et felt for sig og bliver lagt på plads, når den er klar.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
@@ -55,6 +56,10 @@ class Session:
 
     # Brugerens egen båd. Tom indtil han har tastet den ind.
     custom: dict = field(default_factory=dict)
+
+    # Browseren, sessionen hører til. Sat af brugerfladen, så vi kan lægge en
+    # kopi af det gemte hos brugeren selv.
+    client: object | None = None
 
     # Beregnet – ryddes så snart ruten eller grænserne ændrer sig.
     weather: list = field(default_factory=list)
@@ -182,27 +187,91 @@ class Session:
         self.persist()
 
     # ── Lagring ─────────────────────────────────────────────────────
-    def persist(self) -> None:
+    def snapshot(self) -> dict:
+        """Det, der er værd at gemme. Alt andet kan regnes ud igen."""
         lim = self.limits
+        return {
+            'boat_id': self.boat_id,
+            'custom': self.custom,
+            'waypoints': [w.as_dict() for w in self.waypoints],
+            'limits': {
+                'max_wind': lim.max_wind,
+                'max_wave': lim.max_wave,
+                'date_from': lim.date_from,
+                'date_to': lim.date_to,
+                'day_start': lim.day_start,
+                'day_end': lim.day_end,
+                'night_ok': lim.night_ok,
+                'use_motor': lim.use_motor,
+            },
+        }
+
+    def persist(self) -> None:
+        data = self.snapshot()
         try:
-            app.storage.user[STORAGE_KEY] = {
-                'boat_id': self.boat_id,
-                'custom': self.custom,
-                'waypoints': [w.as_dict() for w in self.waypoints],
-                'limits': {
-                    'max_wind': lim.max_wind,
-                    'max_wave': lim.max_wave,
-                    'date_from': lim.date_from,
-                    'date_to': lim.date_to,
-                    'day_start': lim.day_start,
-                    'day_end': lim.day_end,
-                    'night_ok': lim.night_ok,
-                    'use_motor': lim.use_motor,
-                },
-            }
+            app.storage.user[STORAGE_KEY] = data
         except (RuntimeError, KeyError):
             # Ingen sessionslager (fx under test) – så kører vi bare uden.
             pass
+        self.mirror(data)
+
+    def mirror(self, data: dict | None = None) -> None:
+        """Læg en kopi i browserens eget lager.
+
+        Serveren husker sessionen i en fil, og den fil ligger på et filsystem,
+        der forsvinder hver gang appen bliver lagt ud på ny. En rute, man har
+        brugt et kvarter på at lægge, må ikke være væk, fordi vi rettede en
+        knapfarve. Kopien hos brugeren selv overlever både det og en genstart.
+        """
+        if self.client is None:
+            return
+        blob = json.dumps(json.dumps(data if data is not None else self.snapshot()))
+        try:
+            self.client.run_javascript(
+                f'try {{ localStorage.setItem({json.dumps(STORAGE_KEY)}, {blob}) }}'
+                f' catch (e) {{}}')
+        except Exception:
+            # Ingen forbindelse endnu, eller lageret er slået fra. Næste
+            # ændring lægger kopien — og der kommer altid en næste.
+            pass
+
+    async def adopt_browser_copy(self) -> bool:
+        """Hent browserens kopi, hvis serveren har glemt sessionen.
+
+        Serveren vinder, når den har noget. Kopien er en redningsline, ikke en
+        anden sandhed — ellers ville to faner kunne skiftes til at overskrive
+        hinanden.
+        """
+        try:
+            await self.client.connected(timeout=8.0)
+        except Exception:
+            return False
+        if self.waypoints or self.custom:
+            # Serveren havde noget. Så er browserens kopi den, der skal rettes.
+            self.mirror()
+            return False
+        try:
+            raw = await self.client.run_javascript(
+                f'localStorage.getItem({json.dumps(STORAGE_KEY)})', timeout=4.0)
+        except Exception:
+            return False
+        if not raw:
+            return False
+        try:
+            saved = json.loads(raw)
+        except (TypeError, ValueError):
+            return False
+        if not isinstance(saved, dict) or not saved.get('waypoints'):
+            # Uden ruten er der intet at redde — båd og grænser alene er ikke
+            # nok til at retfærdiggøre at gå uden om serverens svar.
+            if not (saved or {}).get('custom'):
+                return False
+        self.load(saved)
+        try:
+            app.storage.user[STORAGE_KEY] = self.snapshot()
+        except (RuntimeError, KeyError):
+            pass
+        return True
 
     @staticmethod
     def restore() -> 'Session':
@@ -212,7 +281,12 @@ class Session:
             saved = app.storage.user.get(STORAGE_KEY) or {}
         except (RuntimeError, KeyError):
             return s
+        s.load(saved)
+        return s
 
+    def load(self, saved: dict) -> 'Session':
+        """Læg en gemt session ind over den her. Ukendte felter springes over."""
+        s = self
         s.custom = dict(saved.get('custom') or {})
         s.boat_id = saved.get('boat_id') or DEFAULT_BOAT
         if s.boat_id == CUSTOM_ID and not s.custom:
