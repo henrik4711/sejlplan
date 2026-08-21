@@ -33,7 +33,9 @@ OCEAN_ATTRIBUTION = 'Esri, GEBCO, NOAA, National Geographic'
 # finde havneindløbet. Med den sat strækker Leaflet flisen fra niveau 10 i
 # stedet. Lidt uskarpt, men et kort.
 OCEAN_NATIVE_ZOOM = 10
-OCEAN_MAX_ZOOM = 18
+# Over det her niveau er den strakte flise ikke længere et kort at navigere
+# efter, og det skarpe landkort nedenunder tager over.
+CHART_FADE_ZOOM = 12
 
 STREET_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
 STREET_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
@@ -74,6 +76,19 @@ _WHEN_READY = """
 # havkortet er lyst, også når resten af fladen er mørk.
 _BASE_MODE_BODY = """
   c.map.getContainer().classList.toggle('map-dark', %(dark)s);
+"""
+
+# Zoom til ruten. Leaflet regner sit udsnit ud fra beholderens størrelse, og
+# ved sideindlæsning er den endnu ikke lagt færdigt — så et `fitBounds` sendt
+# derfra landede på hele Skandinavien i stedet for på de to havne, man lige
+# havde valgt. Derfor måler vi op igen først og venter på næste tegning.
+_FIT_BODY = """
+  const pts = %(points)s;
+  c.map.invalidateSize();
+  requestAnimationFrame(() => {
+    if (pts.length === 1) c.map.setView(pts[0], %(zoom)d);
+    else c.map.fitBounds(pts, {padding: [70, 70], maxZoom: %(zoom)d});
+  });
 """
 
 _RESIZE_BODY = """
@@ -241,23 +256,35 @@ class RouteMap:
         self._client.run_javascript(_WHEN_READY % {'map_id': self.map.id, 'body': body})
 
     # ── Kortlag ─────────────────────────────────────────────────────
+    def _street_layer(self, z_index: int = 1):
+        return self.map.tile_layer(
+            url_template=STREET_DARK if self._dark else STREET_LIGHT,
+            options={'attribution': STREET_ATTRIBUTION, 'maxZoom': 19,
+                     'subdomains': 'abcd', 'zIndex': z_index})
+
     def _add_base(self) -> None:
-        """Læg grundkortet på. Søkortet består af to lag: bund og navne."""
+        """Læg grundkortet på.
+
+        Søkortet er tre lag. Nederst det almindelige kort, øverst Esris havkort
+        med dybdeforhold — men kun så længe Esri har fliser. Over zoom 12 er der
+        ikke flere, og et strakt billede af niveau 10 er ikke et kort at finde
+        et havneindløb efter. Der forsvinder havkortet, og det skarpe kort
+        nedenunder kommer frem. Man planlægger efter dybderne og lægger til
+        efter detaljerne.
+        """
         if self._style == CHART:
             self._base = [
+                self._street_layer(0),
                 self.map.tile_layer(url_template=OCEAN_TILES, options={
                     'attribution': OCEAN_ATTRIBUTION,
-                    'maxZoom': OCEAN_MAX_ZOOM, 'maxNativeZoom': OCEAN_NATIVE_ZOOM,
+                    'maxZoom': CHART_FADE_ZOOM, 'maxNativeZoom': OCEAN_NATIVE_ZOOM,
                     'className': 'chart-tiles', 'zIndex': 1}),
                 self.map.tile_layer(url_template=OCEAN_LABELS, options={
-                    'maxZoom': OCEAN_MAX_ZOOM, 'maxNativeZoom': OCEAN_NATIVE_ZOOM,
+                    'maxZoom': CHART_FADE_ZOOM, 'maxNativeZoom': OCEAN_NATIVE_ZOOM,
                     'className': 'chart-tiles', 'zIndex': 2}),
             ]
         else:
-            self._base = [self.map.tile_layer(
-                url_template=STREET_DARK if self._dark else STREET_LIGHT,
-                options={'attribution': STREET_ATTRIBUTION, 'maxZoom': 19,
-                         'subdomains': 'abcd', 'zIndex': 1})]
+            self._base = [self._street_layer(1)]
 
     def _replace_base(self) -> None:
         for layer in self._base or []:
@@ -418,14 +445,13 @@ class RouteMap:
         points = [p for track in route.tracks for p in track] or \
                  [(w.lat, w.lon) for w in route.waypoints]
         if not points:
-            self.map.set_center(HOME)
-            self.map.set_zoom(HOME_ZOOM)
+            self._run(_FIT_BODY % {'points': json.dumps([list(HOME)]),
+                                   'zoom': HOME_ZOOM})
         elif len(route.waypoints) == 1:
-            self.map.set_center((route.waypoints[0].lat, route.waypoints[0].lon))
-            self.map.set_zoom(11)
+            self._run(_FIT_BODY % {'points': json.dumps([list(points[0])]), 'zoom': 11})
         else:
-            self.map.run_map_method('fitBounds', [[lat, lon] for lat, lon in points],
-                                    {'padding': [70, 70], 'maxZoom': 12})
+            self._run(_FIT_BODY % {
+                'points': json.dumps([[lat, lon] for lat, lon in points]), 'zoom': 12})
 
     def focus(self, lat: float, lon: float, zoom: int = 12) -> None:
         self.map.run_map_method('flyTo', [lat, lon], zoom, {'duration': .8})

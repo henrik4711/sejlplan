@@ -1,4 +1,4 @@
-"""Brugerfladen: trinnene Rute → Afgang → Sejlplan.
+"""Brugerfladen: trinnene Rute → Afgangstid → Sejlplan.
 
 Flowet er bygget som tre trin, fordi det er den rækkefølge man rent faktisk
 planlægger i. Man kan altid gå tilbage, men aldrig frem til noget, der ikke er
@@ -14,22 +14,23 @@ import asyncio
 import html
 import json
 import time
-from datetime import date, timedelta
+from datetime import date
 
 from nicegui import ui
 
 from .. import (ai, geocode, harbours, landmask, narrative, searoute, share,
                 weather)
-from ..boats import MOTORBOATS, SAILBOATS
 from ..config import settings
 from ..dates import clock, day, day_time, duration, full, month
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
                        beaufort, compass, find_windows, haversine,
                        point_of_sail)
-from ..state import MAX_FORECAST_DAYS, Session, signature
+from ..state import Session, signature
 from .mapview import RouteMap
 
-STEPS = [(1, 'Rute'), (2, 'Afgang'), (3, 'Sejlplan')]
+# "Afgang" er også en havns rolle i ruten. Trinnet hedder derfor
+# "Afgangstid" — det er dét, man vælger dér.
+STEPS = [(1, 'Rute'), (2, 'Afgangstid'), (3, 'Sejlplan')]
 
 QUICK_START = ['København', 'Helsingør', 'Aarhus', 'Svendborg',
                'Bornholm', 'Skagen', 'Samsø', 'Marstal']
@@ -100,8 +101,8 @@ class Planner:
         self._route_task: asyncio.Task | None = None
         self._suggestions: list[geocode.Place] = []
         self._searching = False
+        self._no_hits = ''
         self._busy = ''
-        self._settings_open = False
         self._nav = 'none'      # retning for skiftet mellem trin: fwd, back, none
         self.search_input: ui.input | None = None
         # Baggrundsopgaver skal opdatere netop den her browser. NiceGUI's
@@ -381,6 +382,13 @@ class Planner:
                 ui.label('Søger…').classes('text-[12.5px] text-[var(--txt-3)]')
             return
 
+        if self._no_hits:
+            with ui.element('div').classes(
+                    'card px-4 py-3 mb-3 text-[12.5px] text-[var(--txt-3)] leading-snug'):
+                ui.label(f'Ingen steder hedder "{self._no_hits}". Prøv et andet '
+                         f'navn, eller tast en position som 55.69, 12.60.')
+            return
+
         if not self._suggestions:
             return
 
@@ -484,12 +492,67 @@ class Planner:
             return
 
         route = self.s.route
-        ui.html(f'<div class="text-[12px] text-[var(--txt-3)] px-1 pt-1">'
-                f'{n_legs} ben · {nm(route.total_nm)} sømil ad havvejen</div>')
         if self.s.route_ready and not route.ok:
-            ui.html('<div class="chip chip--warn mt-2">Et ben kunne ikke lægges '
+            ui.html('<div class="chip chip--warn mb-2">Et ben kunne ikke lægges '
                     'sikkert udenom land — kontrollér det selv på søkortet.</div>')
+        self._estimate_card(route)
+        self._trip_rows()
         self._stopover_preview(route)
+
+    def _estimate_card(self, route) -> None:
+        """Hvad turen ser ud til at blive — før man trykker og venter.
+
+        Ruten kender vi med det samme. Det koster ingenting at sige hvor langt
+        og hvor længe, og om det overhovedet kan nås inden for ét sejldøgn.
+        Uden det trykker man i blinde og opdager først tyve sekunder senere, at
+        turen kræver to overnatninger.
+        """
+        if not self.s.route_ready:
+            return
+        text, days = narrative.estimate(self.s.boat, route, self.s.limits)
+        note = narrative.days_note(days, self.s.limits)
+
+        with ui.element('div').classes('card px-4 py-3 mt-3'):
+            with ui.element('div').classes('flex items-baseline gap-2'):
+                ui.label(text).classes('text-[14px] font-semibold tnum flex-1')
+                if days > 1:
+                    ui.html(f'<span class="chip">{days} døgn</span>')
+            ui.label(note).classes(
+                'text-[11.5px] text-[var(--txt-3)] leading-snug mt-1 block')
+
+    def _trip_rows(self) -> None:
+        """Båd, datoer og sejldøgn som navngivne rækker med deres værdi.
+
+        De stod før som én forkortet streng — "20. aug–23. aug · sejldøgn 07–20
+        · maks 20 kn". Man kunne læse den, men man kunne ikke se hvad der var
+        hvad. En række med navn til venstre og værdi til højre kan man skimme.
+        """
+        lim, boat = self.s.limits, self.s.boat
+        rows = [
+            ('directions_boat', 'Båd', boat.name),
+            ('event', 'Hvornår', f'{self._short_date(lim.date_from)} – '
+                                 f'{self._short_date(lim.date_to)}'),
+            ('schedule', 'Sejldøgn', f'{lim.day_start:02d}:00 – {lim.day_end:02d}:00'
+                                     + (' · også nat' if lim.night_ok else '')),
+            ('air', 'Grænser', f'{lim.max_wind:.0f} kn vind · '
+                               f'{dk(lim.max_wave)} m bølger'),
+        ]
+        ui.label('Turen').classes('section-label mt-4 mb-1.5 block')
+        with ui.element('div').classes('card overflow-hidden'):
+            for i, (icon, label, value) in enumerate(rows):
+                if i:
+                    ui.html('<div class="hairline"></div>')
+                row = ui.element('div').classes(
+                    'flex items-center gap-3 px-3.5 py-2.5 cursor-pointer '
+                    'hover:bg-[var(--sea-3)] transition-colors')
+                with row:
+                    ui.icon(icon).classes('text-[17px] text-[var(--txt-3)] shrink-0')
+                    ui.label(label).classes('text-[13px] font-medium shrink-0')
+                    ui.label(value).classes(
+                        'text-[13px] text-[var(--txt-2)] flex-1 text-right truncate')
+                    ui.icon('chevron_right').classes(
+                        'text-[18px] text-[var(--txt-3)] shrink-0 -mr-1')
+                row.on('click', self._open_settings)
 
     def _stopover_preview(self, route) -> None:
         """Havnene langs ruten — dem man kan søge ind i, hvis vejret skifter.
@@ -562,39 +625,18 @@ class Planner:
             'border-t border-[var(--line)] bg-[var(--sea-1)] px-4 py-3')
 
     def _route_action_bar(self) -> None:
-        lim = self.s.limits
-        boat = self.s.boat
+        """Bunden af panelet: én knap, og intet andet.
 
+        Før stod indstillingerne her som en sammenklappelig linje, der lignede
+        en knap lige over den rigtige knap. To knap-agtige ting oven på hinanden
+        er én for meget — nu bor indstillingerne oppe i panelet som navngivne
+        rækker, og herNEDE er der kun dét, man skal trykke på.
+        """
         with self._bar():
-            # Sammenklappet: én linje der viser hvad der er valgt.
-            header = ui.element('div').classes(
-                'flex items-center gap-2.5 cursor-pointer select-none -mx-1 px-1 py-0.5 '
-                'rounded-[8px] hover:bg-[var(--sea-3)] transition-colors')
-            with header:
-                ui.icon(boat.icon).classes('text-[18px] text-[var(--accent)] shrink-0')
-                with ui.element('div').classes('min-w-0 flex-1 leading-tight'):
-                    ui.label(boat.name).classes('text-[13px] font-semibold truncate block')
-                    ui.label(f'{self._short_date(lim.date_from)}–{self._short_date(lim.date_to)}'
-                             f' · sejldøgn {lim.day_start:02d}–{lim.day_end:02d}'
-                             f' · maks {lim.max_wind:.0f} kn') \
-                        .classes('text-[11.5px] text-[var(--txt-3)] truncate block')
-                ui.icon('expand_less' if self._settings_open else 'expand_more') \
-                    .classes('text-[20px] text-[var(--txt-3)] shrink-0')
-            header.on('click', self._toggle_settings)
-
-            if self._settings_open:
-                with ui.element('div').classes('scroll-y max-h-[42dvh] mt-3'):
-                    self.trip_settings()
-
-            with ui.element('div').classes('flex items-center gap-2.5 mt-3'):
-                ui.button('Find bedste afgangstider', icon='travel_explore',
-                          on_click=self.run_analysis) \
-                    .props('unelevated no-caps size=lg') \
-                    .classes('flex-1 bg-[var(--accent)] text-[var(--sea-1)] font-bold')
-                ui.html(f'<div class="text-right shrink-0 leading-tight">'
-                        f'<div class="text-[15px] font-bold tnum">'
-                        f'{self.s.total_nm:.0f}</div>'
-                        f'<div class="text-[10.5px] text-[var(--txt-3)]">sømil</div></div>')
+            ui.button('Find bedste afgangstider', icon='travel_explore',
+                      on_click=self.run_analysis) \
+                .props('unelevated no-caps size=lg') \
+                .classes('w-full bg-[var(--accent)] text-[var(--sea-1)] font-bold')
 
     @staticmethod
     def _short_date(iso: str) -> str:
@@ -603,171 +645,6 @@ class Planner:
             return f'{d.day}. {month(d, short=True)}'
         except (TypeError, ValueError):
             return iso
-
-    def _toggle_settings(self) -> None:
-        self._settings_open = not self._settings_open
-        self.action_bar.refresh()
-
-    @ui.refreshable_method
-    def trip_settings(self) -> None:
-        """Båd, datoer og sejldøgn — fremme i panelet, hvor de bliver brugt."""
-        lim = self.s.limits
-        with ui.element('div').classes('flex flex-col gap-3.5'):
-
-            # ── Båd ──
-            with ui.element('div'):
-                self._field_label('Båd', 'directions_boat')
-                options = {}
-                for group, boats in (('Sejlbåde', SAILBOATS), ('Motorbåde', MOTORBOATS)):
-                    for b in boats:
-                        options[b.id] = f'{group[:-1]} · {b.name} · {b.summary}'
-                ui.select(options, value=self.s.boat_id,
-                          on_change=lambda e: self._change_boat(e.value)) \
-                    .props('outlined dense options-dense behavior=menu') \
-                    .classes('w-full text-[13px]')
-
-            # ── Datoer ──
-            with ui.element('div'):
-                self._field_label('Hvornår kan du afgå', 'event')
-                with ui.element('div').classes('grid grid-cols-2 gap-2'):
-                    self._date_picker('Fra', lim.date_from, self._set_date_from)
-                    self._date_picker('Til', lim.date_to, self._set_date_to)
-                ui.label(f'Vejrudsigten rækker {MAX_FORECAST_DAYS} dage frem, '
-                         f'til og med {day(self._horizon(), short=False)}.') \
-                    .classes('text-[11px] text-[var(--txt-3)] mt-1.5 block')
-
-            # ── Sejldøgn ──
-            with ui.element('div'):
-                self._field_label('Sejldøgn', 'schedule')
-                with ui.element('div').classes('grid grid-cols-2 gap-2'):
-                    self._hour_select('Tidligst ud', lim.day_start,
-                                      lambda v: self._set_hour('day_start', v))
-                    self._hour_select('Senest i havn', lim.day_end,
-                                      lambda v: self._set_hour('day_end', v))
-                ui.label(f'Du skal ligge fortøjet kl. {lim.day_end:02d}:00. Rækker '
-                         f'turen ikke, finder planlæggeren en havn undervejs at '
-                         f'overnatte i.') \
-                    .classes('text-[11px] text-[var(--txt-3)] mt-1.5 block leading-snug')
-
-            self._switch_row('Sejl også om natten', lim.night_ok,
-                             'Så lægges ingen overnatninger ind — turen sejles i ét stræk.',
-                             lambda v: self._set_flag('night_ok', v))
-
-            # ── Grænser ──
-            ui.html('<div class="hairline"></div>')
-            with ui.element('div').classes('flex items-center justify-between gap-2'):
-                with ui.element('div').classes('min-w-0'):
-                    ui.label('Komfortgrænser').classes('text-[12.5px] font-medium')
-                    ui.label(f'Op til {lim.max_wind:.0f} kn vind og '
-                             f'{lim.max_wave:.1f} m bølger'.replace('.', ',')) \
-                        .classes('text-[11.5px] text-[var(--txt-3)]')
-                ui.button('Ret', icon='tune', on_click=self._open_settings) \
-                    .props('flat dense no-caps size=sm') \
-                    .classes('text-[var(--accent)] shrink-0')
-
-    @staticmethod
-    def _field_label(text: str, icon: str) -> None:
-        with ui.element('div').classes('flex items-center gap-1.5 mb-1.5'):
-            ui.icon(icon).classes('text-[15px] text-[var(--txt-3)]')
-            ui.label(text).classes('text-[12.5px] font-medium')
-
-    @staticmethod
-    def _switch_row(label: str, value: bool, hint: str, on_set) -> None:
-        with ui.row().classes('items-center no-wrap gap-3 w-full'):
-            with ui.element('div').classes('flex-1 min-w-0'):
-                ui.label(label).classes('text-[12.5px] font-medium')
-                ui.label(hint).classes('text-[11px] text-[var(--txt-3)] leading-snug')
-            ui.switch(value=value, on_change=lambda e: on_set(bool(e.value))) \
-                .props('dense color=amber')
-
-    @staticmethod
-    def _horizon() -> date:
-        return date.today() + timedelta(days=MAX_FORECAST_DAYS - 1)
-
-    def _date_picker(self, label: str, value: str, on_set) -> None:
-        """Datofelt med kalender. Læsevenlig tekst udadtil, ISO indeni."""
-        with ui.element('div'):
-            ui.label(label).classes('text-[11px] text-[var(--txt-3)] mb-1 block')
-            field = ui.input(value=self._pretty_date(value)) \
-                .props('outlined dense readonly input-class="text-[13px] cursor-pointer"') \
-                .classes('w-full')
-            lo, hi = date.today(), self._horizon()
-            with field:
-                with ui.menu().props('no-parent-event') as menu:
-                    picker = ui.date(value=value).props(
-                        'minimal today-btn '
-                        f':options="d => d >= \'{lo.isoformat().replace("-", "/")}\' '
-                        f'&& d <= \'{hi.isoformat().replace("-", "/")}\'"')
-
-                    def handle(e) -> None:
-                        if not e.value:
-                            return
-                        menu.close()
-                        on_set(e.value)
-
-                    picker.on_value_change(handle)
-                with field.add_slot('append'):
-                    ui.icon('event').classes('cursor-pointer text-[17px] text-[var(--txt-3)]')
-            field.on('click', menu.open)
-
-    @staticmethod
-    def _pretty_date(iso: str) -> str:
-        try:
-            return day(date.fromisoformat(iso), short=False)
-        except (TypeError, ValueError):
-            return iso
-
-    @staticmethod
-    def _hour_select(label: str, value: int, on_set) -> None:
-        with ui.element('div'):
-            ui.label(label).classes('text-[11px] text-[var(--txt-3)] mb-1 block')
-            ui.select({h: f'{h:02d}:00' for h in range(24)}, value=value,
-                      on_change=lambda e: on_set(int(e.value))) \
-                .props('outlined dense options-dense behavior=menu') \
-                .classes('w-full text-[13px]')
-
-    # ── Ændringer af planen ─────────────────────────────────────────
-    def _change_boat(self, boat_id: str) -> None:
-        if boat_id == self.s.boat_id:
-            return
-        self.s.set_boat(boat_id)
-        self.boat_button.refresh()
-        self.trip_settings.refresh()
-        self.action_bar.refresh()
-        self.stepbar.refresh()
-
-    def _set_date_from(self, value: str) -> None:
-        self.s.limits.date_from = value
-        if self.s.limits.date_to < value:
-            self.s.limits.date_to = value
-        self._after_limit_change()
-
-    def _set_date_to(self, value: str) -> None:
-        self.s.limits.date_to = value
-        if self.s.limits.date_from > value:
-            self.s.limits.date_from = value
-        self._after_limit_change()
-
-    def _set_hour(self, field: str, value: int) -> None:
-        setattr(self.s.limits, field, value)
-        # Et sejldøgn der vender bagvendt giver ingen afgange – ret det stille op.
-        if self.s.limits.day_start >= self.s.limits.day_end:
-            if field == 'day_start':
-                self.s.limits.day_end = min(23, value + 1)
-            else:
-                self.s.limits.day_start = max(0, value - 1)
-        self._after_limit_change()
-
-    def _set_flag(self, field: str, value: bool) -> None:
-        setattr(self.s.limits, field, value)
-        self._after_limit_change()
-
-    def _after_limit_change(self) -> None:
-        self.s.invalidate()
-        self.s.persist()
-        self.trip_settings.refresh()
-        self.action_bar.refresh()
-        self.stepbar.refresh()
 
     # ── Trin 2: afgangsvinduer ──────────────────────────────────────
     def _windows_panel(self) -> None:
@@ -1214,6 +1091,16 @@ class Planner:
             self.map_hint.refresh()
             self._redraw_map(fit=fit)
 
+    def _plan_lost(self, had_plan: bool) -> None:
+        """En ændret rute kasserer de beregnede afgange. Det skal man vide.
+
+        Før skete det lydløst: man flyttede et punkt og stod pludselig på trin 1
+        igen, uden at forstå hvor sejlplanen blev af.
+        """
+        if had_plan:
+            ui.notify('Ruten er ændret — find afgangstiderne igen',
+                      type='warning', position='bottom')
+
     # ── Waypoints ───────────────────────────────────────────────────
     def _point_on_map(self, lat: float, lon: float) -> geocode.Place | None:
         """Hvad brugeren ramte. None hvis det er land, man ikke kan sejle på.
@@ -1261,6 +1148,7 @@ class Planner:
             self.refresh()      # tegn markøren tilbage hvor den lå
             return
 
+        had_plan = bool(self.s.windows)
         wp = self.s.waypoints[index]
         wp.lat, wp.lon, wp.name = place.lat, place.lon, place.name
         self.s.invalidate()
@@ -1268,8 +1156,10 @@ class Planner:
         self.refresh()
         self._schedule_route()
         ui.notify(f'Punkt {index + 1} flyttet til {place.name}', position='bottom')
+        self._plan_lost(had_plan)
 
     def _add_place(self, place: geocode.Place) -> None:
+        had_plan = bool(self.s.windows)
         wp = Waypoint(place.lat, place.lon, place.name)
         index = self._best_position(wp)
         self.s.insert(index, wp)
@@ -1282,6 +1172,7 @@ class Planner:
         where = ('tilføjet' if index >= len(self.s.waypoints) - 1
                  else f'lagt ind som stop nr. {index + 1}')
         ui.notify(f'{place.name} {where}', type='positive', position='bottom')
+        self._plan_lost(had_plan)
 
     def _best_position(self, wp: Waypoint) -> int:
         """Hvor i ruten hører punktet hjemme?
@@ -1314,27 +1205,56 @@ class Planner:
             self._add_place(results[0])
 
     def _remove(self, index: int) -> None:
+        had_plan = bool(self.s.windows)
         self.s.remove(index)
         self.refresh(fit=True)
         self._schedule_route(fit=True)
+        self._plan_lost(had_plan)
 
     def _move(self, index: int, delta: int) -> None:
+        had_plan = bool(self.s.windows)
         self.s.move(index, delta)
         self.refresh()
         self._schedule_route()
+        self._plan_lost(had_plan)
 
     def _reverse_route(self) -> None:
         if len(self.s.waypoints) < 2:
             return
+        had_plan = bool(self.s.windows)
         self.s.reverse()
         self.refresh()
         self._schedule_route()
         ui.notify('Ruten er vendt om', position='bottom')
+        self._plan_lost(had_plan)
 
     def _clear_route(self) -> None:
+        """Spørg først. Det her sletter hele arbejdet, og der er ingen fortryd."""
+        if not self.s.waypoints:
+            return
+
+        with ui.dialog() as ask, ui.card().classes(
+                'w-full max-w-[380px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
+            with ui.element('div').classes('px-5 pt-5 pb-3'):
+                ui.label('Ryd hele ruten?').classes('text-[16px] font-bold block')
+                ui.label(f'{len(self.s.waypoints)} punkter og den beregnede plan '
+                         f'forsvinder. Det kan ikke fortrydes.') \
+                    .classes('text-[13px] text-[var(--txt-2)] leading-snug mt-1 block')
+            with ui.row().classes('w-full items-center gap-2 px-5 pb-4 no-wrap'):
+                ui.element('div').classes('flex-1')
+                ui.button('Behold', on_click=ask.close) \
+                    .props('flat no-caps').classes('text-[var(--txt-2)]')
+                ui.button('Ryd', on_click=lambda: self._do_clear(ask)) \
+                    .props('unelevated no-caps') \
+                    .classes('bg-[var(--stop)] text-white font-bold px-4')
+        ask.open()
+
+    def _do_clear(self, dialog) -> None:
+        dialog.close()
         self.s.clear()
         self._suggestions = []
         self.refresh(fit=True)
+        ui.notify('Ruten er ryddet', position='bottom')
 
     # ── Søgning ─────────────────────────────────────────────────────
     def _search_changed(self, e) -> None:
@@ -1344,6 +1264,7 @@ class Planner:
             self._search_task.cancel()
         if len(query) < 2:
             self._suggestions = []
+            self._no_hits = ''
             self._searching = False
             self.suggestion_list.refresh()
             return
@@ -1355,6 +1276,7 @@ class Planner:
             self._searching = True
             self.suggestion_list.refresh()
             self._suggestions = await geocode.search(query)
+            self._no_hits = '' if self._suggestions else query
         except asyncio.CancelledError:
             return
         finally:

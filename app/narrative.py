@@ -11,6 +11,7 @@ mange liter der går i det. Teksten følger båden.
 """
 from __future__ import annotations
 
+import math
 from collections import Counter
 from dataclasses import dataclass
 
@@ -331,6 +332,39 @@ def leg_briefs(route: Route, plan: Plan, boat: Boat) -> list[LegBrief]:
             turns=sum(1 for st in route.stretches() if st.leg == leg - 1),
         ))
     return briefs
+
+
+# ── Hvad turen ser ud til at blive, før vejret er hentet ──────────────────────
+# Ruten kender vi med det samme; vejret tager tid at hente. I mellemtiden kan vi
+# godt sige noget nyttigt: hvor langt, hvor længe ved almindelig vind, og om det
+# overhovedet kan nås inden for ét sejldøgn. Det er dét, der gør at man ved hvad
+# man beder om, før man trykker og venter.
+TYPICAL_TWA = 90      # halvvind – hverken det bedste eller det værste
+TYPICAL_TWS = 10      # jævn vind
+
+
+def estimate(boat: Boat, route: Route, limits: Limits) -> tuple[str, int]:
+    """Overslag over turen. Returnerer (tekst, antal sejldøgn det kræver)."""
+    from .sailing import polar_speed
+
+    speed = (boat.cruise_kn if boat.is_motor
+             else polar_speed(boat, TYPICAL_TWA, TYPICAL_TWS))
+    speed = max(1.0, speed)
+    hours = route.total_nm / speed
+    days = max(1, math.ceil(hours / limits.day_hours))
+
+    where = 'ved marchfart' if boat.is_motor else 'i jævn vind'
+    text = f'{num(route.total_nm)} sømil · ca. {spell(hours)} {where}'
+    return text, days
+
+
+def days_note(days: int, limits: Limits) -> str:
+    """Én linje om hvad antallet af sejldøgn betyder for turen."""
+    if days <= 1:
+        return f'Kan nås inden for ét sejldøgn ({limits.day_start:02d}–{limits.day_end:02d}).'
+    nights = plural(days - 1, 'overnatning', 'overnatninger')
+    return (f'Kræver {days} sejldøgn — altså {nights} undervejs, '
+            f'medmindre du slår mørkesejlads til.')
 
 
 # ── Hvordan turen føles ───────────────────────────────────────────────────────
