@@ -102,6 +102,25 @@ def nm(value: float) -> str:
     return dk(value, 1)
 
 
+def _guide_link(h) -> None:
+    """Knappen ud til havneguiden, hvis vi ved, hvor havnen står omtalt.
+
+    Sejlplan siger, hvornår du kan sejle derhen. Guiden siger, hvad der venter:
+    pladser, priser, vand på broen, hvordan indsejlingen ser ud. To tryk skal
+    der ikke til, og en havn uden sikker kobling får ingen knap — et link, der
+    fører til den forkerte havn, er værre end intet.
+    """
+    if not getattr(h, 'guide_url', ''):
+        return
+    btn = ui.button(icon='open_in_new') \
+        .props(f'flat round dense size=sm href="{h.guide_url}" '
+               f'target="_blank" rel="noopener"') \
+        .classes('shrink-0 text-[var(--txt-3)] hover:text-[var(--accent)]')
+    btn.tooltip('Læs om havnen i havnelods.dk')
+    # Rækken under åbner havnen som mellemstop. Det skal knappen ikke også.
+    btn.on('click.stop', lambda _: None)
+
+
 def chip(icon: str, text: str, kind: str = '') -> str:
     """En lille mærkat med ikon og tal.
 
@@ -656,6 +675,7 @@ class Planner:
                         ui.label(h.name).classes('text-[13px] font-medium truncate block')
                         ui.label(f'efter {nm(along)} sm · {nm(detour)} sm ind fra ruten') \
                             .classes('text-[11px] text-[var(--txt-3)] tnum truncate block')
+                    _guide_link(h)
                     ui.icon('add').classes('text-[16px] text-[var(--txt-3)] shrink-0')
                 row.on('click', lambda _, x=h: self._add_place(geocode.from_harbour(x)))
 
@@ -942,6 +962,14 @@ class Planner:
                                  f'Videre {clock(stop.depart)} næste morgen.') \
                             .classes('text-[12.5px] text-[var(--txt-2)] mt-1.5 '
                                      'leading-relaxed block')
+                        # Man skal ligge dér en nat. Så vil man vide, om der er
+                        # vand på broen og plads til gæster.
+                        url = harbours.guide_url_at(stop.lat, stop.lon)
+                        if url:
+                            ui.link('Læs om havnen i havnelods.dk →', url) \
+                                .props('target="_blank" rel="noopener"') \
+                                .classes('text-[12px] text-[var(--accent)] '
+                                         'no-underline hover:underline mt-1 block')
 
     def _key_figures(self, p, boat) -> None:
         lim = self.s.limits

@@ -24,6 +24,7 @@ from pathlib import Path
 import numpy as np
 
 DATA = Path(__file__).resolve().parent / 'data' / 'harbours.json.gz'
+LINKS = Path(__file__).resolve().parent / 'data' / 'harbour_links.json'
 
 NM_PER_DEGREE = 60.0
 
@@ -50,6 +51,21 @@ class Harbour:
         return 'anchor'
 
     @property
+    def guide_url(self) -> str:
+        """Havnens side i havnelods.dk, hvis vi ved hvor den er.
+
+        Sejlplan siger, hvornår du kan sejle, og hvilken havn du kan nå — ikke
+        hvor mange pladser der er, eller hvordan indsejlingen ser ud. Det står
+        i guiden, og herfra er der ét tryk derhen.
+
+        Der er kun link, hvor koblingen er sikker. En havn uden link er
+        ærligere end en, der fører til den forkerte.
+        """
+        base, links = _guide()
+        slug = links.get(f'{self.lat:.4f},{self.lon:.4f}')
+        return f'{base}{slug}' if slug else ''
+
+    @property
     def home(self) -> bool:
         return self.country == HOME
 
@@ -65,6 +81,36 @@ class Harbour:
 
 _all: list[Harbour] | None = None
 _coords: np.ndarray | None = None
+
+
+_links: tuple[str, dict] | None = None
+
+
+def _guide() -> tuple[str, dict]:
+    """Koblingen til havneguiden. Læses én gang og bliver liggende.
+
+    Bygget af `tools/build_harbour_links.py`, som henter guidens egne sider og
+    matcher på position. Mangler filen, står appen bare uden links.
+    """
+    global _links
+    if _links is None:
+        try:
+            raw = json.loads(LINKS.read_text(encoding='utf-8'))
+            _links = (str(raw.get('base') or ''), dict(raw.get('links') or {}))
+        except (OSError, ValueError, TypeError):
+            _links = ('', {})
+    return _links
+
+
+def guide_url_at(lat: float, lon: float) -> str:
+    """Guidens side for havnen på den position — tom, hvis vi ikke kender den.
+
+    Overnatningerne i planen bærer deres position, ikke selve havnen, så det
+    er positionen, der slås op. Det er også den nøgle, koblingen er bygget på.
+    """
+    base, links = _guide()
+    slug = links.get(f'{lat:.4f},{lon:.4f}')
+    return f'{base}{slug}' if slug else ''
 
 
 def all_harbours() -> list[Harbour]:
