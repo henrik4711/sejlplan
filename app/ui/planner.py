@@ -1276,6 +1276,19 @@ class Planner:
         return best_index
 
     async def _add_named(self, name: str) -> None:
+        """En genvej skal foreslå, ikke bestemme.
+
+        "Bornholm" er ikke ét sted — der er havne hele vejen rundt om øen, og
+        "København" er en håndfuld. Før tog vi det første, søgningen gav, og
+        lagde det ind uden at spørge. Nu ender genvejen samme sted som hvis man
+        havde tastet navnet selv: listen over de steder, der findes, og så
+        peger brugeren.
+        """
+        if self.search_input is not None:
+            self.search_input.value = name
+            return
+        # Uden søgefelt (skulle ikke kunne ske) er det bedre at lægge noget ind
+        # end ingenting.
         results = await geocode.search(name, limit=1)
         if results:
             self._add_place(results[0])

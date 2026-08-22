@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from nicegui import ui
 
+from .. import fleet
 from ..boats import (CUSTOM_ID, DISPLACEMENT, MOTOR, PLANING, SAIL, SEMI,
                      reference_speed)
 
@@ -82,6 +83,19 @@ def editor(s, refresh_boats, refresh_limits) -> None:
                 .props('no-caps unelevated dense spread').classes('w-full')
             fields['kind'] = kind
 
+            # Søgningen i registret. Den står før målene, fordi det er den
+            # hurtige vej: kender man sin båds navn, skal man ikke taste
+            # længde og fart bagefter.
+            @ui.refreshable
+            def register() -> None:
+                # `by_kind` defineres foerst laengere nede. En lambda venter med
+                # opslaget, til brugeren vaelger en baad — praecis samme faelde
+                # som den, der gjorde indstillingerne uaabnelige.
+                if kind.value != MOTOR:
+                    _register_block(fields, lambda: by_kind.refresh())
+
+            register()
+
             _number(fields, 'length_m', 'Længde overalt', 'm',
                     spec.get('length_m'), 10.0)
 
@@ -114,7 +128,12 @@ def editor(s, refresh_boats, refresh_limits) -> None:
                             spec.get('fuel_lph'), 3.0)
 
             by_kind()
-            kind.on_value_change(lambda _: by_kind.refresh())
+
+            def _kind_changed() -> None:
+                register.refresh()
+                by_kind.refresh()
+
+            kind.on_value_change(lambda _: _kind_changed())
 
             ui.html('<div class="hairline mt-5 mb-3"></div>')
             ui.label('Hvad du kan holde til').classes('section-label mb-1 block')
@@ -137,6 +156,84 @@ def editor(s, refresh_boats, refresh_limits) -> None:
                 .classes('btn-primary px-4')
 
     dialog.open()
+
+
+def _register_block(fields: dict, refresh_kind) -> None:
+    """Søg din båd i registret, i stedet for at gætte dens fart.
+
+    Farten for halvvind er det svageste tal i hele systemet — de færreste
+    kender det. Men næsten alle kender deres båds navn, og ud af fabrikantens
+    mål kan farten anslås langt bedre, end nogen kan gætte den.
+    """
+    ui.label('Find din båd').classes(
+        'text-[11.5px] text-[var(--txt-3)] mt-4 mb-1 block')
+
+    boks = ui.input(placeholder='Bavaria 34, Folkebåd, X-99 …') \
+        .props('outlined dense clearable autocomplete=off '
+               'input-class="text-[14px]"').classes('w-full')
+    with boks.add_slot('prepend'):
+        ui.icon('search').classes('text-[18px] text-[var(--txt-3)]')
+
+    valgt = ui.element('div').classes('mt-1.5')
+    liste = ui.element('div').classes('mt-1.5')
+
+    def vaelg(boat) -> None:
+        fields['name'].value = boat.name
+        fields['length_m'].value = boat.loa_m
+        # Farten bor i den del af formularen, der skifter med bådtypen, så den
+        # kan først sættes, når den findes.
+        felt = fields.get('reach_kn')
+        if felt is not None:
+            felt.value = boat.reach_kn
+        else:
+            refresh_kind()
+        boks.value = ''
+        liste.clear()
+        _show_pick(valgt, boat)
+
+    def soeg(e) -> None:
+        liste.clear()
+        hits = fleet.search(e.value or '')
+        if not hits:
+            if len(str(e.value or '').strip()) >= 2:
+                with liste:
+                    ui.label('Ingen båd med det navn i registret. Tast målene '
+                             'ind nedenfor i stedet.') \
+                        .classes('text-[11px] text-[var(--txt-3)] leading-snug block')
+            return
+        with liste, ui.element('div').classes('card overflow-hidden'):
+            for boat in hits:
+                row = ui.element('div').classes(
+                    'flex items-center gap-2.5 px-3 py-2 cursor-pointer '
+                    'hover:bg-[var(--sea-3)] transition-colors')
+                with row:
+                    ui.icon('sailing').classes(
+                        'text-[17px] text-[var(--accent)] shrink-0')
+                    with ui.element('div').classes('min-w-0 flex-1'):
+                        ui.label(boat.name).classes(
+                            'text-[13.5px] font-semibold truncate block')
+                        ui.label(boat.summary).classes(
+                            'text-[11px] text-[var(--txt-3)] truncate block')
+                    ui.label(boat.reach_text).classes(
+                        'text-[12px] tnum text-[var(--txt-3)] shrink-0')
+                row.on('click', lambda _, b=boat: vaelg(b))
+
+    boks.on_value_change(soeg)
+
+
+def _show_pick(holder, boat) -> None:
+    """Hvad registret ved om den valgte båd — og hvad vi kun anslår."""
+    holder.clear()
+    with holder, ui.element('div').classes(
+            'card px-3.5 py-3 border-[var(--accent)] '
+            'bg-[var(--accent-soft)]'):
+        ui.label(boat.name).classes('text-[13px] font-semibold block')
+        ui.label(f'{boat.summary} · {boat.character}') \
+            .classes('text-[11px] text-[var(--txt-3)] leading-snug block mt-0.5')
+        ui.label(f'Anslået {boat.reach_text[:-3]} knob for halvvind i 10 knobs '
+                 f'vind, regnet af sejlareal, deplacement og vandlinje. '
+                 f'Kender du din båds rigtige tal, så ret det nedenfor.') \
+            .classes('text-[11px] text-[var(--txt-2)] leading-snug block mt-1.5')
 
 
 def _number(fields: dict, key: str, label: str, unit: str, value, fallback) -> None:
