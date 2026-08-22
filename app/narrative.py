@@ -430,13 +430,47 @@ def day_lines(plan: Plan) -> list[str]:
     return out
 
 
+def _weatherbound(o) -> str:
+    """Sig det rent: du kommer ikke væk igen med det samme.
+
+    Det er den besked, der ændrer en plan — og den, ingen opdager selv, fordi
+    man kigger på vejret frem til man er fremme, ikke bagefter.
+    """
+    days = plural(o.stuck_days, 'sejldøgn', 'sejldøgn')
+    head = (f'Du bliver formentlig blæst inde i {o.place}. Efter ankomsten '
+            f'viser prognosen {days} i træk uden et vindue, du kan sejle i — '
+            f'op til {num(o.worst_wind_kn, 0)} knobs vind')
+    if o.worst_wave_m >= 0.3:
+        head += f' og {num(o.worst_wave_m)} meter sø'
+    head += '. '
+
+    if o.runs_out:
+        return head + (
+            f'Og det holder ikke op, før prognosen gør: den rækker til '
+            f'{day(o.checked_to, short=False)}, og der blæser det stadig. '
+            f'Regn med at ligge stille, til vejret vender, og læg hjemturen '
+            f'som en tur for sig.')
+    return head + (
+        f'Først {full(o.next_window)} er der noget at sejle i igen. Skal du '
+        f'på arbejde inden da, så vælg en anden afgang — eller en havn, du '
+        f'kommer hjem fra.')
+
+
 # ── Advarsler ─────────────────────────────────────────────────────────────────
 # Fra og med her ude regnes en vejrudsigt for en tendens. De første tre-fire
 # døgn holder ret godt; derefter er det retningen, der overlever, ikke timerne.
 UNCERTAIN_AFTER_DAYS = 5
-def warnings(plan: Plan, limits: Limits, boat: Boat) -> list[str]:
-    """Det skipperen skal tage stilling til, før der kastes los."""
+def warnings(plan: Plan, limits: Limits, boat: Boat,
+             outlook=None) -> list[str]:
+    """Det skipperen skal tage stilling til, før der kastes los.
+
+    `outlook` er, hvad prognosen siger om dagene *efter* ankomsten. Den står
+    forrest, for det er den, der afgør, om turen overhovedet skal lægges nu.
+    """
     out = []
+
+    if outlook is not None and outlook.matters:
+        out.append(_weatherbound(outlook))
 
     # Hvor langt ude i prognosen slutter turen? En vejrudsigt på ni døgn er
     # ikke samme vare som en på to. Vinden kan ligge anderledes, og timerne kan

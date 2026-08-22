@@ -19,13 +19,14 @@ from datetime import date
 from nicegui import ui
 
 from .. import (ai, geocode, harbours, landmask, narrative, offline, pwa,
-                searoute, share, theme, weather)
+                searoute, share, theme, weather, weatherbound)
 from ..config import settings
 from ..dates import clock, day, day_time, full, month, spell
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
                        beaufort, compass, find_windows, haversine,
                        point_of_sail)
 from ..state import Session, signature
+from . import help as helpui
 from . import myroutes
 from .mapview import RouteMap
 
@@ -222,6 +223,8 @@ class Planner:
             # Båden stod også her som en knap, der åbnede den samme dialog som
             # tandhjulet. To veje til det samme sted er én for meget — og båden
             # står nu tydeligt i panelets "Turen"-liste.
+            ui.button(icon='menu_book', on_click=helpui.manual_dialog) \
+                .props('flat round dense').tooltip('Manual og hjælp')
             ui.button(icon='bookmarks', on_click=self._open_routes) \
                 .props('flat round dense').tooltip('Mine gemte ruter')
             ui.button(icon='tune', on_click=self._open_settings) \
@@ -656,7 +659,9 @@ class Planner:
         step = max(1, len(found) // 6)
         picked = found[::step][:6]
 
-        ui.label('Havne undervejs').classes('section-label mt-4 mb-1 block')
+        with ui.element('div').classes('flex items-center gap-1 mt-4 mb-1'):
+            ui.label('Havne undervejs').classes('section-label')
+            helpui.dot('havne')
         ui.label('Steder du kan søge ind, hvis vejret skifter. Klik for at lægge '
                  'en ind som mellemstop.') \
             .classes('text-[11.5px] text-[var(--txt-3)] mb-2 block leading-snug')
@@ -918,18 +923,40 @@ class Planner:
                 self._ai_tab()
 
     def _plan_overview(self, p, boat, route) -> None:
-        ui.label('Overblik').classes('section-label mb-1.5 block')
+        with ui.element('div').classes('flex items-center gap-1 mb-1.5'):
+            ui.label('Overblik').classes('section-label')
+            helpui.dot('sadan')
         with ui.element('div').classes('card px-4 py-3.5 mb-4'):
             for paragraph in narrative.overview(boat, route, p):
                 ui.label(paragraph).classes(
                     'text-[13.5px] leading-relaxed text-[var(--txt-2)] mb-2 last:mb-0 block')
 
+    def _outlook(self, p):
+        """Hvad prognosen siger om dagene, efter man er fremme.
+
+        Det er dét, der afgør, om turen skal lægges nu eller til næste weekend
+        — og det er det eneste, ingen opdager selv, fordi man kigger på vejret
+        frem til ankomsten og ikke længere.
+        """
+        route = self.s.route
+        if not self.s.weather or not route.waypoints:
+            return None
+        try:
+            series = weather.series_at(self.s.weather, route.total_nm,
+                                       route.total_nm)
+            return weatherbound.look_ahead(
+                p, series, self.s.limits, route.waypoints[-1].name)
+        except Exception:
+            return None
+
     def _plan_warnings(self, p, boat) -> None:
-        items = narrative.warnings(p, self.s.limits, boat)
+        items = narrative.warnings(p, self.s.limits, boat, self._outlook(p))
         # Ét punkt og intet at komme efter: så er det en god nyhed, ikke en advarsel.
         good = (len(items) == 1 and p.verdict == GO and not p.stops
                 and not p.night_hours and not p.late_arrival)
-        ui.label('Vær opmærksom på').classes('section-label mb-1.5 block')
+        with ui.element('div').classes('flex items-center gap-1 mb-1.5'):
+            ui.label('Vær opmærksom på').classes('section-label')
+            helpui.dot('graenser')
         with ui.element('div').classes('card px-4 py-3.5 mb-4 flex flex-col gap-2.5'):
             for text in items:
                 with ui.element('div').classes('flex gap-2.5 items-start'):
@@ -943,7 +970,9 @@ class Planner:
         """Turen delt op i de sejldøgn den falder i — og hvor der overnattes."""
         if len(p.days) < 2:
             return
-        ui.label('Dag for dag').classes('section-label mb-1.5 block')
+        with ui.element('div').classes('flex items-center gap-1 mb-1.5'):
+            ui.label('Dag for dag').classes('section-label')
+            helpui.dot('sejldogn')
         with ui.element('div').classes('daylist mb-4'):
             for i, d in enumerate(p.days):
                 stop = p.stops[i] if i < len(p.stops) else None
@@ -988,7 +1017,9 @@ class Planner:
             metrics.append((f'{p.red_hours} t', 'Frarådet',
                             'val--stop' if p.red_hours else 'val--go'))
 
-        ui.label('Nøgletal').classes('section-label mb-1.5 block')
+        with ui.element('div').classes('flex items-center gap-1 mb-1.5'):
+            ui.label('Nøgletal').classes('section-label')
+            helpui.dot('nogletal')
         with ui.element('div').classes('metrics metrics--wide mb-4'):
             for value, label, cls in metrics:
                 ui.html(f'<div class="metric"><div class="metric-val {cls}">{esc(value)}</div>'
@@ -1011,7 +1042,9 @@ class Planner:
 
     def _plan_stretches(self, p, route, boat) -> None:
         """Turen delt op dér, hvor kursen skifter — ikke dér, hvor man satte et kryds."""
-        ui.label('Stræk for stræk').classes('section-label mb-1 block')
+        with ui.element('div').classes('flex items-center gap-1 mb-1.5'):
+            ui.label('Stræk for stræk').classes('section-label')
+            helpui.dot('straek')
         ui.label('Ruten er delt op efter kursskift, så hvert stykke gælder præcis '
                  'dér, hvor du styrer den kurs.') \
             .classes('text-[11.5px] text-[var(--txt-3)] mb-2 block leading-snug')
@@ -1069,7 +1102,9 @@ class Planner:
         if not p:
             return
 
-        ui.label('Time for time').classes('section-label mt-4 mb-1.5 block')
+        with ui.element('div').classes('flex items-center gap-1 mb-1.5'):
+            ui.label('Time for time').classes('section-label mt-4')
+            helpui.dot('time-for-time')
         if not self.s.has_waves:
             ui.html('<div class="chip chip--warn mb-2">Ingen bølgeprognose for dette '
                     'farvand — vurder søgangen ud fra vind og stræk.</div>')
@@ -1362,7 +1397,8 @@ class Planner:
         den igennem. Går dækningen senere, er det den her, der kommer frem.
         """
         try:
-            html = offline.document(boat, route, plan, self.s.limits)
+            html = offline.document(boat, route, plan, self.s.limits,
+                                    outlook=self._outlook(plan))
             self.client.run_javascript(pwa.save_plan_js(html))
         except Exception:
             # En plan, der ikke kunne gemmes til senere, må ikke forhindre

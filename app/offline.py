@@ -139,7 +139,7 @@ def _keys(boat: Boat, plan: Plan) -> list[tuple[str, str]]:
 
 
 def document(boat: Boat, route: Route, plan: Plan, limits: Limits,
-             saved: datetime | None = None) -> str:
+             saved: datetime | None = None, outlook=None) -> str:
     """Byg hele planen som én HTML-fil uden et eneste kald ud af siden."""
     saved = saved or datetime.now()
     names = ' → '.join(w.name for w in route.waypoints)
@@ -165,7 +165,7 @@ def document(boat: Boat, route: Route, plan: Plan, limits: Limits,
         add(f'<p>{esc(para)}</p>')
     add('</div>')
 
-    notes = warnings(plan, limits, boat)
+    notes = warnings(plan, limits, boat, outlook)
     if notes:
         add('<h2>Vær opmærksom på</h2>')
         for note in notes:

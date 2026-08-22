@@ -169,6 +169,23 @@ html, body { height: 100%; overflow: hidden; }
   .work:has(.plan-view) aside.sheet { display: none; }
 }
 
+/* ═══ Hjælp ══════════════════════════════════════════════════════ */
+/* Spørgsmålstegnet står ved siden af overskriften, ikke som en knap for sig.
+   Den, der ved hvad et sejldøgn er, skal ikke forstyrres af det — så det er
+   dæmpet, indtil man kigger efter det. */
+.help-dot.q-btn {
+  min-width: 0; min-height: 0; width: 19px; height: 19px;
+  opacity: .45; transition: opacity .15s;
+}
+.help-dot.q-btn:hover, .help-dot.q-btn:focus-visible { opacity: 1; }
+.help-dot .q-icon { font-size: 15px; }
+.help-bubble.q-menu {
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lift);
+  background: var(--sea-1);
+}
+
 /* ═══ Skift mellem trin ══════════════════════════════════════════ */
 /* Panelet glider den vej, man går. Så kan man mærke om man er på vej frem
    eller tilbage, i stedet for at indholdet bliver skiftet ud under næsen. */
