@@ -34,6 +34,9 @@ MARINE_URL = 'https://marine-api.open-meteo.com/v1/marine'
 # altså loftet — ikke fordi vi ikke kan spørge om mere, men fordi svaret er
 # tomt derefter.
 FORECAST_DAYS = 10
+
+# Strømmen kommer i kilometer i timen. Vi regner i knob som alt andet.
+KMH_TO_KN = 0.539957
 MAX_POINTS = 12              # Open-Meteo tillader flere, men vi holder os høflige
 SPACING_NM = 18.0            # ét prognosepunkt for hver ~18 sømil rute
 CACHE_TTL_SECONDS = 30 * 60  # prognoserne opdateres langtfra hvert minut
@@ -116,9 +119,14 @@ async def fetch_weather(route: Route) -> Series:
                 'hourly': 'windspeed_10m,winddirection_10m,windgusts_10m',
                 'wind_speed_unit': 'kn',
             })
+            # Strømmen hentes sammen med bølgerne. I Storebælt og Øresund
+            # løber der jævnligt to-tre knob, og det er halvdelen af en
+            # sejlbåds fart — en ankomsttid uden strøm er forkert præcis dér,
+            # hvor det betyder mest.
             wave_task = _get_json(client, MARINE_URL, {
                 **common,
-                'hourly': 'wave_height,wave_direction,wave_period',
+                'hourly': ('wave_height,wave_direction,wave_period,'
+                           'ocean_current_velocity,ocean_current_direction'),
             })
             wind_res, wave_res = await asyncio.gather(wind_task, wave_task,
                                                       return_exceptions=True)
@@ -140,6 +148,8 @@ async def fetch_weather(route: Route) -> Series:
         heights = wave_block.get('wave_height') or []
         directions = wave_block.get('wave_direction') or []
         periods = wave_block.get('wave_period') or []
+        cur_v = wave_block.get('ocean_current_velocity') or []
+        cur_d = wave_block.get('ocean_current_direction') or []
 
         rows = []
         for j, iso in enumerate(times):
@@ -154,6 +164,11 @@ async def fetch_weather(route: Route) -> Series:
                 # langt fra vinden i indre farvande, og det er bedre end intet.
                 'wave_dir': _num(directions, j) or wind_dir,
                 'wave_s': _num(periods, j),
+                # Open-Meteo giver strømmen i km/t og opgiver retningen som
+                # dén, strømmen løber *mod* — samme regning som for vind ville
+                # vende den forkert.
+                'cur_kn': _num(cur_v, j) * KMH_TO_KN,
+                'cur_dir': _num(cur_d, j),
             })
         series.append(rows)
 

@@ -370,6 +370,19 @@ def wave_penalty(speed: float, wave_m: float, sea: str) -> float:
     return max(speed * (1 - min(0.7, loss * 2)), speed * 0.3)
 
 
+def current_along(course: float, set_dir: float, drift_kn: float) -> float:
+    """Hvor meget af strømmen der skubber langs kursen.
+
+    `set_dir` er den retning, strømmen løber *mod* — modsat vindens, som
+    opgives som den retning, den kommer *fra*. Løber strømmen samme vej som
+    kursen, er hele farten med; står den tværs, er intet med, og den sætter én
+    af til siden i stedet.
+    """
+    if drift_kn <= 0:
+        return 0.0
+    return drift_kn * math.cos(math.radians((set_dir - course + 180) % 360 - 180))
+
+
 def status_of(wind_kn: float, felt_m: float, max_wind: float, max_wave: float) -> str:
     if wind_kn <= max_wind and felt_m <= max_wave:
         return GO
@@ -414,7 +427,10 @@ class Segment:
     wave_m: float
     sea: str
     felt_m: float
-    speed_kn: float
+    speed_kn: float       # fart over grunden — dét, der flytter båden
+    through_kn: float     # fart gennem vandet — dét, logget viser
+    cur_kn: float         # strømmens fart
+    cur_along_kn: float   # hvor meget af den der er med (+) eller imod (−)
     status: str
     motoring: bool
     night: bool
@@ -549,12 +565,26 @@ def _hour(boat: Boat, route: Route, along: float, t: datetime,
         if limits.use_motor and speed < MOTOR_THRESHOLD_KN:
             speed, motoring = boat.motor_speed_kn, True
 
+    # Farten gennem vandet er dét, båden yder. Farten over grunden er dét, der
+    # flytter den — og det er dén, turen tager tid efter. I Storebælt og
+    # Øresund er forskellen jævnligt to knob, altså en tredjedel af farten.
+    through = speed
+    drift = wx.get('cur_kn') or 0.0
+    along_cur = current_along(course, wx.get('cur_dir') or 0.0, drift)
+    # Strømmen kan ikke skubbe én baglæns ud af en plan. Sejler man langsommere
+    # end strømmen sætter imod, står man stille — og så gør man noget andet end
+    # at ligge og vente på en beregning.
+    speed = max(0.3, through + along_cur)
+
     return Segment(
         time=t, leg=leg + 1, along_nm=along, lat=lat, lon=lon,
         course=round(course), twa=round(twa),
         wind_kn=round(wind, 1), wind_dir=round(wdir), gust_kn=round(gust, 1),
         wave_m=round(wave, 2), sea=sea, felt_m=round(felt, 2),
         speed_kn=round(max(speed, 0.5), 1),
+        through_kn=round(through, 1),
+        cur_kn=round(drift, 1),
+        cur_along_kn=round(along_cur, 1),
         status=status_of(wind, felt, limits.max_wind, limits.max_wave),
         motoring=motoring, night=_is_night(t, limits),
     )

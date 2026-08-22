@@ -132,6 +132,21 @@ TOPICS: tuple[Topic, ...] = (
             'Det er en anbefaling, ikke en afgørelse.',
         )),
     Topic(
+        'strom', 'Strøm', group='Tid og vejr',
+        short='Farten er over grunden. Strømmen er regnet med.',
+        body=(
+            'Farten i planen er over grunden — dét, der flytter båden — ikke '
+            'gennem vandet. Strømmen langs kursen lægges til eller trækkes '
+            'fra, og står i søjlen Strøm: grøn med, rød imod.',
+            'Står strømmen tværs, tæller den ikke på farten. Til gengæld '
+            'sætter den af til siden, og det skal styres op — planen regner '
+            'ikke afdriften ud for dig.',
+            'Tallene kommer fra en global havmodel, og den opløser ikke de '
+            'danske bælter helt. I Storebælt og Grønsund kan der løbe to-tre '
+            'knob, hvor modellen viser under én. Brug den som en retning, og '
+            'slå strømtabellen op, når det gælder en smal passage.',
+        )),
+    Topic(
         'prognose', 'Hvor langt frem vi kan se', group='Tid og vejr',
         short='Ti døgn. Bølgerne er loftet, ikke vinden.',
         body=(

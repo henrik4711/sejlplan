@@ -99,9 +99,19 @@ def esc(text: str) -> str:
     return html.escape(str(text), quote=True)
 
 
-def dk(value: float, decimals: int = 1) -> str:
+def dk(value: float, decimals: int = 1, sign: bool = False) -> str:
     """Tal med komma som decimaltegn. Det er sådan de skrives på dansk."""
-    return f'{value:.{decimals}f}'.replace('.', ',')
+    text = f'{value:{"+" if sign else ""}.{decimals}f}'
+    return text.replace('.', ',')
+
+
+def _cur_tone(seg) -> str:
+    """Strøm med er grøn, strøm imod er rød. Tværs er hverken eller."""
+    if seg.cur_along_kn > 0.15:
+        return 'var(--go)'
+    if seg.cur_along_kn < -0.15:
+        return 'var(--stop)'
+    return 'var(--txt-3)'
 
 
 def nm(value: float) -> str:
@@ -1167,13 +1177,17 @@ class Planner:
                     'farvand — vurder søgangen ud fra vind og stræk.</div>')
 
         motor = self.s.boat.is_motor
+        # Strømmen får kun en søjle, når der er noget at vise. På en tur i
+        # Smålandsfarvandet står den på nul hele vejen, og en søjle med bare
+        # nuller i stjæler plads fra dem, der betyder noget.
+        strom = any(abs(x.cur_along_kn) >= 0.2 for x in p.segments)
         rows = []
         current_day = None
         for s in p.segments:
             d = s.time.date()
             if d != current_day:
                 current_day = d
-                rows.append(f'<tr class="wx-day"><td colspan="7">'
+                rows.append(f'<tr class="wx-day"><td colspan="{8 if strom else 7}">'
                             f'{esc(day(s.time, False))}</td></tr>')
             # Sidste kolonne er det, der gør tabellen brugbar ombord: ikke bare
             # hvor hårdt det blæser, men hvordan båden ligger i det.
@@ -1185,14 +1199,17 @@ class Planner:
                 f'<td class="num tnum">{s.wind_kn:.0f}</td>'
                 f'<td class="tnum">{esc(compass(s.wind_dir))}</td>'
                 f'<td class="tnum">{dk(s.wave_m)}</td>'
-                f'<td class="num tnum">{dk(s.speed_kn)}</td>'
+                + (f'<td class="num tnum" style="color:{_cur_tone(s)}">'
+                   f'{dk(s.cur_along_kn, sign=True)}</td>' if strom else '')
+                + f'<td class="num tnum">{dk(s.speed_kn)}</td>'
                 f'<td style="color:var(--txt-3)">{esc(mode)}</td>'
                 f'</tr>')
 
         ui.html(
             '<div class="card overflow-hidden"><table class="wx-table">'
             '<thead><tr><th>Tid</th><th></th><th>Vind</th><th>Fra</th>'
-            f'<th>Bølger</th><th>Fart</th><th>{"Søen" if motor else "Sejlføring"}</th>'
+            f'<th>Bølger</th>{"<th>Strøm</th>" if strom else ""}'
+            f'<th>Fart</th><th>{"Søen" if motor else "Sejlføring"}</th>'
             f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
 
         peak = max(p.segments, key=lambda s: s.wind_kn)
@@ -1200,6 +1217,19 @@ class Planner:
                  f'({beaufort(peak.wind_kn)}) fra {compass(peak.wind_dir)}, '
                  f'kast op til {peak.gust_kn:.0f} kn.') \
             .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mt-2 block')
+
+        if strom:
+            # Sig hvad tallet er, og hvad det ikke er. Modellen er global og
+            # opløser ikke de danske bælter helt — i Storebælt og Grønsund kan
+            # der løbe mere, end den viser, og det skal skipperen vide.
+            med = sum(x.cur_along_kn for x in p.segments) / len(p.segments)
+            ui.label(
+                f'Farten er over grunden — strømmen er regnet med, og står i '
+                f'søjlen Strøm: {dk(abs(med))} knob '
+                f'{"med" if med >= 0 else "imod"} i snit. Tallene kommer fra en '
+                f'global havmodel, der ikke opløser de danske bælter helt. I '
+                f'Storebælt og Grønsund kan der løbe mere, end den viser.') \
+                .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mt-1 block')
 
     def _ai_tab(self) -> None:
         # Er vurderingen ikke slået til, findes afsnittet ikke. En bruger kan
