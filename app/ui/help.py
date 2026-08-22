@@ -25,10 +25,15 @@ def dot(topic_id: str) -> None:
     if topic is None:
         return
 
-    with ui.button(icon='help_outline') \
-            .props('flat round dense size=xs') \
-            .classes('help-dot shrink-0 text-[var(--txt-3)] '
-                     'hover:text-[var(--accent)]'):
+    btn = ui.button(icon='help_outline') \
+        .props('flat round dense size=xs') \
+        .classes('help-dot shrink-0 text-[var(--txt-3)] '
+                 'hover:text-[var(--accent)]')
+    # Prikken står tit inde i en række, der selv kan klikkes — et afsnit, der
+    # klapper sammen. Et spørgsmål skal ikke også lukke afsnittet.
+    btn.on('click.stop', lambda _: None)
+
+    with btn:
         with ui.menu().classes('help-bubble'):
             with ui.element('div').classes('px-4 py-3.5 max-w-[330px]'):
                 ui.label(topic.title).classes(

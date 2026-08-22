@@ -457,11 +457,31 @@ def _weatherbound(o) -> str:
 
 
 # ── Advarsler ─────────────────────────────────────────────────────────────────
+# Tre niveauer, fordi de ikke er lige meget. "Du kommer ikke hjem igen" og
+# "husk lanterner" stod før med det samme ikon i den samme farve, og så holder
+# man op med at læse dem. Nu kan man se på tegnet, hvad der haster.
+NOTE_STOP, NOTE_WARN, NOTE_INFO, NOTE_GOOD = 'stop', 'warn', 'info', 'good'
+
+NOTE_ICON = {NOTE_STOP: 'report', NOTE_WARN: 'warning_amber',
+             NOTE_INFO: 'info', NOTE_GOOD: 'check_circle'}
+NOTE_TONE = {NOTE_STOP: 'var(--stop)', NOTE_WARN: 'var(--warn)',
+             NOTE_INFO: 'var(--txt-3)', NOTE_GOOD: 'var(--go)'}
+
+
+@dataclass(frozen=True)
+class Note:
+    """Én ting at tage stilling til, og hvor meget den haster."""
+    level: str
+    text: str
+
+    def __str__(self) -> str:      # så gammel kode, der bare vil have teksten
+        return self.text           # stadig virker
+
 # Fra og med her ude regnes en vejrudsigt for en tendens. De første tre-fire
 # døgn holder ret godt; derefter er det retningen, der overlever, ikke timerne.
 UNCERTAIN_AFTER_DAYS = 5
 def warnings(plan: Plan, limits: Limits, boat: Boat,
-             outlook=None) -> list[str]:
+             outlook=None) -> list[Note]:
     """Det skipperen skal tage stilling til, før der kastes los.
 
     `outlook` er, hvad prognosen siger om dagene *efter* ankomsten. Den står
@@ -470,94 +490,94 @@ def warnings(plan: Plan, limits: Limits, boat: Boat,
     out = []
 
     if outlook is not None and outlook.matters:
-        out.append(_weatherbound(outlook))
+        out.append(Note(NOTE_STOP, _weatherbound(outlook)))
 
     # Hvor langt ude i prognosen slutter turen? En vejrudsigt på ni døgn er
     # ikke samme vare som en på to. Vinden kan ligge anderledes, og timerne kan
     # rykke — og det skal stå der, ikke gemmes i en disclaimer.
     ahead = (plan.arrival.date() - date.today()).days
     if ahead >= UNCERTAIN_AFTER_DAYS and not plan.incomplete:
-        out.append(
+        out.append(Note(NOTE_INFO,
             f'Turen slutter {plural(ahead, "døgn", "døgn")} ude i prognosen. '
             f'Så langt frem er en vejrudsigt en tendens, ikke en tidsplan: '
             f'retningen holder tit, men styrken og timerne rykker sig. Læg '
-            f'planen, og se den efter igen et par dage før afgang.')
+            f'planen, og se den efter igen et par dage før afgang.'))
 
     if plan.incomplete:
         rest = max(0.0, plan.total_nm - plan.reached_nm)
-        out.append(
+        out.append(Note(NOTE_STOP,
             f'Turen når ikke frem inden for den vejrudsigt, vi har. Du kommer '
             f'{num(plan.reached_nm)} af {num(plan.total_nm)} sømil — de sidste '
             f'{num(rest)} sømil kan først planlægges, når prognosen rækker så '
             f'langt. Læg turen tidligere, eller planlæg den sidste del om nogle '
-            f'dage.')
+            f'dage.'))
 
     for stop in plan.stops:
         if stop.late:
-            out.append(
+            out.append(Note(NOTE_STOP,
                 f'Du er først fortøjet i {stop.name} kl. {clock(stop.arrive)} — '
                 f'efter dit sejldøgn, der slutter {limits.day_end}:00. Der var '
                 f'ingen havn tættere på, du kunne nå. Overvej at afgå tidligere, '
-                f'eller at lægge et stop ind før.')
+                f'eller at lægge et stop ind før.'))
 
     if plan.stops and not any(s.late for s in plan.stops):
         first = plan.stops[0]
-        out.append(
+        out.append(Note(NOTE_INFO,
             f'Turen kan ikke sejles inden for ét sejldøgn. Planen lægger '
             f'{plural(plan.nights, "overnatning", "overnatninger")} ind — '
             f'første gang i {first.name} kl. {clock(first.arrive)}. '
-            f'Vil du hele vejen i én stræk, skal du slå mørkesejlads til.')
+            f'Vil du hele vejen i én stræk, skal du slå mørkesejlads til.'))
 
     early = [s for s in plan.stops
              if (s.arrive.replace(hour=limits.day_end, minute=0)
                  - s.arrive).total_seconds() > 3 * 3600]
     if early:
         first = early[0]
-        out.append(
+        out.append(Note(NOTE_INFO,
             f'Du ligger fortøjet i {first.name} allerede kl. {clock(first.arrive)}, '
             f'og der er timer tilbage af dagen. Det er med vilje: næste stræk er '
             f'for langt til at nås inden kl. {limits.day_end:02d}:00, og der er '
-            f'ingen havn imellem. Sejler du videre nu, ender du i mørke.')
+            f'ingen havn imellem. Sejler du videre nu, ender du i mørke.'))
 
     if plan.red_hours:
         worst = [s for s in plan.segments if s.status == STOP]
-        out.append(
+        out.append(Note(NOTE_STOP,
             f'{plan.red_hours} timer ligger over dine grænser — fra '
             f'{day_time(worst[0].time)}. Der er op til {num(max(s.wind_kn for s in worst), 0)} '
             f'knob og {num(max(s.wave_m for s in worst))} meter bølger. '
-            f'Overvej at udskyde eller søge havn undervejs.')
+            f'Overvej at udskyde eller søge havn undervejs.'))
     elif plan.yellow_hours:
-        out.append(
+        out.append(Note(NOTE_WARN,
             f'{plan.yellow_hours} timer nærmer sig dine grænser '
             f'({num(limits.max_wind, 0)} knob og {num(limits.max_wave)} meter). '
             f'{"Sæt farten ned i tide" if boat.is_motor else "Reb i god tid"}, '
-            f'og hold øje med om prognosen flytter sig.')
+            f'og hold øje med om prognosen flytter sig.'))
 
     if plan.night_hours:
         night = [s for s in plan.segments if s.night]
-        out.append(
+        out.append(Note(NOTE_WARN,
             f'{plan.night_hours} timer sejles uden for sejldøgnet, første gang '
             f'omkring {clock(night[0].time)}. Sørg for lanterner, vagtplan og at '
-            f'besætningen er udhvilet.')
+            f'besætningen er udhvilet.'))
 
     gusts = max((s.gust_kn for s in plan.segments), default=0)
     if gusts >= limits.max_wind:
-        out.append(f'Vindstødene når {num(gusts, 0)} knob. Middelvinden holder sig '
+        out.append(Note(NOTE_WARN,f'Vindstødene når {num(gusts, 0)} knob. Middelvinden holder sig '
                    f'lavere, men {"farten" if boat.is_motor else "rebningen"} skal '
-                   f'passe til stødene, ikke til middelværdien.')
+                   f'passe til stødene, ikke til middelværdien.'))
 
     if boat.is_motor and plan.fuel_l:
-        out.append(f'Regn med omkring {num(plan.fuel_l, 0)} liter brændstof. '
-                   f'Læg en fjerdedel oveni til reserve og til at ligge og vente.')
+        out.append(Note(NOTE_INFO,f'Regn med omkring {num(plan.fuel_l, 0)} liter brændstof. '
+                   f'Læg en fjerdedel oveni til reserve og til at ligge og vente.'))
 
     longest = max((d.hours for d in plan.days), default=0)
     if longest >= 14:
-        out.append(f'Den længste dag er på {duration(longest)} i træk. Aftal '
-                   f'hvem der styrer hvornår, og hvor I kan afbryde undervejs.')
+        out.append(Note(NOTE_WARN,f'Den længste dag er på {duration(longest)} i træk. Aftal '
+                   f'hvem der styrer hvornår, og hvor I kan afbryde undervejs.'))
 
     if not out:
-        out.append('Prognosen holder sig inden for dine grænser hele vejen, og du '
-                   'er i havn inden sejldøgnet er omme. Det ser ud til at blive en god tur.')
+        out.append(Note(NOTE_GOOD,'Prognosen holder sig inden for dine grænser hele vejen, og du '
+                   'er i havn inden sejldøgnet er omme. Det ser ud til at blive en god tur.'))
     return out
 
 

@@ -6,10 +6,11 @@ from __future__ import annotations
 
 from nicegui import ui
 
-from app import pwa
+from app import mishap, pwa
 from app.config import settings
 from app.ui import page  # noqa: F401  – registrerer siden ved import
 
+mishap.install()
 pwa.register_routes()
 
 if __name__ in {'__main__', '__mp_main__'}:
