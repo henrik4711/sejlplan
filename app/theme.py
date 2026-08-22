@@ -21,6 +21,13 @@ RED = '#D64545'
 CSS = """
 /* ═══ Farver og mål ══════════════════════════════════════════════ */
 body {
+  /* Sikkerhedsafstandene paa en iPhone: statuslinjen og urskiven foroven,
+     hjemmestriben forneden. Uden for en installeret app er de nul, og saa
+     regner alt herunder som foer. */
+  --top-inset:    env(safe-area-inset-top, 0px);
+  --bottom-inset: env(safe-area-inset-bottom, 0px);
+  --header-h:     calc(56px + env(safe-area-inset-top, 0px));
+
   --sea-1:   #FFFFFF;   /* kort/paneler          */
   --sea-2:   #F4F1EC;   /* sidebaggrund          */
   --sea-3:   #E9E4DB;   /* indlejrede felter     */
@@ -113,12 +120,15 @@ html, body { height: 100%; overflow: hidden; }
   .mapwrap { position: absolute; inset: 0; }
   aside.sheet {
     position: absolute; left: 0; right: 0; bottom: 0;
-    height: calc(var(--sheet, .58) * (100dvh - 56px));
+    height: calc(var(--sheet, .58) * (100dvh - var(--header-h)));
     border-radius: 20px 20px 0 0;
     border: 0; border-top: 1px solid var(--line);
     box-shadow: 0 -2px 6px rgba(13,27,42,.06), 0 -14px 40px rgba(13,27,42,.18);
     transition: height .34s cubic-bezier(.22,.9,.3,1);
     z-index: 20;
+    /* Skuffen går helt ned til kanten, og på en iPhone ligger hjemmestriben
+       dér. Uden det her lå knappen "Find bedste afgangstider" under den. */
+    padding-bottom: var(--bottom-inset);
   }
   body.body--dark aside.sheet {
     box-shadow: 0 -2px 8px rgba(0,0,0,.4), 0 -16px 44px rgba(0,0,0,.5);
@@ -174,7 +184,8 @@ html, body { height: 100%; overflow: hidden; }
 }
 
 .app-header {
-  flex: 0 0 auto; height: 56px;
+  flex: 0 0 auto; height: var(--header-h);
+  padding-top: var(--top-inset);
   display: flex; align-items: center; gap: 8px;
   padding: 0 10px;
   background: var(--sea-1);
@@ -356,7 +367,7 @@ body {
    fire tiendedele af skærmen, og et dokument kan ikke læses der — så dækker
    den hele fladen under headeren i stedet. */
 .plan-view {
-  position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+  position: fixed; top: var(--header-h); left: 0; right: 0; bottom: 0;
   /* Over Leaflets egne lag, som gaar til 1000. Planen bor inde i kortets stak,
      saa zoomknapperne laa oven paa dokumentet med 600 herinde. */
   z-index: 1100; background: var(--sea-2);

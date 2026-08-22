@@ -793,7 +793,7 @@ def score(p: Plan, limits: Limits) -> float:
 
 def find_windows(boat: Boat, route: Route, weather: list,
                  limits: Limits, stopovers: list | None = None,
-                 max_results: int = 10) -> list[Plan]:
+                 max_results: int = 18) -> list[Plan]:
     """Prøv hver mulig afgangstime i vinduet og returnér de bedste, spredte forslag."""
     if len(route.waypoints) < 2:
         return []
@@ -819,12 +819,34 @@ def find_windows(boat: Boat, route: Route, weather: list,
 
     candidates.sort(key=lambda p: p.score)
 
-    # Undertryk næsten-identiske naboer, så listen viser reelt forskellige valg
-    # i stedet for den samme formiddag klokken 08, 09, 10 og 11.
-    chosen: list[Plan] = []
+    # Før blev alt inden for tre timer af et allerede valgt forslag kasseret.
+    # Kunne man sejle klokken 7, 8, 9, 10 og 11, så man kun 7 og 10 — og de tre
+    # andre fandtes, men blev aldrig vist. Det er ikke vores valg at træffe.
+    #
+    # Nu kasseres kun dét, der giver præcis det samme: samme dag, samme
+    # ankomsttime, samme havne undervejs og samme dom. To afgange en time fra
+    # hinanden, der ender forskelligt, er to forskellige valg.
+    def outcome(p: Plan) -> tuple:
+        return (p.depart.date(),
+                p.arrival.replace(minute=0, second=0, microsecond=0),
+                tuple(s.name for s in p.stops),
+                p.verdict)
+
+    by_day: dict = {}
+    seen: set = set()
     for p in candidates:
-        if all(abs((p.depart - c.depart).total_seconds()) >= 3 * 3600 for c in chosen):
-            chosen.append(p)
-        if len(chosen) >= max_results:
-            break
-    return chosen
+        key = outcome(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        by_day.setdefault(p.depart.date(), []).append(p)
+
+    # Hver dag, man overhovedet kan sejle, skal med. Ellers kan en hel dag
+    # forsvinde, fordi en anden dag har bedre vejr — og så ved man ikke, at
+    # muligheden fandtes. Resten af pladserne går til de næstbedste.
+    chosen = [rows[0] for rows in by_day.values()]
+    rest = [p for rows in by_day.values() for p in rows[1:]]
+    rest.sort(key=lambda p: p.score)
+    chosen += rest[:max(0, max_results - len(chosen))]
+    chosen.sort(key=lambda p: p.score)
+    return chosen[:max(max_results, len(by_day))]

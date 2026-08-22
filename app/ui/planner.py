@@ -48,7 +48,11 @@ SHEET_JS = """
 
   const STOPS = [0.26, 0.58, 0.94];
   // Mindst 1, så en skjult fane ikke kan dividere med nul og slå skuffen i.
-  const height = () => Math.max(1, shell.getBoundingClientRect().height - 56);
+  // Headeren er hoejere paa en iPhone, hvor statuslinjen ligger oven i den.
+  // Derfor maales den i stedet for at antage seksoghalvtreds.
+  const top = () => (document.querySelector('.app-header')
+                     || {offsetHeight: 56}).offsetHeight;
+  const height = () => Math.max(1, shell.getBoundingClientRect().height - top());
   const now = () => parseFloat(getComputedStyle(shell).getPropertyValue('--sheet')) || 0.58;
   const set = (f) => {
     shell.style.setProperty('--sheet', String(f));
@@ -719,10 +723,15 @@ class Planner:
             return
 
         best = self.s.windows[0]
+        days = len({w.depart.date() for w in self.s.windows})
+        # Rækkefølgen er vores anbefaling, ikke en afgørelse. Alle de afgange,
+        # der giver noget forskelligt, står på listen — også dem på en dag med
+        # dårligere vejr. Valget er skipperens.
         ui.html(
             f'<div class="text-[12.5px] text-[var(--txt-2)] leading-snug mb-3">'
-            f'{len(self.s.windows)} mulige afgange i vinduet. Den bedste er '
-            f'<b>{esc(full(best.depart))}</b>.</div>')
+            f'{len(self.s.windows)} afgange at vælge imellem, fordelt på '
+            f'{days} {"dag" if days == 1 else "dage"}. Vi vil pege på '
+            f'<b>{esc(full(best.depart))}</b> — men vælg selv.</div>')
 
         for i, w in enumerate(self.s.windows):
             self._window_card(i, w)
