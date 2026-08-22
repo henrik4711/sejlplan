@@ -60,6 +60,13 @@ def to_gpx(route: Route, route_name: str = 'Sejlplan') -> str:
         f'  </wpt>'
         for w in route.waypoints)
 
+    # Samme vej lagt to gange. En rute er dét, plotteren navigerer efter, og et
+    # spor er dét, mange programmer tegner. Der findes plottere, der kun læser
+    # det ene, og filen skal virke i dem alle.
+    track = '\n'.join(
+        f'      <trkpt lat="{lat:.6f}" lon="{lon:.6f}" />'
+        for lat, lon, _label in route_points(route))
+
     legs = '\n'.join(
         f'    <rtept lat="{lat:.6f}" lon="{lon:.6f}">\n'
         f'      <name>{escape(label)}</name>\n'
@@ -79,6 +86,12 @@ def to_gpx(route: Route, route_name: str = 'Sejlplan') -> str:
     <name>{name}</name>
 {legs}
   </rte>
+  <trk>
+    <name>{name}</name>
+    <trkseg>
+{track}
+    </trkseg>
+  </trk>
 </gpx>
 """
 

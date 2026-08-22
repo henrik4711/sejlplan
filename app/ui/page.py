@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from nicegui import ui
 
-from .. import share, theme
+from .. import pwa, share, theme
 from ..boats import BOATS
 from .planner import Planner
 
@@ -17,6 +17,7 @@ async def index(rute: str = '') -> None:
     """Forsiden. `?rute=…` åbner en rute, nogen har delt."""
     ui.page_title('Sejlplan – find den bedste afgang')
     theme.apply()
+    pwa.head()
 
     planner = Planner()
 

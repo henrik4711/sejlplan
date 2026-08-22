@@ -147,6 +147,9 @@ def settings_dialog(planner) -> None:
                         'Under 3 knobs fart tændes motoren i beregningen.',
                         lambda v: setattr(lim, 'use_motor', v))
 
+            # ── Appen ──
+            _app_block()
+
         # ── Bund ──
         with ui.row().classes('w-full items-center gap-2 px-5 py-3.5 border-t '
                               'border-[var(--line)] no-wrap'):
@@ -256,6 +259,61 @@ def _date_field(label: str, value: str, lo: date, hi: date, on_set) -> None:
                 ui.icon('event').classes('cursor-pointer text-[18px] text-[var(--txt-3)]') \
                     .on('click', menu.open)
         field.on('click', menu.open)
+
+
+def _app_block() -> None:
+    """Læg Sejlplan på hjemmeskærmen — og fortæl, hvad den så kan uden dækning.
+
+    Browseren viser selv et tilbud på Android, men aldrig på iPhone og sjældent
+    på skrivebordet. Uden en synlig vej herind er det kun dem, der ved det i
+    forvejen, der får appen.
+    """
+    ui.label('Appen').classes('section-label mt-5 mb-2 block')
+    with ui.element('div').classes('card px-3.5 py-3'):
+        with ui.row().classes('items-center no-wrap gap-3 w-full'):
+            ui.icon('install_mobile').classes('text-[20px] text-[var(--accent)] shrink-0')
+            with ui.element('div').classes('flex-1 min-w-0'):
+                ui.label('Læg på hjemmeskærmen') \
+                    .classes('text-[13px] font-medium block')
+                ui.label('Så åbner Sejlplan i sit eget vindue — og den seneste '
+                         'sejlplan kan læses uden dækning.') \
+                    .classes('text-[11px] text-[var(--txt-3)] leading-snug block')
+            ui.button('Installér', on_click=_install) \
+                .props('outline dense no-caps') \
+                .classes('shrink-0 text-[var(--accent)]')
+
+
+async def _install() -> None:
+    """Tag browserens eget tilbud, hvis der er et. Ellers sig hvad man gør."""
+    try:
+        besked = await ui.run_javascript(_INSTALL_JS, timeout=15.0)
+    except Exception:
+        besked = 'Browseren kunne ikke installere appen herfra.'
+    if besked:
+        ui.notify(besked, position='bottom', multi_line=True,
+                  classes='max-w-[340px]')
+
+
+# Chrome gemmer sit tilbud i `window.sejlplanInstall`, når siden må installeres.
+# Safari har intet tilbud at give — dér skal brugeren selv gøre det, og så er
+# den eneste hjælp at sige præcis hvordan.
+_INSTALL_JS = """
+if (window.sejlplanInstall) {
+  window.sejlplanInstall.prompt();
+  await window.sejlplanInstall.userChoice;
+  window.sejlplanInstall = null;
+  return '';
+}
+if (window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true) {
+  return 'Sejlplan kører allerede som app.';
+}
+if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+  return 'Tryk på Del nederst i Safari, og vælg "Føj til hjemmeskærm".';
+}
+return 'Åbn browserens menu og vælg "Installér Sejlplan" eller '
+     + '"Føj til hjemmeskærm".';
+"""
 
 
 def _switch_row(label: str, value: bool, hint: str, on_set) -> None:

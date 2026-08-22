@@ -18,8 +18,8 @@ from datetime import date
 
 from nicegui import ui
 
-from .. import (ai, geocode, harbours, landmask, narrative, searoute, share,
-                theme, weather)
+from .. import (ai, geocode, harbours, landmask, narrative, offline, pwa,
+                searoute, share, theme, weather)
 from ..config import settings
 from ..dates import clock, day, day_time, full, month, spell
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
@@ -845,6 +845,8 @@ class Planner:
         route = self.s.route
         names = ' → '.join(w.name for w in route.waypoints)
 
+        self._stow_plan(boat, route, p)
+
         with ui.element('div').classes('plan-view scroll-y'):
             with ui.element('div').classes('mx-auto max-w-[78ch] px-5 md:px-8 py-6 md:py-8'):
 
@@ -1301,6 +1303,21 @@ class Planner:
         self._schedule_route()
         ui.notify('Ruten er vendt om', position='bottom')
         self._plan_lost(had_plan)
+
+    # ── Planen med om bord ──────────────────────────────────────────
+    def _stow_plan(self, boat, route, plan) -> None:
+        """Læg planen ned i telefonen, hver gang man ser på den.
+
+        Netop dér er den værd at gemme: brugeren har valgt sin afgang og læser
+        den igennem. Går dækningen senere, er det den her, der kommer frem.
+        """
+        try:
+            html = offline.document(boat, route, plan, self.s.limits)
+            self.client.run_javascript(pwa.save_plan_js(html))
+        except Exception:
+            # En plan, der ikke kunne gemmes til senere, må ikke forhindre
+            # nogen i at læse den nu.
+            pass
 
     # ── Mine ruter ──────────────────────────────────────────────────
     def _save_route(self) -> None:
