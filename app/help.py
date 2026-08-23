@@ -228,6 +228,22 @@ TOPICS: tuple[Topic, ...] = (
 
     # ── Gemme og tage med ───────────────────────────────────────────
     Topic(
+        'plads', 'Er der plads i havnen?', group='Sejlplanen',
+        short='Det eneste, ingen model kan svare på. Kun dem, der ligger der.',
+        body=(
+            'Vejret kommer fra en model og afstanden fra et søkort. Om der er '
+            'en plads tilbage ved ydermolen klokken fire, ved kun den, der '
+            'ligger der klokken to.',
+            'Derfor kan man melde: god plads, få pladser, eller fuld. Det tager '
+            'to sekunder, det er anonymt, og der gemmes hverken navn eller '
+            'position — kun havnen, svaret og hvornår.',
+            'Alderen står altid med, for den er halvdelen af oplysningen. '
+            '"Fuld" for tre timer siden er noget andet end "fuld" i går aftes. '
+            'Efter halvandet døgn forsvinder meldingen af sig selv.',
+            'Ligger du i en havn, så meld. Det koster dig ingenting og er det '
+            'eneste, den næste ikke kan finde ud af på egen hånd.',
+        )),
+    Topic(
         'mine-ruter', 'Mine ruter', group='Gem og tag med',
         short='Gem turen, og hent den frem igen, når prognosen når så langt.',
         body=(

@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 from datetime import date, datetime
 
-from . import mailer, share, watch, weatherbound
+from . import mailer, reports, share, watch, weatherbound
 from .boats import BOATS, DEFAULT_BOAT, custom_boat
 from .config import settings
 from .dates import full
@@ -217,6 +217,9 @@ async def sweep_once() -> int:
             watch.mark_notified(w.id)
             sent += 1
     watch.sweep()
+    # Meldinger om plads dør af sig selv. En melding fra sidste uge er
+    # ikke information, og databasen skal ikke bare vokse.
+    reports.sweep()
     return sent
 
 

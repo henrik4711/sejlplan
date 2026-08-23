@@ -19,13 +19,14 @@ from datetime import date
 from nicegui import ui
 
 from .. import (ai, geocode, harbours, landmask, narrative, offline, pwa,
-                searoute, share, theme, weather, weatherbound)
+                reports, searoute, share, theme, weather, weatherbound)
 from ..config import settings
 from ..dates import clock, day, day_time, full, month, spell
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
                        beaufort, compass, find_windows, haversine,
                        point_of_sail)
 from ..state import Session, signature
+from . import berth
 from . import help as helpui
 from . import myroutes
 from . import watch as watchui
@@ -701,6 +702,12 @@ class Planner:
                  'en ind som mellemstop.') \
             .classes('text-[11.5px] text-[var(--txt-3)] mb-2 block leading-snug')
 
+        # Ét opslag for hele listen i stedet for ét pr. havn. Forskellen er
+        # en liste, der er der med det samme, og en, der hakker.
+        meldt = (reports.recent([reports.key_of(h.lat, h.lon)
+                                 for h, _a, _d in picked])
+                 if berth.available() else {})
+
         with ui.element('div').classes('card overflow-hidden'):
             for i, (h, along, detour) in enumerate(picked):
                 if i:
@@ -715,7 +722,11 @@ class Planner:
                         ui.label(h.name).classes('text-[13px] font-medium truncate block')
                         ui.label(f'efter {nm(along)} sm · {nm(detour)} sm ind fra ruten') \
                             .classes('text-[11px] text-[var(--txt-3)] tnum truncate block')
-                        _guide_link(h)
+                        with ui.element('div').classes(
+                                'flex items-center gap-2.5 flex-wrap'):
+                            _guide_link(h)
+                            berth.button(h, self._refresh_panel)
+                        berth.line(meldt.get(reports.key_of(h.lat, h.lon)))
                     ui.icon('add').classes('text-[16px] text-[var(--txt-3)] shrink-0')
                 row.on('click', lambda _, x=h: self._add_place(geocode.from_harbour(x)))
 
@@ -1068,13 +1079,18 @@ class Planner:
                             .classes('text-[12.5px] text-[var(--txt-2)] mt-1.5 '
                                      'leading-relaxed block')
                         # Man skal ligge dér en nat. Så vil man vide, om der er
-                        # vand på broen og plads til gæster.
-                        url = harbours.guide_url_at(stop.lat, stop.lon)
-                        if url:
-                            ui.link('Læs om havnen i havnelods.dk →', url) \
-                                .props('target="_blank" rel="noopener"') \
-                                .classes('text-[12px] text-[var(--accent)] '
-                                         'no-underline hover:underline mt-1 block')
+                        # vand på broen, og om der overhovedet er plads.
+                        with ui.element('div').classes(
+                                'flex items-center gap-3 flex-wrap mt-1'):
+                            url = harbours.guide_url_at(stop.lat, stop.lon)
+                            if url:
+                                ui.link('Læs om havnen i havnelods.dk →', url) \
+                                    .props('target="_blank" rel="noopener"') \
+                                    .classes('text-[12px] text-[var(--accent)] '
+                                             'no-underline hover:underline')
+                            berth.button(stop, self.plan_view.refresh)
+                        if berth.available():
+                            berth.line(reports.latest(stop.lat, stop.lon))
 
     def _key_figures(self, p, boat) -> None:
         lim = self.s.limits
