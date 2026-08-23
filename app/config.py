@@ -62,6 +62,53 @@ class Settings:
         _env('SEJLPLAN_PORT') or _env('PORT') or '8090'))
     contact: str = field(default_factory=lambda: _env('SEJLPLAN_CONTACT', 'sejlplan@example.com'))
 
+    # Hvor serveren lægger det, den skal huske, mens ingen er logget på —
+    # vejrvagterne. Railways filsystem forsvinder ved hver udrulning, så her
+    # skal peges på et volume, hvis vagterne skal overleve.
+    data_dir: str = field(default_factory=lambda: _env('SEJLPLAN_DATA_DIR'))
+
+    # Adressen brugeren ser i browseren. Den skal med i mails, så linket i dem
+    # fører hjem — serveren kender den ikke selv.
+    site_url: str = field(default_factory=lambda: _env(
+        'SEJLPLAN_SITE_URL', 'http://localhost:8090').rstrip('/'))
+
+    # Afsendelse af mail. Uden dem er vejrvagten slået fra, og fladen siger det.
+    smtp_host: str = field(default_factory=lambda: _env('SEJLPLAN_SMTP_HOST'))
+    smtp_port: int = field(default_factory=lambda: int(
+        _env('SEJLPLAN_SMTP_PORT') or '587'))
+    smtp_user: str = field(default_factory=lambda: _env('SEJLPLAN_SMTP_USER'))
+    smtp_password: str = field(default_factory=lambda: _env('SEJLPLAN_SMTP_PASSWORD'))
+    mail_from: str = field(default_factory=lambda: _env('SEJLPLAN_MAIL_FROM'))
+
+    @property
+    def storage_dir(self) -> Path:
+        """Mappen til det, der skal overleve en genstart."""
+        return Path(self.data_dir) if self.data_dir else ROOT / '.data'
+
+    @property
+    def storage_is_durable(self) -> bool:
+        """Er der peget på et rigtigt volume?
+
+        Uden det ligger vagterne på et filsystem, der bliver kasseret ved næste
+        udrulning — og en vagt, der forsvinder i stilhed, er værre end ingen.
+        """
+        return bool(self.data_dir)
+
+    @property
+    def mail_available(self) -> bool:
+        return bool(self.smtp_host and self.mail_from)
+
+    @property
+    def watch_available(self) -> bool:
+        """Vejrvagten kræver en postkasse. Et volume er stærkt anbefalet.
+
+        Uden volume virker den — indtil næste udrulning, hvor filen forsvinder
+        sammen med resten af serverens disk. Derfor slår vi den ikke fra, men
+        siger det højt i fladen: en vagt, man har lagt og glemt, er god; en
+        vagt, der forsvinder i stilhed, er værre end ingen.
+        """
+        return self.mail_available
+
     @property
     def ai_available(self) -> bool:
         """AI-fanen skjuler sig selv pænt, hvis serveren ikke har en nøgle."""

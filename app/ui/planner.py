@@ -28,6 +28,7 @@ from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
 from ..state import Session, signature
 from . import help as helpui
 from . import myroutes
+from . import watch as watchui
 from .mapview import RouteMap
 
 # "Afgang" er også en havns rolle i ruten. Trinnet hedder derfor
@@ -759,6 +760,15 @@ class Planner:
                       on_click=self.run_analysis) \
                 .props('unelevated no-caps size=lg') \
                 .classes('w-full btn-primary')
+            # Skal turen først gå om tre uger, er der ingen prognose at kigge
+            # i endnu — og så skal man ikke sidde og trykke opdater hver dag.
+            # Læg en vagt, og få besked, når vejret er der.
+            if self.s.can_analyse:
+                ui.button('Hold øje med vejret', icon='notifications_active',
+                          on_click=self._open_watch) \
+                    .props('flat dense no-caps') \
+                    .classes('w-full mt-1 text-[var(--txt-3)] '
+                             'hover:text-[var(--accent)]')
 
     @staticmethod
     def _short_date(iso: str) -> str:
@@ -1559,6 +1569,10 @@ class Planner:
     # ── Mine ruter ──────────────────────────────────────────────────
     def _save_route(self) -> None:
         myroutes.save_dialog(self.s, lambda: self.refresh())
+
+    def _open_watch(self) -> None:
+        """Bed Sejlplan holde øje med vejret til den her tur."""
+        watchui.dialog(self.s)
 
     def _open_routes(self) -> None:
         myroutes.open_dialog(self.s, self._open_saved, lambda: self.refresh())

@@ -4,14 +4,17 @@ Kør appen med:  python main.py
 """
 from __future__ import annotations
 
-from nicegui import ui
+from nicegui import app, ui
 
-from app import mishap, pwa
+from app import lookout, mishap, pwa
 from app.config import settings
 from app.ui import page  # noqa: F401  – registrerer siden ved import
+from app.ui import watchpages
 
 mishap.install()
 pwa.register_routes()
+watchpages.register()
+app.on_startup(lookout.start)
 
 if __name__ in {'__main__', '__mp_main__'}:
     ui.run(
