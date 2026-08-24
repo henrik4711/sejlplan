@@ -935,7 +935,8 @@ class Planner:
         if w.yellow_hours:
             return ('<span class="chip chip--warn">'
                     + esc(t('{n} t skærpet', n=w.yellow_hours)) + '</span>')
-        return '<span class="chip chip--go">Gode forhold</span>'
+        return ('<span class="chip chip--go">'
+                + esc(t('Gode forhold')) + '</span>')
 
     @staticmethod
     def _hourbar(w) -> str:

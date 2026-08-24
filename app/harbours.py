@@ -23,6 +23,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .i18n import t
+
 DATA = Path(__file__).resolve().parent / 'data' / 'harbours.json.gz'
 LINKS = Path(__file__).resolve().parent / 'data' / 'harbour_links.json'
 
