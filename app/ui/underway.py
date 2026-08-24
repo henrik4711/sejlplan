@@ -18,6 +18,7 @@ from nicegui import ui
 
 from .. import progress
 from ..dates import clock
+from ..i18n import t
 
 # Positionen hentes ikke oftere end det. Oftere koster batteri uden at sige
 # noget nyt — en sejlbåd flytter sig ikke meget på et halvt minut.
@@ -65,11 +66,11 @@ def bar(planner) -> None:
     """Linjen øverst i sejlplanen, når man er undervejs."""
     if not planner.underway:
         with ui.element('div').classes('flex items-center gap-2 mb-4'):
-            ui.button('Jeg er undervejs', icon='my_location',
+            ui.button(t('Jeg er undervejs'), icon='my_location',
                       on_click=planner.start_underway) \
                 .props('outline dense no-caps') \
                 .classes('text-[var(--accent)]')
-            ui.label('Følg med i, om du er foran eller bagud.') \
+            ui.label(t('Følg med i, om du er foran eller bagud.')) \
                 .classes('text-[11.5px] text-[var(--txt-3)] leading-snug')
         return
 
@@ -80,9 +81,9 @@ def bar(planner) -> None:
         with ui.element('div').classes('flex items-center gap-2 mb-1'):
             ui.icon('my_location').classes(
                 'text-[17px] text-[var(--accent)] shrink-0')
-            ui.label('Undervejs').classes(
+            ui.label(t('Undervejs')).classes(
                 'section-label flex-1')
-            ui.button('Stop', on_click=planner.stop_underway) \
+            ui.button(t('Stop'), on_click=planner.stop_underway) \
                 .props('flat dense no-caps size=sm') \
                 .classes('text-[var(--txt-3)]')
 
@@ -94,7 +95,7 @@ def bar(planner) -> None:
         if p is None:
             with ui.row().classes('items-center gap-2'):
                 ui.spinner(size='16px').classes('text-[var(--accent)]')
-                ui.label('Leder efter positionen…').classes(
+                ui.label(t('Leder efter positionen…')).classes(
                     'text-[12.5px] text-[var(--txt-2)]')
             return
 
@@ -116,18 +117,18 @@ def _numbers(p) -> None:
             .classes('text-[12.5px] text-[var(--txt-2)] leading-snug block')
         return
 
-    tone = {'foran': 'var(--go)', 'bagud': 'var(--warn)',
+    tone = {'foran': 'var(--go)', t(t('bagud')): 'var(--warn)',
             'som planlagt': 'var(--txt-1)', 'fremme': 'var(--go)',
             'ikke begyndt': 'var(--txt-2)'}[p.verdict]
 
     if p.arrived:
-        ui.label('Du er fremme. God tur — og velkommen i havn.') \
+        ui.label(t('Du er fremme. God tur — og velkommen i havn.')) \
             .classes('text-[13px] block').style(f'color: {tone}')
         return
 
     minutes = abs(p.ahead_min)
     if p.verdict == 'som planlagt':
-        head = 'Du følger planen'
+        head = t(t('Du følger planen'))
     else:
         head = (f'Du er {minutes:.0f} minutter {p.verdict}'
                 if minutes < 90 else

@@ -15,6 +15,7 @@ from nicegui import ui
 
 from .. import theme, watch
 from ..dates import day
+from ..i18n import t
 
 
 def register() -> None:
@@ -25,7 +26,7 @@ def register() -> None:
         theme.apply()
         w = watch.confirm(watch_id)
         if w is None:
-            _shell('Vagten findes ikke',
+            _shell(t('Vagten findes ikke'),
                    'Linket er forkert, eller vagten er allerede stoppet.',
                    'help_outline')
             return
@@ -43,11 +44,11 @@ def register() -> None:
         theme.apply()
         w = watch.cancel(watch_id)
         if w is None:
-            _shell('Vagten findes ikke',
+            _shell(t('Vagten findes ikke'),
                    'Linket er forkert, eller vagten er allerede stoppet.',
                    'help_outline')
             return
-        _shell('Vagten er stoppet',
+        _shell(t('Vagten er stoppet'),
                f'Vi holder ikke længere øje med {w.title}, og vi skriver ikke '
                f'til dig om den igen.',
                'notifications_off')
@@ -68,11 +69,11 @@ def _shell(title: str, body: str, icon: str, stop_id: str = '') -> None:
                 'text-[13.5px] text-[var(--txt-2)] leading-relaxed block')
 
             with ui.row().classes('items-center justify-center gap-2 mt-6 w-full'):
-                ui.button('Åbn Sejlplan',
+                ui.button(t('Åbn Sejlplan'),
                           on_click=lambda: ui.navigate.to('/')) \
                     .props('unelevated no-caps').classes('btn-primary px-4')
                 if stop_id:
-                    ui.button('Stop vagten',
+                    ui.button(t('Stop vagten'),
                               on_click=lambda: ui.navigate.to(
                                   f'/vagt/stop/{stop_id}')) \
                         .props('flat no-caps').classes('text-[var(--txt-3)]')

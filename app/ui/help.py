@@ -13,6 +13,7 @@ from html import escape as esc
 from nicegui import ui
 
 from .. import help as helptext
+from ..i18n import t
 
 
 def dot(topic_id: str) -> None:
@@ -54,8 +55,8 @@ def manual_dialog() -> None:
         with ui.row().classes('w-full items-center px-5 py-3.5 border-b '
                               'border-[var(--line)] no-wrap'):
             ui.icon('menu_book').classes('text-[20px] text-[var(--accent)]')
-            ui.label('Manual').classes('text-[16px] font-bold flex-1')
-            ui.button('Hent', icon='download',
+            ui.label(t('Manual')).classes('text-[16px] font-bold flex-1')
+            ui.button(t('Hent'), icon='download',
                       on_click=_download) \
                 .props('outline dense no-caps').classes('text-[var(--txt-2)]')
             ui.button(icon='close', on_click=dialog.close).props('flat round dense')
@@ -68,14 +69,14 @@ def manual_dialog() -> None:
             for group, topics in helptext.groups():
                 if group:
                     ui.html(f'<span class="section-label">{esc(group)}</span>')
-                for t in topics:
+                for emne in topics:
                     with ui.element('div').classes('card px-4 py-3.5 mt-2 mb-2'):
-                        ui.label(t.title).classes(
+                        ui.label(emne.title).classes(
                             'text-[14px] font-bold block mb-0.5')
-                        ui.label(t.short).classes(
+                        ui.label(emne.short).classes(
                             'text-[12.5px] text-[var(--accent)] leading-snug '
                             'block mb-2')
-                        for para in t.body:
+                        for para in emne.body:
                             ui.label(para).classes(
                                 'text-[12.5px] text-[var(--txt-2)] '
                                 'leading-relaxed block mb-2 last:mb-0')
@@ -139,10 +140,10 @@ def document() -> str:
     for group, topics in helptext.groups():
         if group:
             parts.append(f'<h2>{esc(group)}</h2>')
-        for t in topics:
-            parts.append(f'<h3>{esc(t.title)}</h3>'
-                         f'<p class="short">{esc(t.short)}</p>')
-            parts += [f'<p>{esc(para)}</p>' for para in t.body]
+        for emne in topics:
+            parts.append(f'<h3>{esc(emne.title)}</h3>'
+                         f'<p class="short">{esc(emne.short)}</p>')
+            parts += [f'<p>{esc(para)}</p>' for para in emne.body]
 
     parts.append(f'<footer>{esc(helptext.DISCLAIMER)}<br>'
                  f'Hentet {stamp:%d. %B %Y}.</footer></div>')

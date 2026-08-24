@@ -16,7 +16,9 @@ from nicegui import ui
 from ..boats import MOTORBOATS, SAILBOATS
 from .myboat import own_boat_block
 from ..dates import day
+from .. import i18n
 from ..state import MAX_FORECAST_DAYS
+from ..i18n import t
 
 
 def settings_dialog(planner) -> None:
@@ -32,7 +34,7 @@ def settings_dialog(planner) -> None:
         with ui.row().classes('w-full items-center px-5 py-3.5 border-b '
                               'border-[var(--line)] no-wrap'):
             ui.icon('tune').classes('text-[20px] text-[var(--accent)]')
-            ui.label('Indstillinger').classes('text-[16px] font-bold flex-1')
+            ui.label(t('Indstillinger')).classes('text-[16px] font-bold flex-1')
             ui.button(icon='close', on_click=dialog.close).props('flat round dense')
 
         with ui.element('div').classes('scroll-y px-5 py-4 max-h-[72dvh] w-full'):
@@ -51,8 +53,8 @@ def settings_dialog(planner) -> None:
                 ui.label('Vælg den, der ligner din mest, hvis du ikke vil taste '
                          'din egen ind.')                     .classes('text-[11px] text-[var(--txt-3)] mt-1 mb-2 block')
                 for title, boats, note in (
-                        ('Sejlbåde', SAILBOATS, 'Farten kommer fra polardiagrammet.'),
-                        ('Motorbåde', MOTORBOATS,
+                        (t('Sejlbåde'), SAILBOATS, 'Farten kommer fra polardiagrammet.'),
+                        (t('Motorbåde'), MOTORBOATS,
                          'Farten er marchfarten, minus det søen tager.')):
                     with ui.element('div').classes('flex items-baseline gap-2 mb-2 mt-1'):
                         ui.html(f'<span class="section-label">{title}</span>')
@@ -70,7 +72,7 @@ def settings_dialog(planner) -> None:
             boat_block()
 
             # ── Komfortgrænser ──
-            ui.label('Komfortgrænser').classes('section-label mb-1 block')
+            ui.label(t('Komfortgrænser')).classes('section-label mb-1 block')
             ui.label('Over disse værdier markeres timerne som skærpede, '
                      'og et stykke over dem som frarådede. Bølgehøjden vejes efter '
                      'hvor søen kommer fra — modsø tæller hårdere end medsø.') \
@@ -78,23 +80,23 @@ def settings_dialog(planner) -> None:
 
             @ui.refreshable
             def limits_block() -> None:
-                _slider_row('Højeste vind', lim.max_wind, 5, 40, 1, 'kn',
+                _slider_row(t('Højeste vind'), lim.max_wind, 5, 40, 1, 'kn',
                             lambda v: setattr(lim, 'max_wind', v))
-                _slider_row('Højeste bølger', lim.max_wave, 0.3, 4.0, 0.1, 'm',
+                _slider_row(t('Højeste bølger'), lim.max_wave, 0.3, 4.0, 0.1, 'm',
                             lambda v: setattr(lim, 'max_wave', v), decimals=1)
 
             limits_block()
 
             # ── Datoer ──
-            ui.label('Hvornår kan du afgå').classes('section-label mt-5 mb-2 block')
+            ui.label(t('Hvornår kan du afgå')).classes('section-label mt-5 mb-2 block')
 
             today = date.today()
             horizon = today + timedelta(days=MAX_FORECAST_DAYS - 1)
 
             with ui.element('div').classes('grid grid-cols-2 gap-3 mb-1'):
-                _date_field('Tidligst afgang', lim.date_from, today, horizon,
+                _date_field(t('Tidligst afgang'), lim.date_from, today, horizon,
                             lambda v: _set_from(v))
-                _date_field('Senest afgang', lim.date_to, today, horizon,
+                _date_field(t('Senest afgang'), lim.date_to, today, horizon,
                             lambda v: _set_to(v))
 
             def _set_from(value: str) -> None:
@@ -111,7 +113,7 @@ def settings_dialog(planner) -> None:
                 .classes('text-[11px] text-[var(--txt-3)] mb-4 block')
 
             # ── Sejldøgn ──
-            ui.label('Sejldøgn').classes('section-label mt-5 mb-1 block')
+            ui.label(t('Sejldøgn')).classes('section-label mt-5 mb-1 block')
             ui.label('Det tidsrum, du vil ligge og sejle i. Slutklokkeslættet er '
                      'ikke et ønske om at afgå senest da — det er hvornår du vil '
                      'ligge fortøjet. Rækker turen ikke, deler planlæggeren den og '
@@ -138,12 +140,12 @@ def settings_dialog(planner) -> None:
             day_block()
 
             # ── Til- og fravalg ──
-            ui.label('Sejlads').classes('section-label mt-5 mb-2 block')
-            _switch_row('Sejl også om natten', lim.night_ok,
+            ui.label(t('Sejlads')).classes('section-label mt-5 mb-2 block')
+            _switch_row(t('Sejl også om natten'), lim.night_ok,
                         'Slået til lægges der ingen overnatninger ind — turen '
                         'sejles i ét stræk, og mørketimerne tælles for sig.',
                         lambda v: setattr(lim, 'night_ok', v))
-            _switch_row('Brug motor i svag vind', lim.use_motor,
+            _switch_row(t('Brug motor i svag vind'), lim.use_motor,
                         'Under 3 knobs fart tændes motoren i beregningen.',
                         lambda v: setattr(lim, 'use_motor', v))
 
@@ -153,11 +155,11 @@ def settings_dialog(planner) -> None:
         # ── Bund ──
         with ui.row().classes('w-full items-center gap-2 px-5 py-3.5 border-t '
                               'border-[var(--line)] no-wrap'):
-            ui.button('Nulstil', icon='restart_alt',
+            ui.button(t('Nulstil'), icon='restart_alt',
                       on_click=lambda: _reset(planner, dialog)) \
                 .props('flat no-caps dense').classes('text-[var(--txt-3)]')
             ui.element('div').classes('flex-1')
-            ui.button('Færdig', on_click=dialog.close) \
+            ui.button(t('Færdig'), on_click=dialog.close) \
                 .props('unelevated no-caps') \
                 .classes('btn-primary px-5')
 
@@ -261,6 +263,31 @@ def _date_field(label: str, value: str, lo: date, hi: date, on_set) -> None:
         field.on('click', menu.open)
 
 
+def _language_row() -> None:
+    """Vælg sprog. Fladen tegnes om med det samme, så man kan se det virke."""
+    def choose(code: str) -> None:
+        i18n.set_lang(code)
+        # Sproget sidder i hver eneste tekst på siden. Der er ikke noget at
+        # opdatere delvist — siden hentes forfra.
+        ui.navigate.reload()
+
+    with ui.element('div').classes('grid grid-cols-2 gap-2'):
+        for code, (name, flag) in i18n.LANGUAGES.items():
+            valgt = code == i18n.lang()
+            card = ui.element('div').classes(
+                'card px-3 py-2.5 flex items-center gap-2.5 cursor-pointer '
+                'transition-all '
+                + ('ring-1 ring-[var(--accent)] border-[var(--accent)]'
+                   if valgt else 'hover:border-[var(--line-2)]'))
+            with card:
+                ui.label(flag).classes('text-[18px] shrink-0')
+                ui.label(name).classes('text-[13px] font-medium flex-1')
+                if valgt:
+                    ui.icon('check').classes(
+                        'text-[16px] text-[var(--accent)] shrink-0')
+            card.on('click', lambda _, c=code: choose(c))
+
+
 def _app_block() -> None:
     """Læg Sejlplan på hjemmeskærmen — og fortæl, hvad den så kan uden dækning.
 
@@ -268,17 +295,20 @@ def _app_block() -> None:
     på skrivebordet. Uden en synlig vej herind er det kun dem, der ved det i
     forvejen, der får appen.
     """
-    ui.label('Appen').classes('section-label mt-5 mb-2 block')
+    ui.label(t('Sprog')).classes('section-label mt-5 mb-2 block')
+    _language_row()
+
+    ui.label(t('Appen')).classes('section-label mt-5 mb-2 block')
     with ui.element('div').classes('card px-3.5 py-3'):
         with ui.row().classes('items-center no-wrap gap-3 w-full'):
             ui.icon('install_mobile').classes('text-[20px] text-[var(--accent)] shrink-0')
             with ui.element('div').classes('flex-1 min-w-0'):
-                ui.label('Læg på hjemmeskærmen') \
+                ui.label(t('Læg på hjemmeskærmen')) \
                     .classes('text-[13px] font-medium block')
                 ui.label('Så åbner Sejlplan i sit eget vindue — og den seneste '
                          'sejlplan kan læses uden dækning.') \
                     .classes('text-[11px] text-[var(--txt-3)] leading-snug block')
-            ui.button('Installér', on_click=_install) \
+            ui.button(t('Installér'), on_click=_install) \
                 .props('outline dense no-caps') \
                 .classes('shrink-0 text-[var(--accent)]')
 

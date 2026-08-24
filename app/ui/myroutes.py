@@ -17,6 +17,7 @@ from datetime import date
 from nicegui import ui
 
 from ..dates import day
+from ..i18n import t
 
 
 def save_dialog(s, refresh) -> None:
@@ -30,7 +31,7 @@ def save_dialog(s, refresh) -> None:
     with ui.dialog() as dialog, ui.card().classes(
             'w-full max-w-[420px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
         with ui.element('div').classes('px-5 pt-5 pb-1'):
-            ui.label('Gem ruten' if not open_name else 'Gem ændringer') \
+            ui.label(t('Gem ruten') if not open_name else t('Gem ændringer')) \
                 .classes('text-[16px] font-bold block')
             ui.label(f'{len(s.waypoints)} punkter · {s.total_nm:.0f} sømil') \
                 .classes('text-[12.5px] text-[var(--txt-3)] mt-0.5 block')
@@ -48,12 +49,12 @@ def save_dialog(s, refresh) -> None:
         with ui.row().classes('w-full items-center gap-2 px-5 py-4 no-wrap'):
             if open_name:
                 # Kun relevant, når der findes en at lave en kopi af.
-                ui.button('Gem som ny', on_click=lambda: gem(True)) \
+                ui.button(t('Gem som ny'), on_click=lambda: gem(True)) \
                     .props('flat no-caps').classes('text-[var(--txt-2)]')
             ui.element('div').classes('flex-1')
-            ui.button('Fortryd', on_click=dialog.close) \
+            ui.button(t('Fortryd'), on_click=dialog.close) \
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
-            ui.button('Gem', on_click=lambda: gem(False)) \
+            ui.button(t('Gem'), on_click=lambda: gem(False)) \
                 .props('unelevated no-caps').classes('btn-primary px-4')
 
         navn.on('keydown.enter', lambda _: gem(False))
@@ -69,7 +70,7 @@ def open_dialog(s, open_saved, refresh) -> None:
         with ui.row().classes('w-full items-center px-5 py-3.5 border-b '
                               'border-[var(--line)] no-wrap'):
             ui.icon('bookmarks').classes('text-[20px] text-[var(--accent)]')
-            ui.label('Mine ruter').classes('text-[16px] font-bold flex-1')
+            ui.label(t('Mine ruter')).classes('text-[16px] font-bold flex-1')
             ui.button(icon='close', on_click=dialog.close).props('flat round dense')
 
         body = ui.element('div').classes('scroll-y px-5 py-4 max-h-[62dvh] w-full')
@@ -91,7 +92,7 @@ def rows(s, on_open, changed) -> None:
         with ui.element('div').classes('empty py-6'):
             ui.icon('bookmark_border') \
                 .classes('text-[36px] text-[var(--accent)] opacity-40 mb-2')
-            ui.label('Ingen gemte ruter endnu').classes('empty-title')
+            ui.label(t('Ingen gemte ruter endnu')).classes('empty-title')
             ui.label('Læg en rute, og tryk Gem. Så ligger den her næste gang — '
                      'også hvis du lukker fanen.').classes('empty-sub')
         return
@@ -125,8 +126,8 @@ def _row(s, row: dict, on_open, changed) -> None:
         with ui.button(icon='more_horiz').props('flat round dense size=sm') \
                 .classes('shrink-0 text-[var(--txt-3)]') as menu_btn:
             with ui.menu().classes('min-w-[180px]'):
-                ui.menu_item('Omdøb', lambda: _rename(s, row, changed))
-                ui.menu_item('Slet', lambda: _confirm_delete(s, row, changed))
+                ui.menu_item(t('Omdøb'), lambda: _rename(s, row, changed))
+                ui.menu_item(t('Slet'), lambda: _confirm_delete(s, row, changed))
         # Menuknappen må ikke også åbne ruten under sig.
         menu_btn.on('click.stop', lambda _: None)
 
@@ -137,7 +138,7 @@ def _rename(s, row: dict, changed) -> None:
     with ui.dialog() as ask, ui.card().classes(
             'w-full max-w-[380px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
         with ui.element('div').classes('px-5 pt-5 pb-1'):
-            ui.label('Omdøb ruten').classes('text-[16px] font-bold block')
+            ui.label(t('Omdøb ruten')).classes('text-[16px] font-bold block')
         with ui.element('div').classes('px-5 pt-3'):
             navn = ui.input('Navn', value=row.get('name') or '') \
                 .props('outlined dense autofocus maxlength=60').classes('w-full')
@@ -149,9 +150,9 @@ def _rename(s, row: dict, changed) -> None:
 
         with ui.row().classes('w-full items-center gap-2 px-5 py-4 no-wrap'):
             ui.element('div').classes('flex-1')
-            ui.button('Fortryd', on_click=ask.close) \
+            ui.button(t('Fortryd'), on_click=ask.close) \
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
-            ui.button('Gem', on_click=gem) \
+            ui.button(t('Gem'), on_click=gem) \
                 .props('unelevated no-caps').classes('btn-primary px-4')
         navn.on('keydown.enter', lambda _: gem())
     ask.open()
@@ -162,7 +163,7 @@ def _confirm_delete(s, row: dict, changed) -> None:
     with ui.dialog() as ask, ui.card().classes(
             'w-full max-w-[380px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
         with ui.element('div').classes('px-5 pt-5 pb-3'):
-            ui.label('Slet ruten?').classes('text-[16px] font-bold block')
+            ui.label(t('Slet ruten?')).classes('text-[16px] font-bold block')
             ui.label(f'"{row.get("name") or "Uden navn"}" forsvinder. '
                      f'Det kan ikke fortrydes.') \
                 .classes('text-[13px] text-[var(--txt-2)] leading-snug mt-1 block')
@@ -171,19 +172,19 @@ def _confirm_delete(s, row: dict, changed) -> None:
             s.delete_route(row.get('id') or '')
             ask.close()
             changed()
-            ui.notify('Ruten er slettet', position='bottom')
+            ui.notify(t('Ruten er slettet'), position='bottom')
 
         with ui.row().classes('w-full items-center gap-2 px-5 pb-4 no-wrap'):
             ui.element('div').classes('flex-1')
-            ui.button('Behold', on_click=ask.close) \
+            ui.button(t('Behold'), on_click=ask.close) \
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
-            ui.button('Slet', on_click=slet).props('unelevated no-caps') \
+            ui.button(t('Slet'), on_click=slet).props('unelevated no-caps') \
                 .classes('bg-[var(--stop)] text-white font-bold px-4')
     ask.open()
 
 
 def _when(iso: str | None) -> str:
-    """'i dag', 'i går', ellers datoen. Det er sådan man husker det."""
+    """'i dag', t(t('i går')), ellers datoen. Det er sådan man husker det."""
     try:
         d = date.fromisoformat(str(iso))
     except (TypeError, ValueError):

@@ -17,6 +17,7 @@ from nicegui import ui
 from .. import fleet
 from ..boats import (CUSTOM_ID, DISPLACEMENT, MOTOR, PLANING, SAIL, SEMI,
                      reference_speed)
+from ..i18n import t
 
 
 def own_boat_block(s, refresh_boats, refresh_limits) -> None:
@@ -26,7 +27,7 @@ def own_boat_block(s, refresh_boats, refresh_limits) -> None:
 
     with ui.element('div').classes('mt-2 mb-4'):
         if not s.has_custom:
-            ui.button('Læg din egen båd ind', icon='add',
+            ui.button(t('Læg din egen båd ind'), icon='add',
                       on_click=lambda: editor(s, refresh_boats, refresh_limits)) \
                 .props('outline no-caps').classes('w-full text-[var(--accent)]')
             ui.label('Længde, fart og forbrug. Så regner planen på din båd i '
@@ -47,7 +48,7 @@ def own_boat_block(s, refresh_boats, refresh_limits) -> None:
                 ui.label(boat.name).classes('text-[13.5px] font-semibold truncate block')
                 ui.label(boat.summary).classes(
                     'text-[11px] text-[var(--txt-3)] truncate block')
-            ui.button('Ret', icon='edit',
+            ui.button(t('Ret'), icon='edit',
                       on_click=lambda: editor(s, refresh_boats, refresh_limits)) \
                 .props('flat dense no-caps size=sm').classes('text-[var(--accent)] shrink-0')
 
@@ -70,14 +71,14 @@ def editor(s, refresh_boats, refresh_limits) -> None:
         with ui.row().classes('w-full items-center px-5 py-3.5 border-b '
                               'border-[var(--line)] no-wrap'):
             ui.icon('directions_boat').classes('text-[20px] text-[var(--accent)]')
-            ui.label('Din båd').classes('text-[16px] font-bold flex-1')
+            ui.label(t('Din båd')).classes('text-[16px] font-bold flex-1')
             ui.button(icon='close', on_click=dialog.close).props('flat round dense')
 
         with ui.element('div').classes('scroll-y px-5 py-4 max-h-[66dvh] w-full'):
             fields['name'] = ui.input('Navn', value=spec.get('name') or '') \
                 .props('outlined dense autofocus').classes('w-full')
 
-            ui.label('Type').classes('text-[11.5px] text-[var(--txt-3)] mt-4 mb-1 block')
+            ui.label(t('Type')).classes('text-[11.5px] text-[var(--txt-3)] mt-4 mb-1 block')
             kind = ui.toggle({SAIL: 'Sejlbåd', MOTOR: 'Motorbåd'},
                              value=spec.get('kind') or SAIL) \
                 .props('no-caps unelevated dense spread').classes('w-full')
@@ -96,15 +97,15 @@ def editor(s, refresh_boats, refresh_limits) -> None:
 
             register()
 
-            _number(fields, 'length_m', 'Længde overalt', 'm',
+            _number(fields, 'length_m', t(t('Længde overalt')), 'm',
                     spec.get('length_m'), 10.0)
 
             @ui.refreshable
             def by_kind() -> None:
                 if kind.value == MOTOR:
-                    _number(fields, 'cruise_kn', 'Marchfart i smult vande', 'kn',
+                    _number(fields, 'cruise_kn', t(t('Marchfart i smult vande')), 'kn',
                             spec.get('cruise_kn'), 12.0)
-                    ui.label('Skrogtype').classes(
+                    ui.label(t('Skrogtype')).classes(
                         'text-[11.5px] text-[var(--txt-3)] mt-4 mb-1 block')
                     fields['hull'] = ui.toggle(
                         {DISPLACEMENT: 'Fortrængning', SEMI: 'Halvplanende',
@@ -113,18 +114,18 @@ def editor(s, refresh_boats, refresh_limits) -> None:
                     ui.label('Skroget afgør, hvor meget søen tager af farten. '
                              'En planende båd taber mest.') \
                         .classes('text-[11px] text-[var(--txt-3)] mt-1 block leading-snug')
-                    _number(fields, 'fuel_lph', 'Forbrug ved marchfart', 'l/t',
+                    _number(fields, 'fuel_lph', t(t('Forbrug ved marchfart')), 'l/t',
                             spec.get('fuel_lph'), 40.0)
                 else:
-                    _number(fields, 'reach_kn', 'Fart for halvvind i 10 knobs vind',
+                    _number(fields, 'reach_kn', t(t('Fart for halvvind i 10 knobs vind')),
                             'kn', spec.get('reach_kn'), reference_speed())
                     ui.label('Det ene tal skalerer et almindeligt polardiagram, så '
                              'farten passer til din båd. Ved du det ikke, så gæt på '
                              'en god dag med fuld sejlføring.') \
                         .classes('text-[11px] text-[var(--txt-3)] mt-1 block leading-snug')
-                    _number(fields, 'motor_speed_kn', 'Fart for motor', 'kn',
+                    _number(fields, 'motor_speed_kn', t(t('Fart for motor')), 'kn',
                             spec.get('motor_speed_kn'), 5.5)
-                    _number(fields, 'fuel_lph', 'Forbrug for motor', 'l/t',
+                    _number(fields, 'fuel_lph', t(t('Forbrug for motor')), 'l/t',
                             spec.get('fuel_lph'), 3.0)
 
             by_kind()
@@ -136,20 +137,20 @@ def editor(s, refresh_boats, refresh_limits) -> None:
             kind.on_value_change(lambda _: _kind_changed())
 
             ui.html('<div class="hairline mt-5 mb-3"></div>')
-            ui.label('Hvad du kan holde til').classes('section-label mb-1 block')
+            ui.label(t('Hvad du kan holde til')).classes('section-label mb-1 block')
             ui.label('Over de her værdier markerer planen timerne som skærpede.') \
                 .classes('text-[11px] text-[var(--txt-3)] mb-1 block leading-snug')
-            _number(fields, 'max_wind_kn', 'Højeste vind', 'kn',
+            _number(fields, 'max_wind_kn', t(t('Højeste vind')), 'kn',
                     spec.get('max_wind_kn'), 20.0)
-            _number(fields, 'max_wave_m', 'Højeste bølger', 'm',
+            _number(fields, 'max_wave_m', t(t('Højeste bølger')), 'm',
                     spec.get('max_wave_m'), 1.5)
 
         with ui.row().classes('w-full items-center gap-2 px-5 py-3.5 border-t '
                               'border-[var(--line)] no-wrap'):
             ui.element('div').classes('flex-1')
-            ui.button('Annullér', on_click=dialog.close) \
+            ui.button(t('Annullér'), on_click=dialog.close) \
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
-            ui.button('Gem båden',
+            ui.button(t('Gem båden'),
                       on_click=lambda: _save(s, fields, dialog,
                                              refresh_boats, refresh_limits)) \
                 .props('unelevated no-caps') \
@@ -165,7 +166,7 @@ def _register_block(fields: dict, refresh_kind) -> None:
     kender det. Men næsten alle kender deres båds navn, og ud af fabrikantens
     mål kan farten anslås langt bedre, end nogen kan gætte den.
     """
-    ui.label('Find din båd').classes(
+    ui.label(t('Find din båd')).classes(
         'text-[11.5px] text-[var(--txt-3)] mt-4 mb-1 block')
 
     boks = ui.input(placeholder='Bavaria 34, Folkebåd, X-99 …') \
@@ -245,7 +246,7 @@ def _number(fields: dict, key: str, label: str, unit: str, value, fallback) -> N
 def _save(s, fields: dict, dialog, refresh_boats, refresh_limits) -> None:
     spec = {key: field.value for key, field in fields.items()}
     if not str(spec.get('name') or '').strip():
-        ui.notify('Giv båden et navn', type='warning', position='bottom')
+        ui.notify(t('Giv båden et navn'), type='warning', position='bottom')
         return
     s.set_custom(spec)
     dialog.close()

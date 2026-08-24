@@ -32,6 +32,7 @@ from . import underway
 from . import myroutes
 from . import watch as watchui
 from .mapview import RouteMap
+from ..i18n import t
 
 # "Afgang" er også en havns rolle i ruten. Trinnet hedder derfor
 # "Afgangstid" — det er dét, man vælger dér.
@@ -133,7 +134,7 @@ def _guide_link(h) -> None:
         return
     # Et gråt ikon klemt inde mellem to andre ikoner kan ingen se — og det gør
     # ingen forskel, at det virker. Der skal stå, hvad det er.
-    link = ui.link('Havneguide ↗', h.guide_url) \
+    link = ui.link(t('Havneguide ↗'), h.guide_url) \
         .props('target="_blank" rel="noopener"') \
         .classes('text-[11px] text-[var(--accent)] no-underline '
                  'hover:underline mt-0.5 inline-block')
@@ -245,7 +246,7 @@ class Planner:
         with ui.element('header').classes('app-header text-[var(--txt-1)]'):
 
             ui.icon('sailing').classes('text-[22px] text-[var(--accent)]')
-            ui.label('Sejlplan').classes('text-[17px] font-bold tracking-tight')
+            ui.label(t('Sejlplan')).classes('text-[17px] font-bold tracking-tight')
 
             self.header_summary()
 
@@ -255,16 +256,16 @@ class Planner:
             # tandhjulet. To veje til det samme sted er én for meget — og båden
             # står nu tydeligt i panelets "Turen"-liste.
             ui.button(icon='menu_book', on_click=helpui.manual_dialog) \
-                .props('flat round dense').tooltip('Manual og hjælp')
+                .props('flat round dense').tooltip(t('Manual og hjælp'))
             ui.button(icon='bookmarks', on_click=self._open_routes) \
-                .props('flat round dense').tooltip('Mine gemte ruter')
+                .props('flat round dense').tooltip(t('Mine gemte ruter'))
             ui.button(icon='tune', on_click=self._open_settings) \
-                .props('flat round dense').tooltip('Båd, grænser og sejldøgn')
+                .props('flat round dense').tooltip(t('Båd, grænser og sejldøgn'))
             self.share_button()
 
             self.dark = ui.dark_mode(value=False)
             ui.button(icon='dark_mode', on_click=self._toggle_theme) \
-                .props('flat round dense').tooltip('Skift mellem lyst og mørkt')
+                .props('flat round dense').tooltip(t('Skift mellem lyst og mørkt'))
 
     @ui.refreshable_method
     def header_summary(self) -> None:
@@ -279,13 +280,13 @@ class Planner:
 
     def share_button(self) -> None:
         with ui.button(icon='share').props('flat round dense') \
-                .tooltip('Del eller eksportér ruten'):
+                .tooltip(t('Del eller eksportér ruten')):
             with ui.menu().classes('min-w-[230px]'):
-                ui.menu_item('Kopiér delelink', self._copy_link)
-                ui.menu_item('Hent GPX til kortplotter', self._download_gpx)
+                ui.menu_item(t('Kopiér delelink'), self._copy_link)
+                ui.menu_item(t('Hent GPX til kortplotter'), self._download_gpx)
                 ui.separator()
-                ui.menu_item('Vend ruten om', self._reverse_route)
-                ui.menu_item('Ryd hele ruten', self._clear_route)
+                ui.menu_item(t('Vend ruten om'), self._reverse_route)
+                ui.menu_item(t('Ryd hele ruten'), self._clear_route)
 
     def _map_controls(self) -> None:
         """Kortvælger og genveje i kortets øverste højre hjørne."""
@@ -295,8 +296,8 @@ class Planner:
             with ui.element('div').classes('seg'):
                 self.style_btns = {}
                 for key, label, tip in (
-                        ('chart', 'Søkort', 'Havkort med dybdeforhold'),
-                        ('street', 'Landkort', 'Almindeligt kort med veje og byer')):
+                        ('chart', t(t('Søkort')), 'Havkort med dybdeforhold'),
+                        ('street', t(t('Landkort')), 'Almindeligt kort med veje og byer')):
                     item = ui.element('div').classes('seg-item')
                     with item:
                         ui.label(label)
@@ -311,13 +312,13 @@ class Planner:
             # appen kan — så skal man kunne se, at knappen findes.
             with ui.element('div').classes('map-stack'):
                 self.harbour_btn = self._map_button(
-                    'anchor', 'Havne', self._toggle_harbours, on=True,
+                    'anchor', t(t('Havne')), self._toggle_harbours, on=True,
                     tip='Vis alle lystbådehavne — klik på en for at lægge den i ruten')
                 self.seamark_btn = self._map_button(
-                    'waves', 'Sømærker', self._toggle_seamarks,
+                    'waves', t(t('Sømærker')), self._toggle_seamarks,
                     tip='Bøjer, fyr og sejlløb fra OpenSeaMap')
                 self._map_button(
-                    'zoom_out_map', 'Hele ruten',
+                    'zoom_out_map', t(t('Hele ruten')),
                     lambda: self.map and self.map.fit(self.s.route),
                     tip='Zoom ud, så hele ruten er i billedet')
 
@@ -470,7 +471,7 @@ class Planner:
 
     def _search_box(self) -> None:
         with ui.element('div').classes('relative mb-2'):
-            self.search_input = ui.input(placeholder='Søg havn, ø eller position…') \
+            self.search_input = ui.input(placeholder=t('Søg havn, ø eller position…')) \
                 .props('outlined dense clearable autocomplete=off '
                        'input-class="text-[14.5px]"') \
                 .classes('w-full search') \
@@ -533,7 +534,7 @@ class Planner:
                 ui.html('<span class="text-[11px] text-[var(--txt-3)]">'
                         'beregner havvejen…</span>')
             else:
-                ui.button('Gem', icon='bookmark_border', on_click=self._save_route) \
+                ui.button(t('Gem'), icon='bookmark_border', on_click=self._save_route) \
                     .props('flat dense no-caps size=sm') \
                     .classes('text-[var(--accent)] shrink-0')
 
@@ -559,7 +560,7 @@ class Planner:
                 ui.label(wp.name).classes('wp-name truncate')
                 ui.label(f'{role} · {wp.where}').classes('wp-meta truncate')
             info.on('click', lambda _, w=wp: self.map and self.map.focus(w.lat, w.lon))
-            info.tooltip('Vis på kortet')
+            info.tooltip(t('Vis på kortet'))
 
             # `wp-tools` dæmper kun knapperne på skærme med mus. På en telefon
             # er der ingen hover, og halvgennemsigtige knapper ligner slukkede.
@@ -590,7 +591,7 @@ class Planner:
     def _empty_route(self) -> None:
         with ui.element('div').classes('empty'):
             ui.icon('explore').classes('text-[42px] text-[var(--accent)] opacity-45 mb-2')
-            ui.label('Læg din rute').classes('empty-title')
+            ui.label(t('Læg din rute')).classes('empty-title')
             ui.label('Søg efter en havn foroven, klik direkte på kortet, eller slå '
                      'havnelaget til og vælg en havn. Du skal bruge mindst to punkter.') \
                 .classes('empty-sub')
@@ -601,12 +602,12 @@ class Planner:
             with ui.element('div').classes('flex items-center gap-2 mt-1 mb-2'):
                 ui.html('<span class="section-label">Mine ruter</span>')
                 ui.element('div').classes('flex-1')
-                ui.button('Se alle', on_click=self._open_routes) \
+                ui.button(t('Se alle'), on_click=self._open_routes) \
                     .props('flat dense no-caps size=sm') \
                     .classes('text-[var(--accent)] shrink-0')
             myroutes.rows(self.s, self._open_saved, lambda: self.refresh(fit=True))
 
-        ui.label('Kom hurtigt i gang').classes('section-label mt-2 mb-2 block')
+        ui.label(t('Kom hurtigt i gang')).classes('section-label mt-2 mb-2 block')
         with ui.row().classes('gap-1.5 flex-wrap'):
             for name in QUICK_START:
                 ui.button(name, on_click=lambda _, n=name: self._add_named(n)) \
@@ -617,7 +618,7 @@ class Planner:
     def _route_footer(self) -> None:
         n_legs = len(self.s.waypoints) - 1
         if n_legs < 1:
-            ui.label('Tilføj mindst ét punkt mere for at kunne beregne afgangstider.') \
+            ui.label(t('Tilføj mindst ét punkt mere for at kunne beregne afgangstider.')) \
                 .classes('text-[12.5px] text-[var(--txt-3)] px-1')
             return
 
@@ -659,15 +660,15 @@ class Planner:
         """
         lim, boat = self.s.limits, self.s.boat
         rows = [
-            ('directions_boat', 'Båd', boat.name),
-            ('event', 'Hvornår', f'{self._short_date(lim.date_from)} – '
+            ('directions_boat', t(t('Båd')), boat.name),
+            ('event', t(t('Hvornår')), f'{self._short_date(lim.date_from)} – '
                                  f'{self._short_date(lim.date_to)}'),
-            ('schedule', 'Sejldøgn', f'{lim.day_start:02d}:00 – {lim.day_end:02d}:00'
+            ('schedule', t(t('Sejldøgn')), f'{lim.day_start:02d}:00 – {lim.day_end:02d}:00'
                                      + (' · også nat' if lim.night_ok else '')),
-            ('air', 'Grænser', f'{lim.max_wind:.0f} kn vind · '
+            ('air', t(t('Grænser')), f'{lim.max_wind:.0f} kn vind · '
                                f'{dk(lim.max_wave)} m bølger'),
         ]
-        ui.label('Turen').classes('section-label mt-4 mb-1.5 block')
+        ui.label(t('Turen')).classes('section-label mt-4 mb-1.5 block')
         with ui.element('div').classes('card overflow-hidden'):
             for i, (icon, label, value) in enumerate(rows):
                 if i:
@@ -706,7 +707,7 @@ class Planner:
         picked = found[::step][:6]
 
         with ui.element('div').classes('flex items-center gap-1 mt-4 mb-1'):
-            ui.label('Havne undervejs').classes('section-label')
+            ui.label(t('Havne undervejs')).classes('section-label')
             helpui.dot('havne')
         ui.label('Steder du kan søge ind, hvis vejret skifter. Klik for at lægge '
                  'en ind som mellemstop.') \
@@ -753,7 +754,7 @@ class Planner:
             self._route_action_bar()
         elif self.s.step == 2 and self.s.windows:
             with self._bar():
-                ui.button('Se sejlplanen', icon='arrow_forward',
+                ui.button(t('Se sejlplanen'), icon='arrow_forward',
                           on_click=lambda: self._go_to_step(3)) \
                     .props('unelevated no-caps size=lg') \
                     .classes('w-full btn-primary')
@@ -777,7 +778,7 @@ class Planner:
         rækker, og herNEDE er der kun dét, man skal trykke på.
         """
         with self._bar():
-            ui.button('Find bedste afgangstider', icon='travel_explore',
+            ui.button(t('Find bedste afgangstider'), icon='travel_explore',
                       on_click=self.run_analysis) \
                 .props('unelevated no-caps size=lg') \
                 .classes('w-full btn-primary')
@@ -785,7 +786,7 @@ class Planner:
             # i endnu — og så skal man ikke sidde og trykke opdater hver dag.
             # Læg en vagt, og få besked, når vejret er der.
             if self.s.can_analyse:
-                ui.button('Hold øje med vejret', icon='notifications_active',
+                ui.button(t('Hold øje med vejret'), icon='notifications_active',
                           on_click=self._open_watch) \
                     .props('flat dense no-caps') \
                     .classes('w-full mt-1 text-[var(--txt-3)] '
@@ -804,10 +805,10 @@ class Planner:
         if not self.s.windows:
             with ui.element('div').classes('empty'):
                 ui.icon('schedule').classes('text-[40px] text-[var(--txt-3)] mb-2')
-                ui.label('Ingen beregning endnu').classes('empty-title')
+                ui.label(t('Ingen beregning endnu')).classes('empty-title')
                 ui.label('Gå tilbage til Rute og tryk "Find bedste afgangstider".') \
                     .classes('empty-sub')
-            ui.button('Tilbage til ruten', icon='arrow_back',
+            ui.button(t('Tilbage til ruten'), icon='arrow_back',
                       on_click=lambda: self._go_to_step(1)) \
                 .props('outline no-caps').classes('w-full mt-3')
             return
@@ -958,7 +959,7 @@ class Planner:
                     # undertitlen blev brudt til ét ord per linje.
                     with ui.element('div').classes(
                             'min-w-0 basis-full md:basis-0 md:flex-1'):
-                        ui.label('Sejlplan').classes('section-label')
+                        ui.label(t('Sejlplan')).classes('section-label')
                         ui.label(names).classes(
                             'text-[19px] md:text-[30px] font-bold leading-tight '
                             'tracking-tight mt-1 block')
@@ -970,11 +971,11 @@ class Planner:
                         ui.label(f'{boat.name} · afgang {full(p.depart)} · {tail}') \
                             .classes('text-[13.5px] text-[var(--txt-2)] mt-1.5 block')
                     with ui.row().classes('gap-1.5 shrink-0'):
-                        ui.button('Udskriv', icon='print', on_click=self._print_plan) \
+                        ui.button(t('Udskriv'), icon='print', on_click=self._print_plan) \
                             .props('outline dense no-caps').classes('text-[var(--txt-2)]')
-                        ui.button('Kopiér', icon='content_copy', on_click=self._copy_plan) \
+                        ui.button(t('Kopiér'), icon='content_copy', on_click=self._copy_plan) \
                             .props('outline dense no-caps').classes('text-[var(--txt-2)]')
-                        ui.button('Kortet', icon='arrow_back',
+                        ui.button(t('Kortet'), icon='arrow_back',
                                   on_click=lambda: self._go_to_step(2)) \
                             .props('outline dense no-caps') \
                             .classes('text-[var(--txt-2)]')
@@ -989,7 +990,7 @@ class Planner:
                 self._ai_tab()
 
     def _plan_overview(self, p, boat, route) -> None:
-        if not self._section('Overblik', 'overblik', 'sadan'):
+        if not self._section(t('Overblik'), 'overblik', 'sadan'):
             return
         with ui.element('div').classes('card px-4 py-3.5 mb-4'):
             for paragraph in narrative.overview(boat, route, p):
@@ -1070,7 +1071,7 @@ class Planner:
                 narrative.NOTE_INFO: 2, narrative.NOTE_GOOD: 3}
         items = sorted(items, key=lambda n: rank.get(n.level, 9))
 
-        if not self._section('Vær opmærksom på', 'advarsler', 'graenser',
+        if not self._section(t('Vær opmærksom på'), 'advarsler', 'graenser',
                              hint=f'{len(items)}'):
             return
         with ui.element('div').classes('card px-4 py-3.5 mb-4 flex flex-col gap-2.5'):
@@ -1087,7 +1088,7 @@ class Planner:
         """Turen delt op i de sejldøgn den falder i — og hvor der overnattes."""
         if len(p.days) < 2:
             return
-        if not self._section('Dag for dag', 'dage', 'sejldogn',
+        if not self._section(t('Dag for dag'), 'dage', 'sejldogn',
                              hint=f'{len(p.days)} døgn'):
             return
         with ui.element('div').classes('daylist mb-4'):
@@ -1125,21 +1126,21 @@ class Planner:
     def _key_figures(self, p, boat) -> None:
         lim = self.s.limits
         metrics = [
-            (spell(p.under_way_h), 'Sejltid', ''),
-            (f'{dk(p.avg_speed_kn)} kn', 'Gns. fart', ''),
-            (f'{p.total_nm:.0f} sm', 'Distance', ''),
-            (f'{p.worst_wind_kn:.0f} kn', 'Højeste vind',
+            (spell(p.under_way_h), t(t('Sejltid')), ''),
+            (f'{dk(p.avg_speed_kn)} kn', t(t('Gns. fart')), ''),
+            (f'{p.total_nm:.0f} sm', t(t('Distance')), ''),
+            (f'{p.worst_wind_kn:.0f} kn', t(t('Højeste vind')),
              self._level(p.worst_wind_kn, lim.max_wind)),
-            (f'{dk(p.worst_wave_m)} m', 'Højeste bølger',
+            (f'{dk(p.worst_wave_m)} m', t(t('Højeste bølger')),
              self._level(p.worst_wave_m, lim.max_wave)),
         ]
         if boat.is_motor:
-            metrics.append((f'{p.fuel_l:.0f} l', 'Brændstof', ''))
+            metrics.append((f'{p.fuel_l:.0f} l', t(t('Brændstof')), ''))
         else:
-            metrics.append((f'{p.red_hours} t', 'Frarådet',
+            metrics.append((f'{p.red_hours} t', t(t('Frarådet')),
                             'val--stop' if p.red_hours else 'val--go'))
 
-        if not self._section('Nøgletal', 'nogletal', 'nogletal'):
+        if not self._section(t('Nøgletal'), 'nogletal', 'nogletal'):
             return
         with ui.element('div').classes('metrics metrics--wide mb-4'):
             for value, label, cls in metrics:
@@ -1164,7 +1165,7 @@ class Planner:
     def _plan_stretches(self, p, route, boat) -> None:
         """Turen delt op dér, hvor kursen skifter — ikke dér, hvor man satte et kryds."""
         briefs = narrative.stretch_briefs(route, p, boat)
-        if not self._section('Stræk for stræk', 'straek', 'straek',
+        if not self._section(t('Stræk for stræk'), 'straek', 'straek',
                              standard=False, hint=f'{len(briefs)} stræk'):
             return
         ui.label('Ruten er delt op efter kursskift, så hvert stykke gælder præcis '
@@ -1224,7 +1225,7 @@ class Planner:
         if not p:
             return
 
-        if not self._section('Time for time', 'timer', 'time-for-time',
+        if not self._section(t('Time for time'), t(t('timer')), 'time-for-time',
                              standard=False,
                              hint=f'{len(p.segments)} timer'):
             return
@@ -1247,7 +1248,7 @@ class Planner:
                             f'{esc(day(s.time, False))}</td></tr>')
             # Sidste kolonne er det, der gør tabellen brugbar ombord: ikke bare
             # hvor hårdt det blæser, men hvordan båden ligger i det.
-            mode = s.sea if motor else ('motor' if s.motoring else point_of_sail(s.twa))
+            mode = s.sea if motor else (t('motor') if s.motoring else point_of_sail(s.twa))
             rows.append(
                 f'<tr>'
                 f'<td class="num tnum">{clock(s.time)}</td>'
@@ -1294,7 +1295,7 @@ class Planner:
         if not settings.ai_available:
             return
 
-        if not self._section('Skippervurdering', 'skipper', 'skipper',
+        if not self._section(t('Skippervurdering'), 'skipper', 'skipper',
                              standard=bool(self.s.ai_text)):
             return
 
@@ -1526,7 +1527,7 @@ class Planner:
 
             with ui.row().classes('w-full items-center px-5 pb-4 no-wrap'):
                 ui.element('div').classes('flex-1')
-                ui.button('Fortryd', on_click=ask.close)                     .props('flat no-caps').classes('text-[var(--txt-2)]')
+                ui.button(t('Fortryd'), on_click=ask.close)                     .props('flat no-caps').classes('text-[var(--txt-2)]')
         ask.open()
 
     def _best_position(self, wp: Waypoint) -> int:
@@ -1643,15 +1644,15 @@ class Planner:
         with ui.dialog() as ask, ui.card().classes(
                 'w-full max-w-[380px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
             with ui.element('div').classes('px-5 pt-5 pb-3'):
-                ui.label('Ryd hele ruten?').classes('text-[16px] font-bold block')
+                ui.label(t('Ryd hele ruten?')).classes('text-[16px] font-bold block')
                 ui.label(f'{len(self.s.waypoints)} punkter og den beregnede plan '
                          f'forsvinder. Det kan ikke fortrydes.') \
                     .classes('text-[13px] text-[var(--txt-2)] leading-snug mt-1 block')
             with ui.row().classes('w-full items-center gap-2 px-5 pb-4 no-wrap'):
                 ui.element('div').classes('flex-1')
-                ui.button('Behold', on_click=ask.close) \
+                ui.button(t('Behold'), on_click=ask.close) \
                     .props('flat no-caps').classes('text-[var(--txt-2)]')
-                ui.button('Ryd', on_click=lambda: self._do_clear(ask)) \
+                ui.button(t('Ryd'), on_click=lambda: self._do_clear(ask)) \
                     .props('unelevated no-caps') \
                     .classes('bg-[var(--stop)] text-white font-bold px-4')
         ask.open()
@@ -1661,7 +1662,7 @@ class Planner:
         self.s.clear()
         self._suggestions = []
         self.refresh(fit=True)
-        ui.notify('Ruten er ryddet', position='bottom')
+        ui.notify(t('Ruten er ryddet'), position='bottom')
 
     # ── Søgning ─────────────────────────────────────────────────────
     def _search_changed(self, e) -> None:

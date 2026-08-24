@@ -19,6 +19,7 @@ from nicegui import app, ui
 
 from .. import reports
 from ..config import settings
+from ..i18n import t
 
 # Browserens eget mærke. Ikke en konto — kun nok til at man kan slette sin egen
 # melding, og til at holde igen med hvor mange, én browser kan give.
@@ -69,7 +70,7 @@ def button(harbour, on_done=None, small: bool = True) -> None:
     """Knappen, der åbner meldingen. Kun hvis der er noget at melde til."""
     if not available():
         return
-    btn = ui.button('Meld plads', icon='campaign',
+    btn = ui.button(t('Meld plads'), icon='campaign',
                     on_click=lambda: dialog(harbour, on_done)) \
         .props(f'flat dense no-caps{" size=sm" if small else ""}') \
         .classes('text-[var(--accent)] shrink-0')
@@ -86,7 +87,7 @@ def dialog(harbour, on_done=None) -> None:
             'w-full max-w-[420px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
 
         with ui.element('div').classes('px-5 pt-5 pb-1'):
-            ui.label('Er der plads?').classes('text-[16px] font-bold block')
+            ui.label(t('Er der plads?')).classes('text-[16px] font-bold block')
             ui.label(f'{harbour.name} — din melding hjælper den, der kommer '
                      f'i eftermiddag. Den står i halvandet døgn og forsvinder '
                      f'så af sig selv.') \
@@ -116,7 +117,7 @@ def dialog(harbour, on_done=None) -> None:
 
         with ui.row().classes('w-full items-center px-5 py-4 no-wrap'):
             ui.element('div').classes('flex-1')
-            ui.button('Fortryd', on_click=dlg.close) \
+            ui.button(t('Fortryd'), on_click=dlg.close) \
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
 
     dlg.open()

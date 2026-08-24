@@ -18,6 +18,7 @@ from .. import lookout, watch
 from ..config import settings
 from ..dates import day
 from ..state import MAX_FORECAST_DAYS
+from ..i18n import t
 
 # Så langt frem kan man lægge en vagt. Prognosen rækker ti døgn, men en vagt
 # giver netop mening længere ude end det — det er hele pointen, at den venter
@@ -48,7 +49,7 @@ def dialog(s) -> None:
                               'border-[var(--line)] no-wrap'):
             ui.icon('notifications_active') \
                 .classes('text-[20px] text-[var(--accent)]')
-            ui.label('Vejrvagt').classes('text-[16px] font-bold flex-1')
+            ui.label(t('Vejrvagt')).classes('text-[16px] font-bold flex-1')
             ui.button(icon='close', on_click=dlg.close).props('flat round dense')
 
         with ui.element('div').classes('scroll-y px-5 py-4 max-h-[70dvh] w-full'):
@@ -64,7 +65,7 @@ def dialog(s) -> None:
                 .props('outlined dense type=email autofocus '
                        'inputmode=email autocomplete=email').classes('w-full')
 
-            ui.label('Hvornår kan I komme afsted?') \
+            ui.label(t('Hvornår kan I komme afsted?')) \
                 .classes('text-[11.5px] text-[var(--txt-3)] mt-5 mb-1 block')
             with ui.element('div').classes('grid grid-cols-2 gap-3'):
                 felter['from'] = ui.input('Tidligst', value=start.isoformat()) \
@@ -84,7 +85,7 @@ def dialog(s) -> None:
                 .classes('text-[11px] text-[var(--txt-3)] leading-snug mt-1.5 '
                          'block')
 
-            ui.label('Hvor godt skal det være?') \
+            ui.label(t('Hvor godt skal det være?')) \
                 .classes('text-[11.5px] text-[var(--txt-3)] mt-5 mb-1 block')
             felter['quality'] = ui.toggle(
                 {'god': 'Kun gode forhold', 'ok': 'Også skærpede'},
@@ -111,9 +112,9 @@ def dialog(s) -> None:
         with ui.row().classes('w-full items-center gap-2 px-5 py-3.5 border-t '
                               'border-[var(--line)] no-wrap'):
             ui.element('div').classes('flex-1')
-            ui.button('Fortryd', on_click=dlg.close) \
+            ui.button(t('Fortryd'), on_click=dlg.close) \
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
-            ui.button('Hold øje', icon='notifications_active',
+            ui.button(t('Hold øje'), icon='notifications_active',
                       on_click=lambda: _save(s, felter, dlg)) \
                 .props('unelevated no-caps').classes('btn-primary px-4')
 
@@ -176,6 +177,6 @@ def _not_ready() -> None:
                          'block')
         with ui.row().classes('w-full items-center px-5 pb-4 no-wrap'):
             ui.element('div').classes('flex-1')
-            ui.button('Luk', on_click=dlg.close) \
+            ui.button(t('Luk'), on_click=dlg.close) \
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
     dlg.open()
