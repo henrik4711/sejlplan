@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 from datetime import date, datetime
 
-from . import fleetmap, mailer, reports, share, watch, weatherbound
+from . import chat, fleetmap, mailer, reports, share, watch, weatherbound
 from .boats import BOATS, DEFAULT_BOAT, custom_boat
 from .config import settings
 from .dates import full
@@ -223,6 +223,9 @@ async def sweep_once() -> int:
     # Positioner, der er udloebet, er alligevel usynlige. Nu findes de
     # heller ikke — det er hele pointen med, at der ingen historik er.
     fleetmap.sweep()
+    # Beskeder doer efter et doegn. Anmeldelser goer ikke — de skal
+    # kunne ses efter, ogsaa naar beskeden er vaek.
+    chat.sweep()
     return sent
 
 

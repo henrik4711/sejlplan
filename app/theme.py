@@ -174,17 +174,40 @@ html, body { height: 100%; overflow: hidden; }
    leder efter, når man skal finde et sted at ligge for natten — og rød er dét,
    man skal se, før man sejler derhen. Prikken bliver også lidt større, så den
    springer i øjnene mellem de andre. */
-.hb--god i   { background: var(--go)   !important; }
-.hb--faa i   { background: var(--warn) !important; }
-.hb--fuld i  { background: var(--stop) !important; }
+/* En prik på ni pixels forsvinder mellem tredive andre. En havn, nogen har
+   meldt plads i, er dét, man leder efter — så den skal være til at få øje på
+   på tværs af et helt farvand. Derfor: dobbelt så stor, hvid kant hele vejen
+   rundt, og en ring udenom i samme farve, der løfter den fri af kortet. */
 .hb--god i, .hb--faa i, .hb--fuld i {
-  width: 9px !important; height: 9px !important;
-  box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 1px 3px rgba(13,27,42,.4);
+  width: 15px !important; height: 15px !important;
+  border: 2.5px solid #fff !important;
+  box-shadow: 0 1px 4px rgba(13,27,42,.55);
+  position: relative;
+  z-index: 2;
 }
+.hb--god i  { background: var(--go)   !important; }
+.hb--faa i  { background: var(--warn) !important; }
+.hb--fuld i { background: var(--stop) !important; }
+
+/* Ringen udenom. Den er svag nok til ikke at dække kortet og tydelig nok til
+   at trække øjet hen over den halve skærm. */
+.hb--god i::after, .hb--faa i::after, .hb--fuld i::after {
+  content: ''; position: absolute; inset: -7px;
+  border-radius: 50%; border: 2px solid currentColor;
+  opacity: .45;
+}
+.hb--god i::after  { color: var(--go); }
+.hb--faa i::after  { color: var(--warn); }
+.hb--fuld i::after { color: var(--stop); }
+
+/* Navnet på en meldt havn står altid — den er værd at kunne finde. */
+.hb--god b, .hb--faa b, .hb--fuld b { font-weight: 700; }
+
 body.body--dark .hb--god i,
 body.body--dark .hb--faa i,
 body.body--dark .hb--fuld i {
-  box-shadow: 0 0 0 2px rgba(13,27,42,.75), 0 1px 3px rgba(0,0,0,.5);
+  border-color: #16232F !important;
+  box-shadow: 0 1px 5px rgba(0,0,0,.7);
 }
 
 /* ═══ Andre både ═════════════════════════════════════════════════ */
@@ -204,6 +227,15 @@ body.body--dark .hb--fuld i {
   transform-origin: 50% 65%;
 }
 body.body--dark .boat-mark i { border-bottom-color: var(--teal); }
+/* Har båden skrevet, sidder der en prik på den. Man skal kunne se hvem der
+   venter på svar uden at åbne noget. */
+.boat-mark { position: relative; }
+.boat-mark .boat-dot {
+  position: absolute; top: 0; right: 0;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--sea-1);
+}
 
 /* ═══ Hjælp ══════════════════════════════════════════════════════ */
 /* Spørgsmålstegnet står ved siden af overskriften, ikke som en knap for sig.

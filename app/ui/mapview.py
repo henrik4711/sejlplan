@@ -179,16 +179,18 @@ _FLEET_BODY = """
   if (!c.__fleetLayer) c.__fleetLayer = L.layerGroup().addTo(c.map);
   c.__fleetLayer.clearLayers();
   for (const b of %(boats)s) {
-    const [lat, lon, navn, alder, kurs] = b;
+    const [lat, lon, navn, alder, kurs, maerke, ulaest] = b;
     const pil = (kurs === null || kurs === undefined)
       ? '' : ' style="transform: rotate(' + kurs + 'deg)"';
+    const prik = ulaest ? '<b class="boat-dot"></b>' : '';
     L.marker([lat, lon], {
       icon: L.divIcon({
-        html: '<div class="boat-mark"><i' + pil + '></i></div>',
+        html: '<div class="boat-mark"><i' + pil + '></i>' + prik + '</div>',
         className: '', iconSize: [26, 26], iconAnchor: [13, 13]}),
       interactive: true, keyboard: false,
     }).bindTooltip(navn + ' · ' + alder,
                    {direction: 'top', offset: [0, -14]})
+      .on('click', () => emitEvent('baad_valgt', {maerke: maerke, navn: navn}))
       .addTo(c.__fleetLayer);
   }
 """
@@ -236,8 +238,11 @@ _HARBOURS_BODY = """
       for (const h of seen) {
         if (++shown > %(max)d) break;
 
+        // En meldt havn får sit navn med, også når de andre ikke har plads
+        // til et. Det er den, man leder efter.
+        const meldtHer = (c.__berth || {})[h[0].toFixed(4) + ',' + h[1].toFixed(4)];
         let label = '';
-        if (named) {
+        if (named || meldtHer) {
           const p = c.map.latLngToContainerPoint([h[0], h[1]]);
           const w = 10 + h[2].length * 5.8;
           const box = [p.x - 6, p.y - 9, p.x + 11 + w, p.y + 9];
@@ -475,7 +480,8 @@ class RouteMap:
             return
         rows = [[round(b.lat, 5), round(b.lon, 5),
                  b.name.replace('<', '').replace('>', ''),
-                 b.age, None if b.course is None else round(b.course)]
+                 b.age, None if b.course is None else round(b.course),
+                 b.mark, 1 if getattr(b, 'unread', 0) else 0]
                 for b in boats]
         self._run(_FLEET_BODY % {
             'boats': json.dumps(rows, ensure_ascii=False,

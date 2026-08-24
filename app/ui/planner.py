@@ -28,6 +28,7 @@ from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
 from ..state import Session, signature
 from . import berth
 from . import fleet as fleetui
+from . import talk
 from . import help as helpui
 from . import underway
 from . import myroutes
@@ -195,6 +196,7 @@ class Planner:
         # efter én gang — ikke hver gang planen tegnes om.
         ui.on('pos', self._position)
         ui.on('pos-fejl', self._position_failed)
+        ui.on('baad_valgt', self._boat_picked)
 
     # ════════════════════════════════════════════════════════════════
     # Opbygning
@@ -1051,6 +1053,17 @@ class Planner:
     @ui.refreshable_method
     def fleet_line(self) -> None:
         fleetui.line(self)
+
+    def _boat_picked(self, e) -> None:
+        """Der er trykket på en anden båd på kortet."""
+        d = e.args or {}
+        if not self.sharing or not talk.available():
+            return
+        talk.open_with(self, str(d.get('maerke') or ''),
+                       str(d.get('navn') or 'Båd'))
+
+    def open_inbox(self) -> None:
+        talk.inbox_dialog(self)
 
     # ── Undervejs ───────────────────────────────────────────────────
     def start_underway(self) -> None:

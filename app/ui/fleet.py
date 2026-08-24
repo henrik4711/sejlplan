@@ -23,7 +23,7 @@ import secrets
 
 from nicegui import app, ui
 
-from .. import fleetmap
+from .. import chat, fleetmap
 from ..i18n import t
 
 # Hvor tit hver browser kigger efter, om de andre har flyttet sig. En sejlbåd
@@ -195,10 +195,25 @@ def refresh(planner) -> None:
     if not planner.sharing or not available():
         return
     here = planner.last_pos or (None, None)
+    mine = mark()
     try:
-        boats = fleetmap.others(mark(), here[0], here[1])
+        boats = fleetmap.others(mine, here[0], here[1])
     except Exception:
         return
+
+    # Blokerede både findes ikke — hverken på kortet eller i beskederne. Det
+    # gælder begge veje: har han blokeret mig, ser jeg ham heller ikke.
+    try:
+        if chat.available():
+            spaerret = chat.blocked_list(mine)
+            boats = [b for b in boats if b.mark not in spaerret]
+            # En båd, der har skrevet og venter på svar, får en prik.
+            venter = {m.from_mark for m in chat.inbox(mine) if not m.seen}
+            for b in boats:
+                b.unread = 1 if b.mark in venter else 0
+    except Exception:
+        pass
+
     planner.fleet = boats
     if planner.map:
         planner.map.show_fleet(boats)
@@ -219,6 +234,8 @@ def line(planner) -> None:
         return
 
     n = len(planner.fleet)
+    ulaest = chat.unread(mark()) if chat.available() else 0
+
     with ui.element('div').classes(
             'card px-3.5 py-2.5 mt-3 flex items-center gap-3'):
         ui.icon('sailing').classes('text-[18px] text-[var(--accent)] shrink-0')
@@ -228,7 +245,19 @@ def line(planner) -> None:
             ui.label(t('Ingen andre både i nærheden lige nu.') if not n
                      else t('{n} andre både i nærheden.', n=n)) \
                 .classes('text-[11px] text-[var(--txt-3)] block')
+        # Har nogen skrevet, skal det stå her — ikke gemt bag et ikon, man
+        # skal vide findes i forvejen.
+        if ulaest:
+            ui.button(str(ulaest), icon='forum',
+                      on_click=planner.open_inbox) \
+                .props('unelevated dense no-caps size=sm') \
+                .classes('btn-primary shrink-0')
         ui.button(t('Skjul mig'), icon='visibility_off',
                   on_click=lambda: turn_off(planner)) \
             .props('flat dense no-caps size=sm') \
             .classes('text-[var(--txt-3)] shrink-0')
+
+    if n and chat.available():
+        ui.label(t('Tryk på en båd på kortet for at skrive til den.')) \
+            .classes('text-[10.5px] text-[var(--txt-3)] leading-snug '
+                     'mt-1 block')

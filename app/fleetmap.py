@@ -57,6 +57,9 @@ class Boat:
     course: float | None
     speed_kn: float | None
     when: datetime
+    # Sættes af fladen, når båden har skrevet og venter på svar. Den hører
+    # ikke til i databasen — den er en egenskab ved den, der kigger.
+    unread: int = 0
 
     @property
     def age_min(self) -> float:
