@@ -10,3 +10,4 @@ venv/
 .storage_secret
 tools/cache/
 .data/
+.work/
