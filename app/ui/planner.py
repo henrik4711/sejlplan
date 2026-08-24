@@ -18,8 +18,8 @@ from datetime import date
 
 from nicegui import ui
 
-from .. import (ai, geocode, harbours, landmask, narrative, offline, pwa,
-                reports, searoute, share, theme, weather, weatherbound)
+from .. import (ai, chat, geocode, harbours, landmask, narrative, offline,
+                pwa, reports, searoute, share, theme, weather, weatherbound)
 from ..config import settings
 from ..dates import clock, day, day_time, full, month, spell
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
@@ -35,7 +35,7 @@ from . import myroutes
 from . import settings as settingsui
 from . import watch as watchui
 from .mapview import RouteMap
-from ..i18n import plural, t
+from ..i18n import plural, retranslate, t
 
 # "Afgang" er også en havns rolle i ruten. Trinnet hedder derfor
 # "Afgangstid" — det er dét, man vælger dér.
@@ -187,6 +187,10 @@ class Planner:
         self.fleet: list = []
         self.fleet_timer = None
         self.last_pos = None
+        # Hvor godt browseren kender positionen, i meter, og hvilken vej
+        # båden peger. Begge dele kommer fra samme begivenhed som positionen.
+        self.pos_accuracy_m: float | None = None
+        self.pos_course: float | None = None
         self.search_input: ui.input | None = None
         # Baggrundsopgaver skal opdatere netop den her browser. NiceGUI's
         # underforståede klient er ikke sat, når en opgave vågner op igen, så
@@ -273,6 +277,7 @@ class Planner:
             # Båden stod også her som en knap, der åbnede den samme dialog som
             # tandhjulet. To veje til det samme sted er én for meget — og båden
             # står nu tydeligt i panelets "Turen"-liste.
+            self.header_inbox()
             settingsui.language_button()
             ui.button(icon='menu_book', on_click=helpui.manual_dialog) \
                 .props('flat round dense').tooltip(t('Manual og hjælp'))
@@ -285,6 +290,23 @@ class Planner:
             self.dark = ui.dark_mode(value=False)
             ui.button(icon='dark_mode', on_click=self._toggle_theme) \
                 .props('flat round dense').tooltip(t('Skift mellem lyst og mørkt'))
+
+    @ui.refreshable_method
+    def header_inbox(self) -> None:
+        """Beskeder, der venter. Står i toppen, ikke nede i et panel.
+
+        Linjen om flåden hører til rute-panelet. Er man på sejlplanen — eller
+        har browseren ikke fundet en position — er den der slet ikke, og så
+        kom beskeden frem, uden at der var noget at trykke på. Det var dét,
+        der skete mellem en telefon og en computer: telefonen kunne se dem,
+        computeren kunne ikke.
+        """
+        if not self.sharing or not talk.available():
+            return
+        antal = chat.unread(fleetui.mark())
+        if not antal:
+            return
+        ui.button(str(antal), icon='forum', on_click=self.open_inbox)             .props('unelevated dense no-caps')             .classes('btn-primary px-2.5 mr-1')             .tooltip(t('Beskeder fra andre både'))
 
     @ui.refreshable_method
     def header_summary(self) -> None:
@@ -590,7 +612,7 @@ class Planner:
 
             info = ui.element('div').classes('min-w-0 flex-1 cursor-pointer')
             with info:
-                ui.label(wp.name).classes('wp-name truncate')
+                ui.label(retranslate(wp.name)).classes('wp-name truncate')
                 ui.label(f'{role} · {wp.where}').classes('wp-meta truncate')
             info.on('click', lambda _, w=wp: self.map and self.map.focus(w.lat, w.lon))
             info.tooltip(t('Vis på kortet'))
@@ -998,7 +1020,7 @@ class Planner:
 
         boat = self.s.boat
         route = self.s.route
-        names = ' → '.join(w.name for w in route.waypoints)
+        names = ' → '.join(retranslate(w.name) for w in route.waypoints)
 
         self._stow_plan(boat, route, p)
 
@@ -1114,14 +1136,59 @@ class Planner:
         except (KeyError, TypeError, ValueError):
             return
         self.last_pos = (lat, lon)
+        self.pos_error = ''
+        # Hvor godt browseren kender positionen. På en telefon med GPS er det
+        # nogle få meter; på en computer kommer den fra nettet og kan være
+        # kilometer ved siden af. Det er den samme prik på kortet, så tallet
+        # skal med — ellers ser et gæt lige så sikkert ud som en måling.
+        try:
+            self.pos_accuracy_m = float(d.get('nøjagtighed'))
+        except (TypeError, ValueError):
+            self.pos_accuracy_m = None
+        try:
+            self.pos_course = (None if d.get('kurs') is None
+                               else float(d['kurs']))
+        except (TypeError, ValueError):
+            self.pos_course = None
         underway.position(self, lat, lon)
         # Deler man, skal de andre også kunne se, at man har flyttet sig.
         fleetui.report_position(self, lat, lon, d.get('kurs'), d.get('fart'))
+        self._draw_me()
+
+    def _draw_me(self) -> None:
+        """Ens egen båd på kortet.
+
+        Den manglede helt: kortet tegnede kun de andre. Tændte man for
+        delingen, skete der ingenting, man kunne se — hverken at det virkede,
+        eller hvor man selv lå i forhold til de både, der dukkede op.
+        """
+        if not self.map:
+            return
+        if not self.last_pos:
+            self.map.show_me()
+            return
+        navn = (fleetui.saved_name() if self.sharing else '') or t('Din båd')
+        self.map.show_me(self.last_pos[0], self.last_pos[1], navn,
+                         self.pos_course, self.pos_accuracy_m)
 
     def _position_failed(self, e) -> None:
         self.pos_error = str(e.args or t('Kunne ikke finde positionen.'))
         self.progress = None
         self.plan_view.refresh()
+
+    @staticmethod
+    def _tell(*args, **kwargs) -> None:
+        """En besked, der ikke gør noget, hvis browseren er væk.
+
+        `run_analysis` venter på vejret og på beregningen. Går brugeren imens —
+        lukker fanen, henter siden om — findes fladen ikke længere, når svaret
+        kommer, og `ui.notify` kaster. Det væltede resten af funktionen, og
+        loggen fyldtes med stakke, der ikke betød noget.
+        """
+        try:
+            ui.notify(*args, **kwargs)
+        except RuntimeError:
+            pass
 
     def _outlook(self, p):
         """Hvad prognosen siger om dagene, efter man er fremme.
@@ -1799,7 +1866,7 @@ class Planner:
     # ── Beregning ───────────────────────────────────────────────────
     async def run_analysis(self) -> None:
         if not self.s.can_analyse:
-            ui.notify(t('Tilføj mindst to punkter først'), type='warning', position='bottom')
+            self._tell(t('Tilføj mindst to punkter først'), type='warning', position='bottom')
             return
 
         self._busy = t('Lægger ruten udenom land…')
@@ -1827,7 +1894,7 @@ class Planner:
         except weather.WeatherError as exc:
             self._busy = ''
             self._refresh_panel()
-            ui.notify(str(exc), type='negative', position='bottom')
+            self._tell(str(exc), type='negative', position='bottom')
             return
         finally:
             self._busy = ''
@@ -1839,7 +1906,7 @@ class Planner:
             self.s.step = 1
             self._nav = 'back'
             self.refresh()
-            ui.notify(t('Ingen afgange passer til dine grænser. Prøv et '
+            self._tell(t('Ingen afgange passer til dine grænser. Prøv et '
                         'bredere datointerval, et længere sejldøgn eller en '
                         'højere vindgrænse.'),
                       type='warning', position='bottom', timeout=7000)
@@ -1851,12 +1918,12 @@ class Planner:
 
         best = self.s.windows[0]
         if best.late_arrival:
-            ui.notify(t('Turen kan ikke nås inden kl. {tid}:00. Se '
+            self._tell(t('Turen kan ikke nås inden kl. {tid}:00. Se '
                         'forslagene — de fleste kræver en overnatning '
                         'undervejs.', tid=f'{self.s.limits.day_end:02d}'),
                       type='warning', position='bottom', timeout=8000)
         elif best.stops:
-            ui.notify(t('{afgange} fundet. Turen kræver {overnatninger} '
+            self._tell(t('{afgange} fundet. Turen kræver {overnatninger} '
                         'undervejs — første stop i {havn}.',
                         afgange=plural(len(self.s.windows), 'afgang',
                                        'afgange'),
@@ -1865,7 +1932,7 @@ class Planner:
                         havn=best.stops[0].name),
                       type='positive', position='bottom', timeout=7000)
         else:
-            ui.notify(t('{n} afgangstider fundet', n=len(self.s.windows)),
+            self._tell(t('{n} afgangstider fundet', n=len(self.s.windows)),
                       type='positive', position='bottom')
 
     def _select_window(self, index: int) -> None:

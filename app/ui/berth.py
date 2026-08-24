@@ -80,11 +80,16 @@ def button(harbour, on_done=None, small: bool = True) -> None:
 
 
 def nearby_dialog(planner) -> None:
-    """Meld plads i en havn omkring dig — ikke kun dem på ruten.
+    """Meld plads i en havn — den, du ligger i, eller en du søger frem.
 
     Ligger man i Marstal, er det Marstal, man ved noget om. Den behøver ikke at
     stå på den rute, man har lagt. Så vi viser havnene omkring positionen med
     den nærmeste øverst, for det er næsten altid den, man ligger i.
+
+    Og der er en søgning. Uden den kunne man kun melde om de tolv nærmeste, og
+    ligger man hjemme ved computeren og vil fortælle om havnen, man lige er
+    kommet fra, var der ingen vej ind. Det er ikke en kant — det er den
+    almindelige måde at bruge det på.
     """
     from .. import harbours as havne
 
@@ -94,53 +99,88 @@ def nearby_dialog(planner) -> None:
         # og så er det destinationen, man ville melde om.
         wps = planner.s.waypoints
         here = (wps[-1].lat, wps[-1].lon) if wps else None
-    if not here:
-        ui.notify(t('Vi ved ikke, hvor du er. Slå "Jeg er undervejs" til, '
-                    'eller læg en rute først.'),
-                  type='warning', position='bottom', multi_line=True)
-        return
-
-    naer = havne.nearest(here[0], here[1], count=12)
-    if not naer:
-        ui.notify(t('Ingen havne i nærheden'), position='bottom')
-        return
-
-    meldt = reports.recent([reports.key_of(h.lat, h.lon) for h in naer])
 
     with ui.dialog() as dlg, ui.card().classes(
             'w-full max-w-[460px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
 
         with ui.element('div').classes('px-5 pt-5 pb-1'):
             ui.label(t('Meld plads')).classes('text-[16px] font-bold block')
-            ui.label(t('Havnene omkring dig, nærmeste først. Vælg den, du '
-                       'ligger i.'))                 .classes('text-[12.5px] text-[var(--txt-2)] leading-snug '
+            ui.label(t('Søg havnen frem, eller vælg en af dem omkring dig.')) \
+                .classes('text-[12.5px] text-[var(--txt-2)] leading-snug '
                          'mt-1 block')
 
-        with ui.element('div').classes('scroll-y px-5 py-3 max-h-[58dvh] w-full'):
-            for h in naer:
-                afstand = reports.key_of(h.lat, h.lon)
-                v = meldt.get(afstand)
-                row = ui.element('div').classes(
-                    'card px-3.5 py-2.5 mb-2 flex items-center gap-3 '
-                    'cursor-pointer hover:border-[var(--line-2)]')
-                with row:
-                    ui.icon('anchor').classes(
-                        'text-[17px] text-[var(--txt-3)] shrink-0')
-                    with ui.element('div').classes('min-w-0 flex-1'):
-                        ui.label(h.name).classes(
-                            'text-[13px] font-medium truncate block')
-                        ui.label(h.detail).classes(
-                            'text-[11px] text-[var(--txt-3)] truncate block')
-                    if v is not None:
-                        ui.icon(v.icon).style(f'color: {v.tone}')                             .classes('text-[17px] shrink-0')
-                    ui.icon('chevron_right').classes(
-                        'text-[17px] text-[var(--txt-3)] shrink-0')
-                row.on('click', lambda _, x=h: (dlg.close(),
-                                                dialog(x, planner.refresh)))
+        with ui.element('div').classes('px-5 pt-3'):
+            felt = ui.input(placeholder=t('Søg efter en havn…')) \
+                .props('outlined dense clearable autocomplete=off '
+                       'autofocus').classes('w-full')
+            with felt.add_slot('prepend'):
+                ui.icon('search').classes('text-[18px] text-[var(--txt-3)]')
+
+        liste = ui.element('div').classes(
+            'scroll-y px-5 py-3 max-h-[54dvh] w-full')
+
+        def vis(havneliste, overskrift: str = '') -> None:
+            liste.clear()
+            with liste:
+                if overskrift:
+                    ui.label(overskrift).classes(
+                        'section-label mb-2 block')
+                if not havneliste:
+                    ui.label(t('Ingen havne med det navn. Prøv en anden '
+                               'stavemåde.')) \
+                        .classes('text-[12px] text-[var(--txt-3)] '
+                                 'leading-snug block py-2')
+                    return
+                meldt = reports.recent(
+                    [reports.key_of(h.lat, h.lon) for h in havneliste])
+                for h in havneliste:
+                    v = meldt.get(reports.key_of(h.lat, h.lon))
+                    row = ui.element('div').classes(
+                        'card px-3.5 py-2.5 mb-2 flex items-center gap-3 '
+                        'cursor-pointer hover:border-[var(--line-2)]')
+                    with row:
+                        ui.icon('anchor').classes(
+                            'text-[17px] text-[var(--txt-3)] shrink-0')
+                        with ui.element('div').classes('min-w-0 flex-1'):
+                            ui.label(h.name).classes(
+                                'text-[13px] font-medium truncate block')
+                            ui.label(h.detail).classes(
+                                'text-[11px] text-[var(--txt-3)] truncate '
+                                'block')
+                        if v is not None:
+                            ui.icon(v.icon).style(f'color: {v.tone}') \
+                                .classes('text-[17px] shrink-0')
+                        ui.icon('chevron_right').classes(
+                            'text-[17px] text-[var(--txt-3)] shrink-0')
+                    row.on('click', lambda _, x=h: (dlg.close(),
+                                                    dialog(x, planner.refresh)))
+
+        def naere() -> None:
+            if not here:
+                liste.clear()
+                with liste:
+                    ui.label(t('Vi ved ikke, hvor du er. Søg havnen frem '
+                               'foroven — eller slå "Jeg er undervejs" til.')) \
+                        .classes('text-[12px] text-[var(--txt-3)] '
+                                 'leading-snug block py-2')
+                return
+            vis(havne.nearest(here[0], here[1], count=12),
+                t('Havne omkring dig'))
+
+        def soeg(e) -> None:
+            tekst = str(e.value or '').strip()
+            if len(tekst) < 2:
+                naere()
+                return
+            vis(havne.search(tekst, limit=12), t('Søgeresultater'))
+
+        felt.on_value_change(soeg)
+        naere()
 
         with ui.row().classes('w-full items-center px-5 pb-4 no-wrap'):
             ui.element('div').classes('flex-1')
-            ui.button(t('Fortryd'), on_click=dlg.close)                 .props('flat no-caps').classes('text-[var(--txt-2)]')
+            ui.button(t('Fortryd'), on_click=dlg.close) \
+                .props('flat no-caps').classes('text-[var(--txt-2)]')
 
     dlg.open()
 

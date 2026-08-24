@@ -138,9 +138,19 @@ def coords() -> np.ndarray:
 
 # ── Søgning ──────────────────────────────────────────────────────────────────
 def fold(s: str) -> str:
-    """Sammenlign uden hensyn til store bogstaver og æøå/accenter."""
-    s = s.lower().replace('æ', 'ae').replace('ø', 'oe').replace('å', 'aa')
-    return ''.join(c for c in unicodedata.normalize('NFD', s) if not unicodedata.combining(c))
+    """Sammenlign uden hensyn til store bogstaver og æøå/accenter.
+
+    Bogstaverne skæres helt ned til én vokal, og de tyske omskrivninger med
+    efter. Ellers blev "Køge" til "koege", og den, der taster "koge" — altså
+    enhver uden et dansk tastatur — fandt ingenting. Både registret og
+    søgeordet køres igennem her, så de mødes samme sted.
+    """
+    s = s.lower().replace('æ', 'a').replace('ø', 'o').replace('å', 'a')
+    s = ''.join(c for c in unicodedata.normalize('NFD', s)
+                if not unicodedata.combining(c))
+    for fra, til in (('ae', 'a'), ('oe', 'o'), ('aa', 'a'), ('ue', 'u')):
+        s = s.replace(fra, til)
+    return s
 
 
 _index: list[tuple[str, str, Harbour]] | None = None
@@ -223,11 +233,16 @@ def along_route(route, max_detour_nm: float = MAX_DETOUR_NM) -> list[tuple]:
         span = dy * dy + dx * dx
         if span <= 0:
             continue
-        t = np.clip(((hl - ay) * dy + (hx - ax) * dx) / span, 0.0, 1.0)
-        d = np.hypot(hl - (ay + t * dy), hx - (ax + t * dx)) * NM_PER_DEGREE
+        # Hed `t` før. Det er også oversætterens navn, og lige netop dét
+        # gjorde det usynligt, at modulet manglede sin import: navnet fandtes
+        # i filen, bare i en anden funktion.
+        andel = np.clip(((hl - ay) * dy + (hx - ax) * dx) / span, 0.0, 1.0)
+        d = np.hypot(hl - (ay + andel * dy),
+                     hx - (ax + andel * dx)) * NM_PER_DEGREE
         better = d < best_d
         best_d = np.where(better, d, best_d)
-        best_along = np.where(better, s.start_nm + t * s.distance_nm, best_along)
+        best_along = np.where(better, s.start_nm + andel * s.distance_nm,
+                              best_along)
 
     hits = np.flatnonzero(best_d <= max_detour_nm)
     out = [(all_harbours()[int(i)], float(best_along[i]), float(best_d[i])) for i in hits]

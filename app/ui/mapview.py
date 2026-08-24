@@ -16,6 +16,7 @@ from collections.abc import Callable
 
 from nicegui import ui
 
+from ..i18n import retranslate
 from .. import harbours
 from ..sailing import GO, STATUS_COLOR, Plan, Route
 
@@ -197,6 +198,44 @@ _FLEET_BODY = """
 
 _FLEET_OFF = """
   if (c.__fleetLayer) c.__fleetLayer.clearLayers();
+"""
+
+# Ens egen båd. Den stod der ikke før — kortet viste kun de andre, og så tændte
+# man for delingen og så ingenting. Man kunne hverken se, om det virkede, eller
+# hvor man selv lå i forhold til dem, man kunne se.
+_ME_BODY = """
+  if (!c.__meLayer) c.__meLayer = L.layerGroup().addTo(c.map);
+  c.__meLayer.clearLayers();
+  const m = %(me)s;
+  const drej = (m.kurs === null || m.kurs === undefined)
+    ? '' : ' style="transform: rotate(' + m.kurs + 'deg)"';
+  const stille = (m.kurs === null || m.kurs === undefined)
+    ? ' me-mark--still' : '';
+  L.marker([m.lat, m.lon], {
+    icon: L.divIcon({
+      html: '<div class="me-mark' + stille + '"><i' + drej + '></i></div>',
+      className: '', iconSize: [30, 30], iconAnchor: [15, 15]}),
+    interactive: false, keyboard: false, zIndexOffset: 500,
+  }).addTo(c.__meLayer);
+  L.marker([m.lat, m.lon], {
+    icon: L.divIcon({html: '<span class="me-label">' + m.navn + '</span>',
+                     className: '', iconSize: [0, 0], iconAnchor: [0, -18]}),
+    interactive: false, keyboard: false, zIndexOffset: 501,
+  }).addTo(c.__meLayer);
+  // Er positionen upræcis, tegnes den cirkel, den faktisk kender. En prik på
+  // et kort ser lige sikker ud, hvad enten den er på ti meter eller tre
+  // kilometer — cirklen er den ærlige udgave.
+  if (m.usikkerhed_m && m.usikkerhed_m > 300) {
+    L.circle([m.lat, m.lon], {
+      radius: m.usikkerhed_m, interactive: false,
+      color: 'var(--accent)', weight: 1, opacity: .45,
+      fillColor: 'var(--accent)', fillOpacity: .07,
+    }).addTo(c.__meLayer);
+  }
+"""
+
+_ME_OFF = """
+  if (c.__meLayer) c.__meLayer.clearLayers();
 """
 
 _HARBOURS_BODY = """
@@ -487,6 +526,20 @@ class RouteMap:
             'boats': json.dumps(rows, ensure_ascii=False,
                                 separators=(',', ':'))})
 
+    def show_me(self, lat=None, lon=None, name: str = '',
+                course=None, accuracy_m=None) -> None:
+        """Tegn ens egen båd. Uden position ryddes laget."""
+        if lat is None or lon is None:
+            self._run(_ME_OFF)
+            return
+        self._run(_ME_BODY % {'me': json.dumps({
+            'lat': round(float(lat), 5), 'lon': round(float(lon), 5),
+            'navn': (name or '').replace('<', '').replace('>', '')[:30],
+            'kurs': None if course is None else round(float(course)),
+            'usikkerhed_m': (None if accuracy_m is None
+                             else round(float(accuracy_m))),
+        }, ensure_ascii=False, separators=(',', ':'))})
+
     # ── Begivenheder ────────────────────────────────────────────────
     def _handle_drag(self, e) -> None:
         index = self._marker_index.get(str(e.args.get('id')))
@@ -563,7 +616,8 @@ class RouteMap:
             specs[str(marker.id)] = {
                 'kind': kind,
                 'label': str(i + 1),
-                'name': wp.name.replace('<', '').replace('>', ''),
+                'name': retranslate(wp.name).replace('<', '')
+                                            .replace('>', ''),
             }
 
         self._run(_MARKERS_BODY % {'specs': json.dumps(specs, ensure_ascii=False)})

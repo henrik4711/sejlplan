@@ -38,6 +38,7 @@ body {
   --txt-3:   rgba(18,33,47,.45);
   --accent:  #C8933B;
   --accent-soft: rgba(200,147,59,.14);
+  --warn-soft:   rgba(217,131,36,.13);
   --teal:    #0F9B8E;
   --go:      #1E9E52;
   --warn:    #D98324;
@@ -66,6 +67,7 @@ body.body--dark {
   --txt-3:   rgba(240,237,232,.40);
   --accent:  #E8B96A;
   --accent-soft: rgba(232,185,106,.16);
+  --warn-soft:   rgba(233,150,59,.15);
   --teal:    #4ECDC4;
   --go:      #35B96A;
   --warn:    #E9963B;
@@ -235,6 +237,42 @@ body.body--dark .boat-mark i { border-bottom-color: var(--teal); }
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 2px var(--sea-1);
+}
+
+/* Ens egen båd. Den skal kunne skelnes fra de andre på et øjeblik — man skal
+   kunne finde sig selv i en klynge uden at læse etiketter. Derfor en anden
+   farve, en ring omkring, og et blik der siger "her er du". */
+.me-mark {
+  width: 30px; height: 30px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.me-mark i {
+  display: block; width: 0; height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 17px solid var(--accent);
+  filter: drop-shadow(0 1px 3px rgba(13,27,42,.55));
+  transform-origin: 50% 65%;
+}
+/* Uden kurs er der ingen retning at pege i. Så bliver det en prik. */
+.me-mark.me-mark--still i {
+  width: 13px; height: 13px; border: 0; border-radius: 50%;
+  background: var(--accent);
+}
+.me-mark::before {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: .55;
+}
+.me-label {
+  font-size: 10.5px; font-weight: 700; line-height: 1;
+  color: var(--txt-1);
+  background: var(--sea-1);
+  border: 1px solid var(--accent);
+  border-radius: 7px; padding: 2px 5px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(13,27,42,.25);
 }
 
 /* ═══ Hjælp ══════════════════════════════════════════════════════ */

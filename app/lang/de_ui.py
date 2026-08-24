@@ -517,4 +517,62 @@ WORDS: dict[str, str] = {
         'Dein eigenes',
     'Tur':
         'Törn',
+
+    # ── Din egen båd, position og pladsmelding ─────────────────────
+    'Havne omkring dig':
+        'Häfen um dich herum',
+    'Søgeresultater':
+        'Suchergebnisse',
+    'Søg havnen frem, eller vælg en af dem omkring dig.':
+        'Suche den Hafen, oder wähle einen aus deiner Umgebung.',
+    'Ingen havne med det navn. Prøv en anden stavemåde.':
+        'Kein Hafen dieses Namens. Versuche eine andere Schreibweise.',
+    'Vi ved ikke, hvor du er. Søg havnen frem foroven — eller slå "Jeg er '
+        'undervejs" til.':
+        'Wir wissen nicht, wo du bist. Suche den Hafen oben — oder schalte '
+        '„Ich bin unterwegs“ ein.',
+    'Søg efter en havn…':
+        'Nach einem Hafen suchen…',
+    '{km} km':
+        '{km} km',
+    '{m} meter':
+        '{m} Meter',
+    'Din båd':
+        'Dein Boot',
+    'Browseren giver ikke adgang til position':
+        'Der Browser gibt keinen Zugriff auf die Position',
+    'Uden en position er der ingen båd at vise. Prøv i en anden browser, '
+        'eller på telefonen.':
+        'Ohne Position gibt es kein Boot zu zeigen. Versuche es in einem '
+        'anderen Browser oder auf dem Telefon.',
+    'Du har sagt nej til position for den her side':
+        'Du hast die Position für diese Seite abgelehnt',
+    'Browseren spørger ikke igen af sig selv. Slå det til i indstillingerne '
+        'for siden — i Chrome ligger det bag hængelåsen i adresselinjen.':
+        'Der Browser fragt von selbst nicht noch einmal. Schalte es in den '
+        'Einstellungen für die Seite ein — in Chrome liegt das hinter dem '
+        'Schloss in der Adresszeile.',
+    'Du sidder ved en computer':
+        'Du sitzt an einem Computer',
+    'En computer har ingen GPS. Den gætter positionen ud fra wifi og '
+        'netværk, og det kan være kilometer ved siden af — de andre ser din '
+        'båd et sted, du ikke er. På telefonen er den på få meter. Vil du '
+        'vises rigtigt undervejs, så åbn Sejlplan på telefonen.':
+        'Ein Computer hat kein GPS. Er schätzt die Position aus WLAN und '
+        'Netzwerk, und das kann Kilometer danebenliegen — die anderen sehen '
+        'dein Boot an einer Stelle, an der du nicht bist. Auf dem Telefon '
+        'sind es wenige Meter. Willst du unterwegs richtig angezeigt werden, '
+        'dann öffne Segelplan auf dem Telefon.',
+    'Din position er kun kendt på ±{afstand}. Det er et gæt fra nettet, ikke '
+        'GPS — på telefonen er den på få meter.':
+        'Deine Position ist nur auf ±{afstand} genau. Das ist eine Schätzung '
+        'aus dem Netz, kein GPS — auf dem Telefon sind es wenige Meter.',
+    'Du er ikke synlig for andre, før browseren har fundet dig. Sig ja til '
+        'position, hvis den spørger.':
+        'Du bist für andere nicht sichtbar, bevor der Browser dich gefunden '
+        'hat. Erlaube die Position, wenn er fragt.',
+    'Beskeder fra andre både':
+        'Nachrichten von anderen Booten',
+    'Gode forhold':
+        'Gute Bedingungen',
 }

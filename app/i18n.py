@@ -38,7 +38,10 @@ STORAGE_KEY = 'sprog'
 
 # Brugerens egen kopi. Egen nøgle, fordi sproget skal overleve, også når
 # sessionen ikke har en rute at redde.
-BROWSER_KEY = 'sejlplan_sprog'
+COOKIE = 'sejlplan_sprog'
+
+# Et år. Sproget er ikke noget, man vælger om hver måned.
+COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 # Oversættelserne. Nøglen er den danske sætning, præcis som den står i koden.
 _TABLES: dict[str, dict[str, str]] = {}
@@ -92,8 +95,13 @@ def set_lang(code: str, client=None) -> None:
     """Husk sproget — både på serveren og hos brugeren selv.
 
     Serverens sessionsfil ligger på et filsystem, der forsvinder, hver gang
-    appen bliver lagt ud på ny. Uden kopien hos brugeren ville en tysk sejler
+    appen bliver lagt ud på ny. Uden en kopi hos brugeren ville en tysk sejler
     finde fladen på dansk igen, hver gang vi rettede en knapfarve.
+
+    Kopien er en cookie, ikke localStorage. En cookie følger med anmodningen om
+    siden, så sproget er kendt, før der bliver tegnet noget. Med localStorage
+    skulle vi spørge browseren og vente på svaret — og en side, der venter på
+    et svar, før den tegner sig, er en blank side, hvis svaret udebliver.
     """
     if code not in LANGUAGES:
         return
@@ -104,33 +112,31 @@ def set_lang(code: str, client=None) -> None:
     if client is not None:
         try:
             client.run_javascript(
-                f'try {{ localStorage.setItem("{BROWSER_KEY}", "{code}") }}'
-                f' catch (e) {{}}')
+                f'document.cookie = "{COOKIE}={code}; max-age={COOKIE_MAX_AGE};'
+                f' path=/; samesite=lax";')
         except Exception:
             pass
 
 
-async def adopt_from_browser(client, header: str = '') -> None:
-    """Hent sproget fra browserens kopi, hvis serveren har glemt det.
+def adopt(cookies=None, header: str = '') -> None:
+    """Sæt sproget ved sidens begyndelse. Ingen ventetid, ingen round-trip.
 
-    Har serveren et sprog, vinder det: det er dét, brugeren sidst valgte i
-    den her session. Ellers spørger vi browseren, og først derefter gætter vi
-    på Accept-Language.
+    Serveren vinder, når den har et sprog: det er dét, brugeren sidst valgte i
+    den her session. Ellers cookien, og først derefter gætter vi på browserens
+    eget førstevalg.
     """
     try:
         if app.storage.user.get(STORAGE_KEY) in LANGUAGES:
             return
     except (RuntimeError, KeyError):
         return
+    kode = (cookies or {}).get(COOKIE)
+    if kode not in LANGUAGES:
+        kode = from_browser(header)
     try:
-        await client.connected(timeout=8.0)
-        code = await client.run_javascript(
-            f'localStorage.getItem("{BROWSER_KEY}")', timeout=4.0)
-    except Exception:
-        code = None
-    if code not in LANGUAGES:
-        code = from_browser(header)
-    set_lang(code, client)
+        app.storage.user[STORAGE_KEY] = kode
+    except (RuntimeError, KeyError):
+        pass
 
 
 def from_browser(header: str) -> str:
@@ -184,6 +190,34 @@ def t_in_sentence(text: str) -> str:
     det samme ord, og opslaget falder igennem til `t()`."""
     return _table(lang()).get(text + SENTENCE_MARK) or t(text)
 
+
+
+# Navne, systemet selv har lavet. De bliver gemt som tekst i ruten, så de
+# følger ikke sproget af sig selv: lægger man "Ud for Køge" ind på dansk og
+# skifter til tysk, står der stadig "Ud for Køge". Skabelonerne herunder gør
+# det muligt at kende dem igen og skrive dem om.
+GENERATED = ('ud for {sted}', 'Ud for {sted}')
+
+
+def retranslate(name: str) -> str:
+    """Skriv et systemlavet stednavn om til brugerens sprog.
+
+    Vi kender dem igen ved at bygge skabelonen på hvert sprog og se, om navnet
+    passer. Et navn, der ikke er lavet af os — en havn hedder jo bare noget —
+    bliver stående, som det er.
+    """
+    if not name:
+        return name
+    for skabelon in GENERATED:
+        for code in LANGUAGES:
+            form = _table(code).get(skabelon, skabelon) if code != DA                 else skabelon
+            før, _, efter = form.partition('{sted}')
+            if not før and not efter:
+                continue
+            if name.startswith(før) and name.endswith(efter)                     and len(name) > len(før) + len(efter):
+                sted = name[len(før):len(name) - len(efter)] if efter                     else name[len(før):]
+                return t(skabelon, sted=sted)
+    return name
 
 
 def plural(n: int, one: str, many: str) -> str:

@@ -19,7 +19,7 @@ from html import escape as esc
 
 from .boats import Boat
 from .dates import clock, day_time, full, spell
-from .i18n import DE, lang, t
+from .i18n import DE, lang, retranslate, t
 from .narrative import (day_lines, num, overview, stretch_briefs,
                         warnings)
 from .sailing import Limits, Plan, Route, compass, point_of_sail
@@ -144,7 +144,7 @@ def document(boat: Boat, route: Route, plan: Plan, limits: Limits,
              saved: datetime | None = None, outlook=None) -> str:
     """Byg hele planen som én HTML-fil uden et eneste kald ud af siden."""
     saved = saved or datetime.now()
-    names = ' → '.join(w.name for w in route.waypoints)
+    names = ' → '.join(retranslate(w.name) for w in route.waypoints)
     tail = (t('når {nået} af {ialt} sømil',
               nået=f'{plan.reached_nm:.0f}', ialt=f'{plan.total_nm:.0f}')
             if plan.incomplete

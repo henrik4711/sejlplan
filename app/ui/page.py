@@ -18,14 +18,14 @@ from .planner import Planner
 async def index(rute: str = '') -> None:
     """Forsiden. `?rute=…` åbner en rute, nogen har delt."""
     # Sproget skal stå fast, før der bliver tegnet noget — ellers bygges
-    # fladen på ét sprog og skal skiftes ud for øjnene af brugeren.
-    klient = context.client
-    ønske = ''
-    try:
-        ønske = klient.request.headers.get('accept-language', '') or ''
-    except (AttributeError, KeyError):
-        pass
-    await i18n.adopt_from_browser(klient, ønske)
+    # fladen på ét sprog og skal skiftes ud for øjnene af brugeren. Det står i
+    # en cookie, som følger med anmodningen, så der er ingenting at vente på.
+    # Første udgave spurgte browseren med JavaScript, og det er præcis den
+    # slags, der giver en blank side, når svaret udebliver.
+    forespørgsel = getattr(context.client, 'request', None)
+    i18n.adopt(getattr(forespørgsel, 'cookies', None) or {},
+               (forespørgsel.headers.get('accept-language', '')
+                if forespørgsel else ''))
 
     ui.page_title(t('Sejlplan – find den bedste afgang'))
     theme.apply()
@@ -49,11 +49,17 @@ async def index(rute: str = '') -> None:
             ui.notify(t('Delelinket kunne ikke læses'), type='warning',
                       position='bottom')
 
-    await planner.s.adopt_browser_copy()
-
     planner.build()
 
     if rute and planner.s.waypoints:
         ui.notify(t('Rute åbnet: {fra} → {til}',
                     fra=planner.s.waypoints[0].name,
                     til=planner.s.waypoints[-1].name), position='bottom')
+
+    # Først nu spørger vi browseren, om den har en rute liggende, som serveren
+    # har glemt. Det stod før `build`, og så ventede hele siden på svaret —
+    # kom det ikke, sad brugeren og kiggede på ingenting. Fandt vi noget,
+    # tegnes fladen om; det er et blink, og det er kun, når der faktisk er
+    # noget at redde.
+    if not rute and await planner.s.adopt_browser_copy():
+        planner.refresh(fit=True)

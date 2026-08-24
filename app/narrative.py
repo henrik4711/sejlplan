@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from . import harbours
 from .boats import PLANING, Boat
-from .i18n import plural, t, t_in_sentence
+from .i18n import plural, retranslate, t, t_in_sentence
 from .dates import clock, day, day_time, duration, full, spell
 from .sailing import (CALM, GO, HEAD, STOP, WARN, Limits, Plan, Route,
                       beaufort, compass, haversine, point_of_sail, tack)
@@ -245,7 +245,8 @@ def stretch_briefs(route: Route, plan: Plan, boat: Boat) -> list[StretchBrief]:
 
         briefs.append(StretchBrief(
             number=st.number,
-            frm=first.name if starts_leg else place_name(at_start[0], at_start[1]),
+            frm=(retranslate(first.name) if starts_leg
+                 else place_name(at_start[0], at_start[1])),
             to=last.name if ends_leg else place_name(at_end[0], at_end[1]),
             course=round(st.course),
             distance_nm=st.distance_nm,
@@ -369,7 +370,7 @@ def _speed_loss(boat: Boat, plan: Plan) -> float:
 # ── Overblik ──────────────────────────────────────────────────────────────────
 def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
     """To-tre afsnit der fortæller, hvad turen går ud på."""
-    names = ' → '.join(w.name for w in route.waypoints)
+    names = ' → '.join(retranslate(w.name) for w in route.waypoints)
     legs = len(route.waypoints) - 1
 
     head = t('Ruten {navne} er på {sm} sømil fordelt på {ben}. ',
@@ -656,7 +657,8 @@ def as_text(boat: Boat, route: Route, plan: Plan, limits: Limits) -> str:
         return f'{navn + ":":<{bred}} {værdi}'
 
     lines = [
-        f'{t("SEJLPLAN")} — {" → ".join(w.name for w in route.waypoints)}',
+        f'{t("SEJLPLAN")} — '
+        + ' → '.join(retranslate(w.name) for w in route.waypoints),
         '=' * 60,
         '',
         rubrik(baad, f'{boat.name} ({t(boat.kind)}, {num(boat.length_m)} m)'),

@@ -65,9 +65,64 @@ def available() -> bool:
     return fleetmap.available()
 
 
+# Hvad browseren selv siger om sig selv. En computer har ingen GPS: dens
+# position kommer fra nettet, og den kan være kilometer ved siden af. Det skal
+# man vide, før man tænder — ellers står man som en båd midt i en by.
+PROBE_JS = """
+(async () => {
+  const ua = navigator.userAgent || '';
+  const mobil = (navigator.userAgentData && navigator.userAgentData.mobile)
+    || (navigator.maxTouchPoints > 1 && /Mobi|Android|iPhone|iPad/i.test(ua));
+  let tilladelse = null;
+  try {
+    if (navigator.permissions) {
+      const p = await navigator.permissions.query({name: 'geolocation'});
+      tilladelse = p.state;
+    }
+  } catch (e) {}
+  return {mobil: !!mobil, tilladelse: tilladelse,
+          findes: !!navigator.geolocation};
+})()
+"""
+
+
+async def _probe(planner) -> dict:
+    """Spørg browseren, hvad den kan. Svarer den ikke, går vi ud fra det bedste
+    — en advarsel, vi ikke er sikre på, er værre end ingen."""
+    try:
+        svar = await planner.client.run_javascript(PROBE_JS, timeout=4.0)
+    except Exception:
+        return {}
+    return svar if isinstance(svar, dict) else {}
+
+
+def _position_advarsel(probe: dict) -> tuple[str, str, str] | None:
+    """(ikon, overskrift, forklaring) — eller ingenting, hvis alt er fint."""
+    if probe.get('findes') is False:
+        return ('location_disabled', t('Browseren giver ikke adgang til '
+                                       'position'),
+                t('Uden en position er der ingen båd at vise. Prøv i en '
+                  'anden browser, eller på telefonen.'))
+    if probe.get('tilladelse') == 'denied':
+        return ('block', t('Du har sagt nej til position for den her side'),
+                t('Browseren spørger ikke igen af sig selv. Slå det til i '
+                  'indstillingerne for siden — i Chrome ligger det bag '
+                  'hængelåsen i adresselinjen.'))
+    if probe.get('mobil') is False:
+        return ('desktop_windows', t('Du sidder ved en computer'),
+                t('En computer har ingen GPS. Den gætter positionen ud fra '
+                  'wifi og netværk, og det kan være kilometer ved siden af — '
+                  'de andre ser din båd et sted, du ikke er. På telefonen er '
+                  'den på få meter. Vil du vises rigtigt undervejs, så åbn '
+                  'Sejlplan på telefonen.'))
+    return None
+
+
 # ── Til- og fravalg ──────────────────────────────────────────────────────────
-def ask(planner) -> None:
+async def ask(planner) -> None:
     """Første gang: forklar hvad der deles, og bed om et bådnavn."""
+    probe = await _probe(planner)
+    advarsel = _position_advarsel(probe)
     navn = {'v': saved_name() or (planner.s.boat.name if planner.s.has_custom
                                   else '')}
 
@@ -81,6 +136,21 @@ def ask(planner) -> None:
                        'du kan se dem. Kun jer, der har slået det til.')) \
                 .classes('text-[12.5px] text-[var(--txt-2)] leading-snug '
                          'mt-1 block')
+
+        if advarsel:
+            ikon, hoved, forklaring = advarsel
+            with ui.element('div').classes(
+                    'mx-5 mt-3 px-3.5 py-3 rounded-[10px] flex items-start '
+                    'gap-2.5 bg-[var(--warn-soft)] '
+                    'border border-[var(--warn)]'):
+                ui.icon(ikon).classes(
+                    'text-[18px] text-[var(--warn)] shrink-0 mt-0.5')
+                with ui.element('div').classes('min-w-0'):
+                    ui.label(hoved).classes(
+                        'text-[12.5px] font-semibold block leading-snug')
+                    ui.label(forklaring).classes(
+                        'text-[11.5px] text-[var(--txt-2)] leading-snug '
+                        'mt-0.5 block')
 
         with ui.element('div').classes('px-5 pt-4'):
             felt = ui.input(t('Bådens navn'),
@@ -150,6 +220,7 @@ def turn_on(planner) -> None:
     # blive ved med at se det gamle, til båden bevægede sig.
     if planner.last_pos:
         fleetmap.show(mark(), saved_name() or 'Båd', *planner.last_pos)
+    planner.header_inbox.refresh()
     ui.notify(t('Din båd er nu synlig for andre, der også er det.'),
               type='positive', position='bottom')
     planner.refresh()
@@ -162,6 +233,7 @@ def turn_off(planner) -> None:
     fleetmap.hide(mark())
     if planner.map:
         planner.map.show_fleet([])
+    planner.header_inbox.refresh()
     ui.notify(t('Du er ikke længere synlig, og din position er slettet.'),
               position='bottom')
     planner.refresh()
@@ -217,7 +289,9 @@ def refresh(planner) -> None:
     planner.fleet = boats
     if planner.map:
         planner.map.show_fleet(boats)
+        planner._draw_me()
     planner.fleet_line.refresh()
+    planner.header_inbox.refresh()
 
 
 def line(planner) -> None:
@@ -251,10 +325,17 @@ def line(planner) -> None:
                 else:
                     ui.label(t('Venter på din position…')).classes(
                         'text-[12.5px] font-medium block')
-                    ui.label(t('Du er ikke synlig for andre, før telefonen '
+                    ui.label(t('Du er ikke synlig for andre, før browseren '
                                'har fundet dig. Sig ja til position, hvis '
-                               'browseren spørger.'))                         .classes('text-[11px] text-[var(--txt-3)] '
+                               'den spørger.'))                         .classes('text-[11px] text-[var(--txt-3)] '
                                  'leading-snug block')
+            # Beskederne skal med her. Uden dem kunne man ikke se, at
+            # nogen havde skrevet, så længe browseren ikke havde fundet en
+            # position — og på en computer sker det tit aldrig. Beskeden var
+            # kommet, knappen fandtes bare ikke.
+            if ulaest:
+                ui.button(str(ulaest), icon='forum',
+                          on_click=planner.open_inbox)                     .props('unelevated dense no-caps size=sm')                     .classes('btn-primary shrink-0')
             ui.button(t('Skjul mig'), icon='visibility_off',
                       on_click=lambda: turn_off(planner))                 .props('flat dense no-caps size=sm')                 .classes('text-[var(--txt-3)] shrink-0')
         return
@@ -280,7 +361,34 @@ def line(planner) -> None:
             .props('flat dense no-caps size=sm') \
             .classes('text-[var(--txt-3)] shrink-0')
 
+    unøjagtig(planner)
+
     if n and chat.available():
         ui.label(t('Tryk på en båd på kortet for at skrive til den.')) \
             .classes('text-[10.5px] text-[var(--txt-3)] leading-snug '
                      'mt-1 block')
+
+
+# Under det her er positionen god nok til at vise en båd. Derover er den et
+# gæt fra nettet, ikke en måling — og så skal det stå der.
+GOD_NOK_M = 300
+
+
+def unøjagtig(planner) -> None:
+    """Sig det, hvis positionen er et gæt.
+
+    En prik på et kort ser lige sikker ud, hvad enten den er på ti meter eller
+    tre kilometer. På en computer er den som regel det sidste, og så ligger ens
+    båd et sted, man ikke er — for alle andre at se.
+    """
+    m = getattr(planner, 'pos_accuracy_m', None)
+    if not m or m <= GOD_NOK_M:
+        return
+    afstand = (t('{km} km', km=f'{m / 1000:.1f}'.replace('.', ','))
+               if m >= 1000 else t('{m} meter', m=f'{m:.0f}'))
+    with ui.element('div').classes('flex items-start gap-2 mt-1.5'):
+        ui.icon('gps_not_fixed').classes(
+            'text-[14px] text-[var(--warn)] shrink-0 mt-0.5')
+        ui.label(t('Din position er kun kendt på ±{afstand}. Det er et gæt '
+                   'fra nettet, ikke GPS — på telefonen er den på få meter.',
+                   afstand=afstand))             .classes('text-[10.5px] text-[var(--txt-3)] leading-snug')
