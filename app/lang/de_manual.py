@@ -513,12 +513,14 @@ WORDS: dict[str, str] = {
         'Die Flagge oben auf der Seite wechselt die Sprache — tippe sie an '
         'und wähle. Sie steht auch unter Einstellungen. Die Seite wird in '
         'der neuen Sprache neu geladen.',
-    'Første besøg gætter på browserens eget sprog. Derefter vinder dit '
-        'valg, og det følger med i den kopi, browseren gemmer, så det '
-        'holder til næste gang.':
-        'Beim ersten Besuch raten wir nach der Sprache des Browsers. Danach '
-        'gewinnt deine Wahl, und sie wandert in die Kopie mit, die der '
-        'Browser speichert, sodass sie bis zum nächsten Mal hält.',
+    'Første besøg følger browserens eget førstevalg af sprog — er det ikke '
+        'dansk eller tysk, får du dansk. Derefter vinder dit valg, og det '
+        'gemmes hos dig selv, så det holder, også når vi lægger en ny udgave '
+        'af Sejlplan ud.':
+        'Beim ersten Besuch folgen wir der ersten Sprachwahl des Browsers — '
+        'ist das weder Dänisch noch Deutsch, bekommst du Dänisch. Danach '
+        'gewinnt deine Wahl, und sie wird bei dir selbst gespeichert, sodass '
+        'sie hält, auch wenn wir eine neue Ausgabe von Segelplan ausrollen.',
     'Er en tekst ikke oversat endnu, står den på dansk. Det er med '
         'vilje: en halvt oversat flade er brugbar, en flade med huller i er '
         'ikke.':

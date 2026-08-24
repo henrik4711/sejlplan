@@ -36,6 +36,10 @@ LANGUAGES = {
 
 STORAGE_KEY = 'sprog'
 
+# Brugerens egen kopi. Egen nøgle, fordi sproget skal overleve, også når
+# sessionen ikke har en rute at redde.
+BROWSER_KEY = 'sejlplan_sprog'
+
 # Oversættelserne. Nøglen er den danske sætning, præcis som den står i koden.
 _TABLES: dict[str, dict[str, str]] = {}
 
@@ -84,13 +88,49 @@ def lang() -> str:
     return code if code in LANGUAGES else DA
 
 
-def set_lang(code: str) -> None:
+def set_lang(code: str, client=None) -> None:
+    """Husk sproget — både på serveren og hos brugeren selv.
+
+    Serverens sessionsfil ligger på et filsystem, der forsvinder, hver gang
+    appen bliver lagt ud på ny. Uden kopien hos brugeren ville en tysk sejler
+    finde fladen på dansk igen, hver gang vi rettede en knapfarve.
+    """
     if code not in LANGUAGES:
         return
     try:
         app.storage.user[STORAGE_KEY] = code
     except (RuntimeError, KeyError):
         pass
+    if client is not None:
+        try:
+            client.run_javascript(
+                f'try {{ localStorage.setItem("{BROWSER_KEY}", "{code}") }}'
+                f' catch (e) {{}}')
+        except Exception:
+            pass
+
+
+async def adopt_from_browser(client, header: str = '') -> None:
+    """Hent sproget fra browserens kopi, hvis serveren har glemt det.
+
+    Har serveren et sprog, vinder det: det er dét, brugeren sidst valgte i
+    den her session. Ellers spørger vi browseren, og først derefter gætter vi
+    på Accept-Language.
+    """
+    try:
+        if app.storage.user.get(STORAGE_KEY) in LANGUAGES:
+            return
+    except (RuntimeError, KeyError):
+        return
+    try:
+        await client.connected(timeout=8.0)
+        code = await client.run_javascript(
+            f'localStorage.getItem("{BROWSER_KEY}")', timeout=4.0)
+    except Exception:
+        code = None
+    if code not in LANGUAGES:
+        code = from_browser(header)
+    set_lang(code, client)
 
 
 def from_browser(header: str) -> str:
@@ -99,11 +139,11 @@ def from_browser(header: str) -> str:
     Et gæt, ikke en beslutning — brugeren kan altid vælge om, og valget vinder
     derefter.
     """
-    for part in (header or '').split(','):
-        code = part.split(';')[0].strip().lower()[:2]
-        if code in LANGUAGES:
-            return code
-    return DA
+    # Kun browserens førstevalg tæller. Kigger man hele listen igennem, får
+    # en engelsksproget browser med tysk som andetsprog fladen på tysk — og
+    # det er ikke, hvad nogen har bedt om.
+    første = (header or '').split(',')[0].split(';')[0].strip().lower()[:2]
+    return første if første in LANGUAGES else DA
 
 
 def t(text: str, **kwargs) -> str:

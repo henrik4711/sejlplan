@@ -5,9 +5,10 @@
 """
 from __future__ import annotations
 
-from nicegui import ui
+from nicegui import context, ui
 
 from .. import pwa, share, theme
+from .. import i18n
 from ..i18n import t
 from ..boats import BOATS
 from .planner import Planner
@@ -16,6 +17,16 @@ from .planner import Planner
 @ui.page('/')
 async def index(rute: str = '') -> None:
     """Forsiden. `?rute=…` åbner en rute, nogen har delt."""
+    # Sproget skal stå fast, før der bliver tegnet noget — ellers bygges
+    # fladen på ét sprog og skal skiftes ud for øjnene af brugeren.
+    klient = context.client
+    ønske = ''
+    try:
+        ønske = klient.request.headers.get('accept-language', '') or ''
+    except (AttributeError, KeyError):
+        pass
+    await i18n.adopt_from_browser(klient, ønske)
+
     ui.page_title(t('Sejlplan – find den bedste afgang'))
     theme.apply()
     pwa.head()

@@ -274,7 +274,8 @@ def _date_field(label: str, value: str, lo: date, hi: date, on_set) -> None:
 
 
 def choose_lang(code: str) -> None:
-    i18n.set_lang(code)
+    from nicegui import context
+    i18n.set_lang(code, context.client)
     # Sproget sidder i hver eneste tekst på siden. Der er ikke noget at
     # opdatere delvist — siden hentes forfra.
     ui.navigate.reload()

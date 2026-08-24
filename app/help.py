@@ -322,9 +322,10 @@ TOPICS: tuple[Topic, ...] = (
             'Flaget øverst på siden skifter sprog — tryk på det og vælg. Det '
             'står også under Indstillinger. Siden hentes forfra på det nye '
             'sprog.',
-            'Første besøg gætter på browserens eget sprog. Derefter vinder '
-            'dit valg, og det følger med i den kopi, browseren gemmer, så det '
-            'holder til næste gang.',
+            'Første besøg følger browserens eget førstevalg af sprog — er '
+            'det ikke dansk eller tysk, får du dansk. Derefter vinder dit '
+            'valg, og det gemmes hos dig selv, så det holder, også når vi '
+            'lægger en ny udgave af Sejlplan ud.',
             'Er en tekst ikke oversat endnu, står den på dansk. Det er med '
             'vilje: en halvt oversat flade er brugbar, en flade med huller i '
             'er ikke.',
