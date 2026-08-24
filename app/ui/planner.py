@@ -28,6 +28,7 @@ from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
 from ..state import Session, signature
 from . import berth
 from . import help as helpui
+from . import underway
 from . import myroutes
 from . import watch as watchui
 from .mapview import RouteMap
@@ -169,12 +170,21 @@ class Planner:
         # Hvilke afsnit i sejlplanen der staar aabne. Tomt = som de
         # starter, og de lange starter lukkede.
         self._sections: dict[str, bool] = {}
+        # Undervejs: bådens egen position, mens man sejler. Den bliver her og
+        # gemmes ikke — hverken på serveren eller nogen andre steder.
+        self.underway = False
+        self.progress = None
+        self.pos_error = ''
         self.search_input: ui.input | None = None
         # Baggrundsopgaver skal opdatere netop den her browser. NiceGUI's
         # underforståede klient er ikke sat, når en opgave vågner op igen, så
         # vi holder fast i vores egen og går ind i den, før vi rører fladen.
         self.client = ui.context.client
         self.s.client = self.client
+        # Positionen kommer fra browseren som en begivenhed. Den lyttes der
+        # efter én gang — ikke hver gang planen tegnes om.
+        ui.on('pos', self._position)
+        ui.on('pos-fejl', self._position_failed)
 
     # ════════════════════════════════════════════════════════════════
     # Opbygning
@@ -969,6 +979,7 @@ class Planner:
                             .props('outline dense no-caps') \
                             .classes('text-[var(--txt-2)]')
 
+                underway.bar(self)
                 self._plan_overview(p, boat, route)
                 self._plan_warnings(p, boat)
                 self._plan_days(p)
@@ -1012,6 +1023,25 @@ class Planner:
                 ui.label(hint).classes('text-[11px] text-[var(--txt-3)] tnum')
         row.on('click', lambda _: self._toggle_section(key, standard))
         return is_open
+
+    # ── Undervejs ───────────────────────────────────────────────────
+    def start_underway(self) -> None:
+        underway.start(self)
+
+    def stop_underway(self) -> None:
+        underway.stop(self)
+
+    def _position(self, e) -> None:
+        d = e.args or {}
+        try:
+            underway.position(self, float(d['lat']), float(d['lon']))
+        except (KeyError, TypeError, ValueError):
+            pass
+
+    def _position_failed(self, e) -> None:
+        self.pos_error = str(e.args or 'Kunne ikke finde positionen.')
+        self.progress = None
+        self.plan_view.refresh()
 
     def _outlook(self, p):
         """Hvad prognosen siger om dagene, efter man er fremme.
