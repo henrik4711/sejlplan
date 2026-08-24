@@ -52,13 +52,21 @@ havnelods.dk på position), **manual og hjælpebobler** fra ét sæt tekster.
 
 ## Hvad der mangler
 
-### 1. Der er ingen tests
+### 1. Der er næsten ingen tests
 
-`find . -name "test_*.py"` giver ingenting. Det er den største risiko i
-projektet. Fem talfejl er fundet og rettet undervejs — snitfarten talte timer
-to gange, båden sejlede fem knob lige op i vinden, sejltiden passede ikke med
-farten, planen påstod en ankomst den ikke havde, og havnetjekket kasserede de
-nærmeste havne. Alle fem sad i kode, der så rigtig ud.
+`tests/test_dokumenter.py` er den eneste. Den findes, fordi den offline
+sejlplan var brudt i stilhed: `warnings()` giver Note-objekter, ikke tekst, så
+hver plan med en advarsel rejste AttributeError, når den skulle lægges i
+telefonen — og planlæggeren sluger den fejl med vilje. Knappen virkede,
+dokumentet blev bare aldrig gemt. Hele grunden til at have en PWA var væk, og
+ingen kunne se det.
+
+Det er stadig den største risiko i projektet. Seks talfejl er fundet og rettet
+undervejs — snitfarten talte timer to gange, båden sejlede fem knob lige op i
+vinden, sejltiden passede ikke med farten, planen påstod en ankomst den ikke
+havde, havnetjekket kasserede de nærmeste havne, og en dom blev slået op i en
+tabel med en oversat nøgle, så fladen ville vælte på ethvert andet sprog end
+dansk. Alle seks sad i kode, der så rigtig ud.
 
 ### 2. Strømmen er for svag
 
@@ -91,11 +99,28 @@ er havne.
 Ingen betingelser, ingen privatlivspolitik. Skal på plads før den første
 betaling. Og havnelods.dk bør have besked om, at vi linker til dem.
 
-### 7. Motorbåde og sprog
+### 7. Motorbåde
 
-Bådregistret er kun sejlbåde. Fladen er kun dansk — oversættelse er en
-beslutning om markeder, ikke om kode: sytten hjælpeemner, en manual og hele
-fladen skal så vedligeholdes i to sprog.
+Bådregistret er kun sejlbåde. Der mangler omkring hundrede motorbåde, før en
+motorbådsfører kan finde sin egen.
+
+### 8. Sprog
+
+Dansk og tysk, 573 tekster, alle oversat: fladen, de 24 hjælpeemner, manualen,
+sejlplanens egen tekst, den offline plan, vejrvagtens mails og
+skippervurderingen. `python tools/check_translations.py` siger, hvad der
+mangler, når en dansk sætning bliver rettet.
+
+Oversat, ikke maskinoversat. Sejldøgn er Etmal, ikke Segeltag. Beauforts skala
+har de navne, der står i en tysk farvandsudsigt. Sætninger er bygget hele, for
+tysk bøjer efter køn og kasus: "halvvind" er "halber Wind" alene, men "bei
+halbem Wind" inde i en sætning, og de to former slås op hver for sig.
+
+Det, der ikke oversættes: punkternes navne. Lægger man "Ud for Køge" ind på
+dansk og skifter til tysk, står der stadig "Ud for Køge" — det er gemt tekst,
+ikke en etikette. Et nyt punkt får sit tyske navn.
+
+Et tredje sprog koster nu kun ordene: `app/lang/` og en linje i `LANGUAGES`.
 
 ---
 
