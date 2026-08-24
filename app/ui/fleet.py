@@ -236,6 +236,29 @@ def line(planner) -> None:
     n = len(planner.fleet)
     ulaest = chat.unread(mark()) if chat.available() else 0
 
+    # Uden position er man ikke synlig for nogen, uanset hvad der står. Første
+    # udgave skrev "Du er synlig" og "ingen andre både i nærheden", også når
+    # telefonen aldrig havde svaret — og så tror man, funktionen virker.
+    if not planner.last_pos:
+        with ui.element('div').classes(
+                'card px-3.5 py-2.5 mt-3 flex items-center gap-3'):
+            ui.icon('location_searching').classes(
+                'text-[18px] text-[var(--accent)] shrink-0')
+            with ui.element('div').classes('min-w-0 flex-1'):
+                if planner.pos_error:
+                    ui.label(planner.pos_error).classes(
+                        'text-[12px] text-[var(--stop)] leading-snug block')
+                else:
+                    ui.label(t('Venter på din position…')).classes(
+                        'text-[12.5px] font-medium block')
+                    ui.label(t('Du er ikke synlig for andre, før telefonen '
+                               'har fundet dig. Sig ja til position, hvis '
+                               'browseren spørger.'))                         .classes('text-[11px] text-[var(--txt-3)] '
+                                 'leading-snug block')
+            ui.button(t('Skjul mig'), icon='visibility_off',
+                      on_click=lambda: turn_off(planner))                 .props('flat dense no-caps size=sm')                 .classes('text-[var(--txt-3)] shrink-0')
+        return
+
     with ui.element('div').classes(
             'card px-3.5 py-2.5 mt-3 flex items-center gap-3'):
         ui.icon('sailing').classes('text-[18px] text-[var(--accent)] shrink-0')

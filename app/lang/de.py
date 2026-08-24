@@ -262,6 +262,41 @@ WORDS: dict[str, str] = {
     'Du er ikke længere synlig, og din position er slettet.':
         'Du bist nicht mehr sichtbar, und deine Position wurde gelöscht.',
 
+    # ── Beskeder ────────────────────────────────────────────────────
+    'Beskeder': 'Nachrichten',
+    'Skriv en kort besked…': 'Kurze Nachricht schreiben…',
+    'Send': 'Senden',
+    'Anmeld': 'Melden',
+    'Bloker': 'Blockieren',
+    'Bloker denne båd': 'Dieses Boot blockieren',
+    'er blokeret': 'ist blockiert',
+    'Ingen beskeder': 'Keine Nachrichten',
+    'Ingen beskeder endnu. Skriv den første.':
+        'Noch keine Nachrichten. Schreib die erste.',
+    'Beskeder forsvinder efter et døgn.':
+        'Nachrichten verschwinden nach einem Tag.',
+    'Tryk på en båd på kortet for at skrive til den.':
+        'Tippe auf ein Boot auf der Karte, um ihm zu schreiben.',
+    'I kan ikke længere skrive til hinanden, og I kan '
+    'ikke se hinanden på kortet. Det gælder begge veje.':
+        'Ihr könnt einander nicht mehr schreiben und seht euch nicht mehr auf '
+        'der Karte. Das gilt in beide Richtungen.',
+    'Beskeden er anmeldt. Vi gemmer den, så den kan ses '
+    'efter.':
+        'Die Nachricht wurde gemeldet. Wir bewahren sie auf, damit sie geprüft '
+        'werden kann.',
+    'Venter på din position…': 'Warte auf deine Position…',
+    'Du er ikke synlig for andre, før telefonen '
+    'har fundet dig. Sig ja til position, hvis '
+    'browseren spørger.':
+        'Du bist für andere nicht sichtbar, bevor das Telefon dich gefunden '
+        'hat. Erlaube den Standort, wenn der Browser fragt.',
+    'Meld plads': 'Platz melden',
+    'Havnene omkring dig, nærmeste først. Vælg den, du '
+    'ligger i.':
+        'Die Häfen um dich herum, der nächste zuerst. Wähle den, in dem du '
+        'liegst.',
+
     # ── Enheder og småord ───────────────────────────────────────────
     'sømil': 'Seemeilen',
     'knob': 'Knoten',

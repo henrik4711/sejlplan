@@ -244,6 +244,91 @@ TOPICS: tuple[Topic, ...] = (
             'Ligger du i en havn, så meld. Det koster dig ingenting og er det '
             'eneste, den næste ikke kan finde ud af på egen hånd.',
         )),
+    # ── Undervejs og de andre ───────────────────────────────────────
+    Topic(
+        'undervejs', 'Undervejs: foran eller bagud?', group='Undervejs',
+        short='Telefonens position mod planens — hvornår er du så fremme?',
+        body=(
+            'Planen bliver lagt i havnen. Undervejs er spørgsmålet et andet: '
+            'er jeg foran eller bagud, og hvornår er jeg så fremme i '
+            'virkeligheden. Tryk "Jeg er undervejs" i sejlplanen.',
+            'Vi finder det punkt på ruten, du er tættest på, og slår op i '
+            'planens eget spor, hvor langt du skulle have været på det '
+            'klokkeslæt. Ligger du mere end tre sømil fra ruten, siger vi '
+            'ingenting — så betyder et forspring heller ingenting.',
+            'Positionen bliver på din telefon og i den ene beregning. Den '
+            'gemmes ikke, og ingen andre kan se den. At vise sig for andre er '
+            'en anden funktion, man selv skal tænde.',
+            'På iPhone virker positionen kun, mens skærmen er tændt og '
+            'Sejlplan er fremme. Låser du telefonen, holder den op. Det er '
+            'iOS, der bestemmer det.',
+        )),
+    Topic(
+        'andre-baade', 'Se andre både', group='Undervejs',
+        short='Usynlig til du selv tænder — og du ser kun dem, der også har.',
+        body=(
+            'Tryk "Vis min båd for andre" og vælg et bådnavn. Så kan andre, '
+            'der også er synlige, se hvor du er, og du kan se dem. Kun jer, '
+            'der har slået det til.',
+            'Du ser kun andre, mens du selv er synlig. Ingen kan ligge og '
+            'kigge uden at være der selv. Slukker du, forsvinder du fra deres '
+            'kort og de fra dit i samme øjeblik — og din position bliver '
+            'slettet, ikke skjult.',
+            'Positionen udløber af sig selv efter en halv time uden '
+            'opdatering. Der gemmes ingen historik: hver ny position skriver '
+            'den forrige over, så ingen kan slå op, hvor du var i går.',
+            'Skriv bådens navn, ikke dit eget — det er dét, de andre ser. Ser '
+            'du ingen både, er der ingen inden for tres sømil, der har tændt.',
+        )),
+    Topic(
+        'beskeder', 'Beskeder mellem både', group='Undervejs',
+        short='Tryk på en båd på kortet og skriv. Kun mellem synlige både.',
+        body=(
+            'Det er ikke en indbakke med fremmede og ikke en opslagstavle — '
+            'det er en samtale mellem to, der ligger i det samme farvand lige '
+            'nu, og som begge har valgt at være synlige.',
+            'Har nogen skrevet, står der en prik på båden på kortet og et tal '
+            'i panelet. Beskeder forsvinder efter et døgn.',
+            'Bloker sidder i samtalens menu og virker begge veje med det '
+            'samme: I kan hverken skrive til hinanden eller se hinanden på '
+            'kortet. Anmeld sidder på selve beskeden — anmelder du en, gemmer '
+            'vi teksten, for ellers ville den dø efter et døgn, og så stod ord '
+            'mod ord.',
+            'Skriver du tre gange til en, der ikke svarer, må du vente. Det er '
+            'med vilje.',
+        )),
+
+    Topic(
+        'vejrvagt', 'Vejrvagt', group='Gem og tag med',
+        short='Sig til, når vejret er der — også om fjorten dage.',
+        body=(
+            'Skal turen først gå om tre uger, er der ingen prognose at kigge '
+            'i endnu, og så skal man ikke sidde og trykke opdater hver dag. '
+            'Læg en vagt på ruten, og få én mail, når der er et vindue.',
+            'Vagten venter, til prognosen når frem til dine datoer, og regner '
+            'så turen igennem med din egen båd og dine egne grænser. Vi '
+            'skriver kun, hvis du også kan komme hjem igen — er du blæst inde '
+            'i tre døgn på destinationen, er det ikke en gevinst.',
+            'Én vagt giver én besked. Ikke en strøm af mails, hver gang '
+            'modellen flytter sig en halv knob. Kommer beskeden, er vagten '
+            'brugt, og du lægger en ny.',
+            'Vi skriver aldrig til en adresse, der ikke selv har bekræftet '
+            'den, og hver mail bærer sit eget link til at stoppe.',
+        )),
+    Topic(
+        'sprog', 'Sprog', group='Gem og tag med',
+        short='Dansk og tysk. Vælges under Indstillinger.',
+        body=(
+            'Sproget står under Indstillinger — tandhjulet øverst — under '
+            'overskriften Sprog. Vælg, og siden hentes forfra på det nye '
+            'sprog.',
+            'Første besøg gætter på browserens eget sprog. Derefter vinder '
+            'dit valg, og det følger med i den kopi, browseren gemmer, så det '
+            'holder til næste gang.',
+            'Er en tekst ikke oversat endnu, står den på dansk. Det er med '
+            'vilje: en halvt oversat flade er brugbar, en flade med huller i '
+            'er ikke.',
+        )),
     Topic(
         'mine-ruter', 'Mine ruter', group='Gem og tag med',
         short='Gem turen, og hent den frem igen, når prognosen når så langt.',
