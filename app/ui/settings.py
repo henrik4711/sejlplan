@@ -263,13 +263,39 @@ def _date_field(label: str, value: str, lo: date, hi: date, on_set) -> None:
         field.on('click', menu.open)
 
 
+def choose_lang(code: str) -> None:
+    i18n.set_lang(code)
+    # Sproget sidder i hver eneste tekst på siden. Der er ikke noget at
+    # opdatere delvist — siden hentes forfra.
+    ui.navigate.reload()
+
+
+def language_button() -> None:
+    """Flaget i toppen.
+
+    Sproget lå kun nede i indstillingsdialogen under overskriften "Sprog" — på
+    dansk. Havde man ramt et fremmed sprog, skulle man altså finde et ord, man
+    ikke kunne læse, inde bag et tandhjul. Et flag kan læses uanset sprog, og
+    det står, hvor man kigger efter det.
+    """
+    _, flag = i18n.LANGUAGES.get(i18n.lang(), ('Dansk', '🇩🇰'))
+    with ui.button(on_click=None).props('flat round dense')             .classes('text-[15px]').tooltip(t('Sprog / Sprache')):
+        ui.label(flag).classes('text-[16px] leading-none')
+        with ui.menu().classes('min-w-[170px]'):
+            for code, (name, f) in i18n.LANGUAGES.items():
+                valgt = code == i18n.lang()
+                with ui.menu_item(on_click=lambda _=None, c=code:
+                                  choose_lang(c)).classes('items-center'):
+                    ui.label(f).classes('text-[15px] mr-2')
+                    ui.label(name).classes('text-[13px] flex-1')
+                    if valgt:
+                        ui.icon('check').classes(
+                            'text-[15px] text-[var(--accent)] ml-2')
+
+
 def _language_row() -> None:
     """Vælg sprog. Fladen tegnes om med det samme, så man kan se det virke."""
-    def choose(code: str) -> None:
-        i18n.set_lang(code)
-        # Sproget sidder i hver eneste tekst på siden. Der er ikke noget at
-        # opdatere delvist — siden hentes forfra.
-        ui.navigate.reload()
+    choose = choose_lang
 
     with ui.element('div').classes('grid grid-cols-2 gap-2'):
         for code, (name, flag) in i18n.LANGUAGES.items():

@@ -32,6 +32,7 @@ from . import talk
 from . import help as helpui
 from . import underway
 from . import myroutes
+from . import settings as settingsui
 from . import watch as watchui
 from .mapview import RouteMap
 from ..i18n import t
@@ -272,6 +273,7 @@ class Planner:
             # Båden stod også her som en knap, der åbnede den samme dialog som
             # tandhjulet. To veje til det samme sted er én for meget — og båden
             # står nu tydeligt i panelets "Turen"-liste.
+            settingsui.language_button()
             ui.button(icon='menu_book', on_click=helpui.manual_dialog) \
                 .props('flat round dense').tooltip(t('Manual og hjælp'))
             ui.button(icon='bookmarks', on_click=self._open_routes) \

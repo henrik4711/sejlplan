@@ -13,7 +13,7 @@ from html import escape as esc
 from nicegui import ui
 
 from .. import help as helptext
-from ..i18n import t
+from ..i18n import lang, t
 
 
 def dot(topic_id: str) -> None:
@@ -37,12 +37,12 @@ def dot(topic_id: str) -> None:
     with btn:
         with ui.menu().classes('help-bubble'):
             with ui.element('div').classes('px-4 py-3.5 max-w-[330px]'):
-                ui.label(topic.title).classes(
+                ui.label(t(topic.title)).classes(
                     'text-[13.5px] font-bold block mb-1')
-                ui.label(topic.short).classes(
+                ui.label(t(topic.short)).classes(
                     'text-[12.5px] text-[var(--txt-2)] leading-snug block mb-2')
                 for para in topic.body:
-                    ui.label(para).classes(
+                    ui.label(t(para)).classes(
                         'text-[12px] text-[var(--txt-3)] leading-relaxed '
                         'block mb-1.5 last:mb-0')
 
@@ -71,17 +71,17 @@ def manual_dialog() -> None:
                     ui.html(f'<span class="section-label">{esc(group)}</span>')
                 for emne in topics:
                     with ui.element('div').classes('card px-4 py-3.5 mt-2 mb-2'):
-                        ui.label(emne.title).classes(
+                        ui.label(t(emne.title)).classes(
                             'text-[14px] font-bold block mb-0.5')
-                        ui.label(emne.short).classes(
+                        ui.label(t(emne.short)).classes(
                             'text-[12.5px] text-[var(--accent)] leading-snug '
                             'block mb-2')
                         for para in emne.body:
-                            ui.label(para).classes(
+                            ui.label(t(para)).classes(
                                 'text-[12.5px] text-[var(--txt-2)] '
                                 'leading-relaxed block mb-2 last:mb-0')
             ui.html('<div class="hairline mt-4 mb-3"></div>')
-            ui.label(helptext.DISCLAIMER).classes(
+            ui.label(t(helptext.DISCLAIMER)).classes(
                 'text-[11.5px] text-[var(--txt-3)] leading-relaxed block')
 
     dialog.open()
@@ -131,26 +131,30 @@ footer { margin-top:40px; padding-top:16px; border-top:1px solid var(--line);
 def document() -> str:
     """Manualen som én fil, der kan stå alene."""
     stamp = datetime.now()
+    titel = t('Sejlplan')
     parts = ['<div class="wrap"><header>'
-             '<div class="eyebrow">Manual</div><h1>Sejlplan</h1>'
-             '<p class="lead">Find den bedste afgang, og tag sejlplanen med '
-             'til søs. Her står, hvad tallene betyder, og hvad du selv skal '
-             'tage stilling til.</p></header>']
+             f'<div class="eyebrow">{esc(t("Manual"))}</div>'
+             f'<h1>{esc(titel)}</h1>'
+             f'<p class="lead">{esc(t("Find den bedste afgang, og tag "
+                                      "sejlplanen med til søs. Her står, hvad "
+                                      "tallene betyder, og hvad du selv skal "
+                                      "tage stilling til."))}</p></header>']
 
     for group, topics in helptext.groups():
         if group:
-            parts.append(f'<h2>{esc(group)}</h2>')
+            parts.append(f'<h2>{esc(t(group))}</h2>')
         for emne in topics:
-            parts.append(f'<h3>{esc(emne.title)}</h3>'
-                         f'<p class="short">{esc(emne.short)}</p>')
-            parts += [f'<p>{esc(para)}</p>' for para in emne.body]
+            parts.append(f'<h3>{esc(t(emne.title))}</h3>'
+                         f'<p class="short">{esc(t(emne.short))}</p>')
+            parts += [f'<p>{esc(t(para))}</p>' for para in emne.body]
 
-    parts.append(f'<footer>{esc(helptext.DISCLAIMER)}<br>'
-                 f'Hentet {stamp:%d. %B %Y}.</footer></div>')
+    parts.append(f'<footer>{esc(t(helptext.DISCLAIMER))}<br>'
+                 f'{esc(t("Hentet"))} {stamp:%d.%m.%Y}.</footer></div>')
 
-    return ('<!doctype html><html lang="da"><head><meta charset="utf-8">'
+    return (f'<!doctype html><html lang="{lang()}"><head>'
+            '<meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<meta name="color-scheme" content="light dark">'
-            '<title>Sejlplan — manual</title>'
+            f'<title>{esc(titel)} — {esc(t("Manual"))}</title>'
             f'<style>{CSS}</style></head><body>'
             + ''.join(parts) + '</body></html>')

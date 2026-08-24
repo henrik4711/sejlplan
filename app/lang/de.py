@@ -311,4 +311,23 @@ WORDS: dict[str, str] = {
     'punkter': 'Punkte',
     'motor': 'Motor',
     'i alt': 'insgesamt',
+
+    # ── Manualens ramme og småting ──────────────────────────────────
+    'Manual': 'Handbuch',
+    'Hentet': 'Abgerufen',
+    'Sprog / Sprache': 'Sprache',
+    'Find den bedste afgang, og tag sejlplanen med til søs. Her står, hvad '
+    'tallene betyder, og hvad du selv skal tage stilling til.':
+        'Finde die beste Abfahrt und nimm den Segelplan mit an Bord. Hier '
+        'steht, was die Zahlen bedeuten und worüber du selbst entscheiden '
+        'musst.',
+    'sejldøgn': 'Etmal',
+    'ben': 'Etappe',
+    'Ingen havne i nærheden': 'Keine Häfen in der Nähe',
+    'Vi ved ikke, hvor du er. Slå "Jeg er undervejs" til, eller læg en rute '
+    'først.':
+        'Wir wissen nicht, wo du bist. Schalte „Ich bin unterwegs“ ein oder '
+        'lege zuerst eine Route.',
+    'Beskeden findes ikke længere.': 'Die Nachricht gibt es nicht mehr.',
+    'Kunne ikke sendes': 'Konnte nicht gesendet werden',
 }

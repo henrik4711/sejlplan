@@ -317,10 +317,10 @@ TOPICS: tuple[Topic, ...] = (
         )),
     Topic(
         'sprog', 'Sprog', group='Gem og tag med',
-        short='Dansk og tysk. Vælges under Indstillinger.',
+        short='Dansk og tysk. Flaget i toppen skifter.',
         body=(
-            'Sproget står under Indstillinger — tandhjulet øverst — under '
-            'overskriften Sprog. Vælg, og siden hentes forfra på det nye '
+            'Flaget øverst på siden skifter sprog — tryk på det og vælg. Det '
+            'står også under Indstillinger. Siden hentes forfra på det nye '
             'sprog.',
             'Første besøg gætter på browserens eget sprog. Derefter vinder '
             'dit valg, og det følger med i den kopi, browseren gemmer, så det '
