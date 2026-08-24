@@ -235,8 +235,9 @@ TOPICS: tuple[Topic, ...] = (
             'en plads tilbage ved ydermolen klokken fire, ved kun den, der '
             'ligger der klokken to.',
             'Derfor kan man melde: god plads, få pladser, eller fuld. Det tager '
-            'to sekunder, det er anonymt, og der gemmes hverken navn eller '
-            'position — kun havnen, svaret og hvornår.',
+            'to sekunder, det er anonymt, og der gemmes kun havnen, svaret og '
+            'hvornår. Der er ikke noget at skrive — og dermed heller ikke et '
+            'sted, hvor nogen kan skrive noget til nogen.',
             'Alderen står altid med, for den er halvdelen af oplysningen. '
             '"Fuld" for tre timer siden er noget andet end "fuld" i går aftes. '
             'Efter halvandet døgn forsvinder meldingen af sig selv.',

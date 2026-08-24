@@ -11,9 +11,12 @@ selv hvis kun én person svarer.
 
 Tre valg, der følger af det:
 
-**Ingen fritekst som hovedsag.** Et afkrydsningsfelt kan ikke bruges til at
-skændes, sælge eller chikanere, og så skal ingen moderere det. Der er plads til
-en kort bemærkning, men den er frivillig og kort.
+**Ingen fritekst.** Tre knapper kan ikke bruges til at skændes, sælge eller
+chikanere, og så skal ingen moderere noget. Der var et bemærkningsfelt et
+øjeblik; med det fandtes der ét sted i Sejlplan, hvor én bruger kunne skrive
+noget, en anden læste — og så følger anmeldelse, blokering og support med.
+Feltet er væk. `note` bliver stående i tabellen, så gamle rækker kan læses, men
+den skrives aldrig mere.
 
 **Ingen konti.** Man melder fra sin egen browser, og browseren husker, at det
 var den. Nok til at man kan slette sin egen melding og til at holde igen med
@@ -51,7 +54,6 @@ KEEP_DAYS = 7
 # for lidt til at fylde noget med.
 MAX_PER_DAY = 12
 
-NOTE_MAX = 140
 
 
 @dataclass
@@ -133,7 +135,7 @@ def _row(r: sqlite3.Row) -> Report:
                   when=datetime.fromisoformat(r['when_at']), author=r['author'])
 
 
-def add(lat: float, lon: float, name: str, level: str, note: str,
+def add(lat: float, lon: float, name: str, level: str,
         author: str) -> Report | None:
     """Læg en melding. Falsk hvis browseren har meldt rigeligt i dag."""
     if level not in LEVELS:
@@ -142,8 +144,7 @@ def add(lat: float, lon: float, name: str, level: str, note: str,
         return None
 
     rep = Report(id=secrets.token_urlsafe(12), harbour=key_of(lat, lon),
-                 name=name.strip()[:80], level=level,
-                 note=(note or '').strip()[:NOTE_MAX],
+                 name=name.strip()[:80], level=level, note='',
                  when=datetime.now(), author=author)
     with _open() as con:
         con.execute('INSERT INTO reports (id,harbour,name,level,note,when_at,'

@@ -2,7 +2,12 @@
 
 Den, der ligger i Marstal klokken to, ved noget, den der kommer klokken seks
 ikke kan regne sig frem til. Det tager to sekunder at give videre, og det er
-hele designet: tre knapper, ingen konto, ingen indbakke.
+hele designet: tre knapper, ingen konto, ingen indbakke — og ingen fritekst.
+
+Der var et bemærkningsfelt et øjeblik. Det er væk igen, og det var det rigtige:
+med det fandtes der ét sted i Sejlplan, hvor én bruger kunne skrive noget, en
+anden læste. Så snart det sted findes, skal nogen kunne anmelde, og nogen skal
+moderere. Uden feltet findes problemet ikke.
 
 Meldingerne vises, hvor havnene i forvejen står — i listen over havne undervejs
 og ved overnatningerne i planen. Alderen står altid med, for den er halvdelen af
@@ -58,9 +63,6 @@ def line(rep) -> None:
         with ui.element('div').classes('min-w-0'):
             ui.label(f'{rep.label} — meldt {rep.age}').classes(
                 'text-[12px] block').style(f'color: {rep.tone}')
-            if rep.note:
-                ui.label(f'”{rep.note}”').classes(
-                    'text-[11.5px] text-[var(--txt-3)] leading-snug block')
 
 
 def button(harbour, on_done=None, small: bool = True) -> None:
@@ -79,7 +81,6 @@ def button(harbour, on_done=None, small: bool = True) -> None:
 def dialog(harbour, on_done=None) -> None:
     """Tre knapper og en valgfri bemærkning. Ikke mere."""
     author = author_id()
-    note = {'text': ''}
 
     with ui.dialog() as dlg, ui.card().classes(
             'w-full max-w-[420px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
@@ -104,18 +105,14 @@ def dialog(harbour, on_done=None) -> None:
                         ui.label(label).classes(
                             'text-[12px] font-medium block')
                     card.on('click', lambda _, lv=level: _send(
-                        harbour, lv, note['text'], author, dlg, on_done))
+                        harbour, lv, author, dlg, on_done))
 
-            field = ui.input(placeholder='Bemærkning (valgfrit) — fx "plads ved '
-                                         'ydermolen"') \
-                .props(f'outlined dense maxlength={reports.NOTE_MAX}') \
-                .classes('w-full mt-3')
-            field.on_value_change(lambda e: note.update(text=e.value or ''))
-
-            ui.label('Meldingen er anonym. Vi gemmer hverken navn eller '
-                     'position — kun havnen, svaret og hvornår.') \
+            ui.label('Meldingen er anonym, og der er ikke andet at skrive: '
+                     'kun havnen, svaret og hvornår. Så findes der ikke et '
+                     'sted i Sejlplan, hvor nogen kan skrive noget til nogen '
+                     '— og dermed heller ikke noget at moderere.') \
                 .classes('text-[11px] text-[var(--txt-3)] leading-snug '
-                         'mt-2 block')
+                         'mt-3 block')
 
         with ui.row().classes('w-full items-center px-5 py-4 no-wrap'):
             ui.element('div').classes('flex-1')
@@ -125,9 +122,8 @@ def dialog(harbour, on_done=None) -> None:
     dlg.open()
 
 
-def _send(harbour, level: str, note: str, author: str, dlg, on_done) -> None:
-    rep = reports.add(harbour.lat, harbour.lon, harbour.name, level,
-                      note, author)
+def _send(harbour, level: str, author: str, dlg, on_done) -> None:
+    rep = reports.add(harbour.lat, harbour.lon, harbour.name, level, author)
     dlg.close()
     if rep is None:
         ui.notify('Du har meldt rigeligt i dag. Prøv igen i morgen.',
