@@ -35,7 +35,7 @@ from . import myroutes
 from . import settings as settingsui
 from . import watch as watchui
 from .mapview import RouteMap
-from ..i18n import t
+from ..i18n import plural, t
 
 # "Afgang" er også en havns rolle i ruten. Trinnet hedder derfor
 # "Afgangstid" — det er dét, man vælger dér.
@@ -315,8 +315,8 @@ class Planner:
             with ui.element('div').classes('seg'):
                 self.style_btns = {}
                 for key, label, tip in (
-                        ('chart', t('Søkort'), 'Havkort med dybdeforhold'),
-                        ('street', t('Landkort'), 'Almindeligt kort med veje og byer')):
+                        ('chart', t('Søkort'), t('Havkort med dybdeforhold')),
+                        ('street', t('Landkort'), t('Almindeligt kort med veje og byer'))):
                     item = ui.element('div').classes('seg-item')
                     with item:
                         ui.label(label)
@@ -332,21 +332,21 @@ class Planner:
             with ui.element('div').classes('map-stack'):
                 self.harbour_btn = self._map_button(
                     'anchor', t('Havne'), self._toggle_harbours, on=True,
-                    tip='Vis alle lystbådehavne — klik på en for at lægge den i ruten')
+                    tip=t('Vis alle lystbådehavne — klik på en for at lægge den i ruten'))
                 self.seamark_btn = self._map_button(
                     'waves', t('Sømærker'), self._toggle_seamarks,
-                    tip='Bøjer, fyr og sejlløb fra OpenSeaMap')
+                    tip=t('Bøjer, fyr og sejlløb fra OpenSeaMap'))
                 self._map_button(
                     'zoom_out_map', t('Hele ruten'),
                     lambda: self.map and self.map.fit(self.s.route),
-                    tip='Zoom ud, så hele ruten er i billedet')
+                    tip=t('Zoom ud, så hele ruten er i billedet'))
                 # Ligger man i en havn, er det dén, man ved noget om — den
                 # behøver ikke stå på den rute, man har lagt.
                 if berth.available():
                     self._map_button(
                         'campaign', t('Meld plads'),
                         lambda: berth.nearby_dialog(self),
-                        tip='Meld om der er plads i en havn omkring dig')
+                        tip=t('Meld om der er plads i en havn omkring dig'))
 
     @staticmethod
     def _map_button(icon: str, label: str, on_click, on: bool = False,
@@ -380,7 +380,8 @@ class Planner:
         on = self.map.toggle_seamarks()
         self.seamark_btn.classes(add='map-btn--on' if on else '',
                                  remove='' if on else 'map-btn--on')
-        ui.notify('Søkortsymboler ' + ('vist' if on else 'skjult'), position='bottom')
+        ui.notify(t('Søkortsymboler vist') if on
+                  else t('Søkortsymboler skjult'), position='bottom')
 
     def _toggle_harbours(self) -> None:
         if not self.map:
@@ -388,8 +389,9 @@ class Planner:
         on = self.map.toggle_harbours()
         self.harbour_btn.classes(add='map-btn--on' if on else '',
                                  remove='' if on else 'map-btn--on')
-        ui.notify('Havnene vises, når du zoomer ind. Klik på en for at lægge '
-                  'den i ruten.' if on else 'Havnene er skjult', position='bottom')
+        ui.notify(t('Havnene vises, når du zoomer ind. Klik på en for at '
+                    'lægge den i ruten.') if on else t('Havnene er skjult'),
+                  position='bottom')
 
     def _map_overlay(self) -> None:
         """Diskret hjælpetekst nederst på kortet."""
@@ -404,12 +406,13 @@ class Planner:
             ui.html(
                 '<div class="float px-4 py-2 text-[12.5px] text-[var(--txt-2)] '
                 'flex items-center gap-2.5">'
-                '<span class="spinner-dot"></span>Lægger ruten udenom land…</div>')
+                '<span class="spinner-dot"></span>'
+                + esc(t('Lægger ruten udenom land…')) + '</div>')
             return
         if len(self.s.waypoints) >= 2:
             return
-        text = ('Klik på kortet, eller søg efter en havn, for at sætte afgangshavnen'
-                if not self.s.waypoints else 'Klik igen for at sætte destinationen')
+        text = (t('Klik på kortet, eller søg efter en havn, for at sætte afgangshavnen')
+                if not self.s.waypoints else t('Klik igen for at sætte destinationen'))
         ui.html(
             f'<div class="float px-4 py-2 text-[12.5px] text-[var(--txt-2)] '
             f'flex items-center gap-2.5">'
@@ -454,10 +457,10 @@ class Planner:
     def _step_why(num: int) -> str:
         """Hvorfor trinnet ikke kan bruges endnu."""
         if num == 2:
-            return ('Læg først en rute med mindst to punkter — så kan vi '
-                    'regne afgangstider ud.')
-        return ('Tryk Find bedste afgangstider først, og vælg en afgang. '
-                'Så skriver vi sejlplanen.')
+            return t('Læg først en rute med mindst to punkter — så kan vi '
+                     'regne afgangstider ud.')
+        return t('Tryk Find bedste afgangstider først, og vælg en afgang. '
+                 'Så skriver vi sejlplanen.')
 
     def _go_to_step(self, num: int) -> None:
         if not self._step_unlocked(num):
@@ -511,14 +514,15 @@ class Planner:
         if self._searching:
             with ui.row().classes('items-center gap-2 px-2 py-2'):
                 ui.spinner(size='16px').classes('text-[var(--accent)]')
-                ui.label('Søger…').classes('text-[12.5px] text-[var(--txt-3)]')
+                ui.label(t('Søger…')).classes('text-[12.5px] text-[var(--txt-3)]')
             return
 
         if self._no_hits:
             with ui.element('div').classes(
                     'card px-4 py-3 mb-3 text-[12.5px] text-[var(--txt-3)] leading-snug'):
-                ui.label(f'Ingen steder hedder "{self._no_hits}". Prøv et andet '
-                         f'navn, eller tast en position som 55.69, 12.60.')
+                ui.label(t('Ingen steder hedder "{navn}". Prøv et andet '
+                           'navn, eller tast en position som 55.69, 12.60.',
+                           navn=self._no_hits))
             return
 
         if not self._suggestions:
@@ -607,9 +611,10 @@ class Planner:
         steps = [s for s in route.steps if s.leg == i]
         crs = steps[0].course if steps else 0
 
-        text = f'{nm(dist)} sømil · kurs {crs:.0f}° {compass(crs)}'
+        text = t('{sm} sømil · kurs {grader}° {retning}', sm=nm(dist),
+                 grader=f'{crs:.0f}', retning=compass(crs))
         if self.s.route_ready and dist > direct + 0.6:
-            text += f' · {nm(dist - direct)} sm udenom land'
+            text += ' · ' + t('{sm} sm udenom land', sm=nm(dist - direct))
         with ui.element('div').classes('leg'):
             ui.html('<div class="leg-rule"></div>')
             ui.label(text).classes('tnum')
@@ -618,8 +623,9 @@ class Planner:
         with ui.element('div').classes('empty'):
             ui.icon('explore').classes('text-[42px] text-[var(--accent)] opacity-45 mb-2')
             ui.label(t('Læg din rute')).classes('empty-title')
-            ui.label('Søg efter en havn foroven, klik direkte på kortet, eller slå '
-                     'havnelaget til og vælg en havn. Du skal bruge mindst to punkter.') \
+            ui.label(t('Søg efter en havn foroven, klik direkte på kortet, '
+                       'eller slå havnelaget til og vælg en havn. Du skal '
+                       'bruge mindst to punkter.')) \
                 .classes('empty-sub')
 
         if self.s.routes:
@@ -650,8 +656,9 @@ class Planner:
 
         route = self.s.route
         if self.s.route_ready and not route.ok:
-            ui.html('<div class="chip chip--warn mb-2">Et ben kunne ikke lægges '
-                    'sikkert udenom land — kontrollér det selv på søkortet.</div>')
+            ui.html('<div class="chip chip--warn mb-2">'
+                    + esc(t('Et ben kunne ikke lægges sikkert udenom land — '
+                            'kontrollér det selv på søkortet.')) + '</div>')
         self._estimate_card(route)
         self._trip_rows()
         self._stopover_preview(route)
@@ -673,7 +680,9 @@ class Planner:
             with ui.element('div').classes('flex items-baseline gap-2'):
                 ui.label(text).classes('text-[14px] font-semibold tnum flex-1')
                 if days > 1:
-                    ui.html(f'<span class="chip">{days} døgn</span>')
+                    ui.html('<span class="chip">'
+                            f'{esc(plural(days, "sejldøgn", "sejldøgn"))}'
+                            '</span>')
             ui.label(note).classes(
                 'text-[11.5px] text-[var(--txt-3)] leading-snug mt-1 block')
 
@@ -689,10 +698,12 @@ class Planner:
             ('directions_boat', t('Båd'), boat.name),
             ('event', t('Hvornår'), f'{self._short_date(lim.date_from)} – '
                                  f'{self._short_date(lim.date_to)}'),
-            ('schedule', t('Sejldøgn'), f'{lim.day_start:02d}:00 – {lim.day_end:02d}:00'
-                                     + (' · også nat' if lim.night_ok else '')),
-            ('air', t('Grænser'), f'{lim.max_wind:.0f} kn vind · '
-                               f'{dk(lim.max_wave)} m bølger'),
+            ('schedule', t('Sejldøgn'),
+             f'{lim.day_start:02d}:00 – {lim.day_end:02d}:00'
+             + (' · ' + t('også nat') if lim.night_ok else '')),
+            ('air', t('Grænser'), t('{kn} kn vind · {m} m bølger',
+                                    kn=f'{lim.max_wind:.0f}',
+                                    m=dk(lim.max_wave))),
         ]
         ui.label(t('Turen')).classes('section-label mt-4 mb-1.5 block')
         with ui.element('div').classes('card overflow-hidden'):
@@ -735,8 +746,8 @@ class Planner:
         with ui.element('div').classes('flex items-center gap-1 mt-4 mb-1'):
             ui.label(t('Havne undervejs')).classes('section-label')
             helpui.dot('havne')
-        ui.label('Steder du kan søge ind, hvis vejret skifter. Klik for at lægge '
-                 'en ind som mellemstop.') \
+        ui.label(t('Steder du kan søge ind, hvis vejret skifter. Klik for at '
+                   'lægge en ind som mellemstop.')) \
             .classes('text-[11.5px] text-[var(--txt-3)] mb-2 block leading-snug')
 
         # Ét opslag for hele listen i stedet for ét pr. havn. Forskellen er
@@ -786,7 +797,7 @@ class Planner:
                     .classes('w-full btn-primary')
         elif self.s.step == 3 and len(self.s.windows) > 1:
             with self._bar():
-                ui.button('Vælg en anden afgang', icon='schedule',
+                ui.button(t('Vælg en anden afgang'), icon='schedule',
                           on_click=lambda: self._go_to_step(2)) \
                     .props('outline no-caps').classes('w-full text-[var(--txt-2)]')
 
@@ -833,7 +844,7 @@ class Planner:
             with ui.element('div').classes('empty'):
                 ui.icon('schedule').classes('text-[40px] text-[var(--txt-3)] mb-2')
                 ui.label(t('Ingen beregning endnu')).classes('empty-title')
-                ui.label('Gå tilbage til Rute og tryk "Find bedste afgangstider".') \
+                ui.label(t('Gå tilbage til Rute og tryk "Find bedste afgangstider".')) \
                     .classes('empty-sub')
             ui.button(t('Tilbage til ruten'), icon='arrow_back',
                       on_click=lambda: self._go_to_step(1)) \
@@ -847,9 +858,11 @@ class Planner:
         # dårligere vejr. Valget er skipperens.
         ui.html(
             f'<div class="text-[12.5px] text-[var(--txt-2)] leading-snug mb-3">'
-            f'{len(self.s.windows)} afgange at vælge imellem, fordelt på '
-            f'{days} {"dag" if days == 1 else "dage"}. Vi vil pege på '
-            f'<b>{esc(full(best.depart))}</b> — men vælg selv.</div>')
+            + t('{afgange} at vælge imellem, fordelt på {dage}. Vi vil pege '
+                'på <b>{bedste}</b> — men vælg selv.',
+                afgange=plural(len(self.s.windows), 'afgang', 'afgange'),
+                dage=plural(days, 'dag', 'dage'),
+                bedste=esc(full(best.depart))) + '</div>')
 
         for i, w in enumerate(self.s.windows):
             self._window_card(i, w)
@@ -872,11 +885,15 @@ class Planner:
                 # En afgang, der ikke når frem, må ikke stå med en ankomsttid.
                 # Kortet viser så, hvor langt man kommer.
                 if w.incomplete:
-                    ui.html(f'<div class="win-arrive tnum">→ når '
-                            f'{w.reached_nm:.0f} af {w.total_nm:.0f} sømil</div>')
+                    ui.html('<div class="win-arrive tnum">→ '
+                            + esc(t('når {nået} af {ialt} sømil',
+                                    nået=f'{w.reached_nm:.0f}',
+                                    ialt=f'{w.total_nm:.0f}')) + '</div>')
                 else:
-                    ui.html(f'<div class="win-arrive tnum">→ {esc(day_time(w.arrival))} '
-                            f'· {esc(spell(w.under_way_h))} under vejs</div>')
+                    ui.html(f'<div class="win-arrive tnum">→ '
+                            f'{esc(day_time(w.arrival))} · '
+                            f'{esc(spell(w.under_way_h))} '
+                            f'{esc(t("under vejs"))}</div>')
 
             if w.stops:
                 names = ' · '.join(f'{s.name} {day_time(s.arrive)}' for s in w.stops)
@@ -891,24 +908,29 @@ class Planner:
                 ui.html(chip('waves', f'{dk(w.worst_wave_m)} m'))
                 ui.html(chip('speed', f'{dk(w.avg_speed_kn)} kn'))
                 if w.stops:
-                    ui.html(chip('hotel', f'{w.nights} nat'))
+                    ui.html(chip('hotel', plural(w.nights, 'nat', 'nætter')))
                 if w.night_hours:
-                    ui.html(chip('dark_mode', f'{w.night_hours} t mørke'))
+                    ui.html(chip('dark_mode', t('{n} t mørke',
+                                                n=w.night_hours)))
                 if self.s.boat.is_motor and w.fuel_l:
                     ui.html(chip('local_gas_station', f'{w.fuel_l:.0f} l'))
                 elif w.motor_hours:
-                    ui.html(chip('settings', f'{w.motor_hours} t motor'))
+                    ui.html(chip('settings', t('{n} t motor',
+                                               n=w.motor_hours)))
 
         card.on('click', lambda _, k=i: self._select_window(k))
 
     @staticmethod
     def _verdict_chip(w) -> str:
         if w.late_arrival:
-            return '<span class="chip chip--stop">Fremme efter sejldøgnet</span>'
+            return ('<span class="chip chip--stop">'
+                    + esc(t('Fremme efter sejldøgnet')) + '</span>')
         if w.red_hours:
-            return f'<span class="chip chip--stop">{w.red_hours} t frarådes</span>'
+            return ('<span class="chip chip--stop">'
+                    + esc(t('{n} t frarådes', n=w.red_hours)) + '</span>')
         if w.yellow_hours:
-            return f'<span class="chip chip--warn">{w.yellow_hours} t skærpet</span>'
+            return ('<span class="chip chip--warn">'
+                    + esc(t('{n} t skærpet', n=w.yellow_hours)) + '</span>')
         return '<span class="chip chip--go">Gode forhold</span>'
 
     @staticmethod
@@ -929,9 +951,10 @@ class Planner:
             self._go_to_step(2)
             return
 
-        ui.html('<div class="text-[12.5px] text-[var(--txt-2)] leading-snug mb-2.5">'
-                'Planen står til højre. Vælg en anden afgang her, så skrives '
-                'den om med det samme.</div>')
+        ui.html('<div class="text-[12.5px] text-[var(--txt-2)] leading-snug '
+                'mb-2.5">'
+                + esc(t('Planen står til højre. Vælg en anden afgang her, så '
+                        'skrives den om med det samme.')) + '</div>')
 
         with ui.element('div').classes('card overflow-hidden'):
             for i, w in enumerate(self.s.windows):
@@ -993,9 +1016,14 @@ class Planner:
                         # Nåede planen ikke frem, står der ingen ankomst i
                         # hovedet. Det er dét, øjet falder på først, og en
                         # ankomsttid, der ikke findes, er værre end ingen.
-                        tail = (f'når {p.reached_nm:.0f} af {p.total_nm:.0f} sømil'
-                                if p.incomplete else f'ankomst {full(p.arrival)}')
-                        ui.label(f'{boat.name} · afgang {full(p.depart)} · {tail}') \
+                        tail = (t('når {nået} af {ialt} sømil',
+                                  nået=f'{p.reached_nm:.0f}',
+                                  ialt=f'{p.total_nm:.0f}')
+                                if p.incomplete
+                                else t('ankomst {tid}', tid=full(p.arrival)))
+                        ui.label(t('{båd} · afgang {tid} · {hale}',
+                                   båd=boat.name, tid=full(p.depart),
+                                   hale=tail)) \
                             .classes('text-[13.5px] text-[var(--txt-2)] mt-1.5 block')
                     with ui.row().classes('gap-1.5 shrink-0'):
                         ui.button(t('Udskriv'), icon='print', on_click=self._print_plan) \
@@ -1086,7 +1114,7 @@ class Planner:
         fleetui.report_position(self, lat, lon, d.get('kurs'), d.get('fart'))
 
     def _position_failed(self, e) -> None:
-        self.pos_error = str(e.args or 'Kunne ikke finde positionen.')
+        self.pos_error = str(e.args or t('Kunne ikke finde positionen.'))
         self.progress = None
         self.plan_view.refresh()
 
@@ -1135,7 +1163,7 @@ class Planner:
         if len(p.days) < 2:
             return
         if not self._section(t('Dag for dag'), 'dage', 'sejldogn',
-                             hint=f'{len(p.days)} døgn'):
+                             hint=plural(len(p.days), 'døgn', 'døgn')):
             return
         with ui.element('div').classes('daylist mb-4'):
             for i, d in enumerate(p.days):
@@ -1150,9 +1178,11 @@ class Planner:
                              f'{clock(d.arrive)} · {spell(d.under_way_h)} under vejs') \
                         .classes('text-[11.5px] text-[var(--txt-3)] block')
                     if stop:
-                        ui.label(f'Overnatning i {stop.name}, {stop.detail}. '
-                                 f'{nm(stop.detour_nm)} sømil ind fra ruten. '
-                                 f'Videre {clock(stop.depart)} næste morgen.') \
+                        ui.label(t('Overnatning i {havn}, {sted}. {sm} sømil '
+                                   'ind fra ruten. Videre {tid} næste '
+                                   'morgen.', havn=stop.name,
+                                   sted=stop.detail, sm=nm(stop.detour_nm),
+                                   tid=clock(stop.depart))) \
                             .classes('text-[12.5px] text-[var(--txt-2)] mt-1.5 '
                                      'leading-relaxed block')
                         # Man skal ligge dér en nat. Så vil man vide, om der er
@@ -1161,7 +1191,7 @@ class Planner:
                                 'flex items-center gap-3 flex-wrap mt-1'):
                             url = harbours.guide_url_at(stop.lat, stop.lon)
                             if url:
-                                ui.link('Læs om havnen i havnelods.dk →', url) \
+                                ui.link(t('Læs om havnen i havnelods.dk →'), url) \
                                     .props('target="_blank" rel="noopener"') \
                                     .classes('text-[12px] text-[var(--accent)] '
                                              'no-underline hover:underline')
@@ -1173,17 +1203,17 @@ class Planner:
         lim = self.s.limits
         metrics = [
             (spell(p.under_way_h), t('Sejltid'), ''),
-            (f'{dk(p.avg_speed_kn)} kn', t('Gns. fart'), ''),
-            (f'{p.total_nm:.0f} sm', t('Distance'), ''),
-            (f'{p.worst_wind_kn:.0f} kn', t('Højeste vind'),
+            (f'{dk(p.avg_speed_kn)} {t("kn")}', t('Gns. fart'), ''),
+            (f'{p.total_nm:.0f} {t("sm")}', t('Distance'), ''),
+            (f'{p.worst_wind_kn:.0f} {t("kn")}', t('Højeste vind'),
              self._level(p.worst_wind_kn, lim.max_wind)),
-            (f'{dk(p.worst_wave_m)} m', t('Højeste bølger'),
+            (f'{dk(p.worst_wave_m)} {t("m")}', t('Højeste bølger'),
              self._level(p.worst_wave_m, lim.max_wave)),
         ]
         if boat.is_motor:
-            metrics.append((f'{p.fuel_l:.0f} l', t('Brændstof'), ''))
+            metrics.append((f'{p.fuel_l:.0f} {t("l")}', t('Brændstof'), ''))
         else:
-            metrics.append((f'{p.red_hours} t', t('Frarådet'),
+            metrics.append((f'{p.red_hours} {t("t")}', t('Frarådet'),
                             'val--stop' if p.red_hours else 'val--go'))
 
         if not self._section(t('Nøgletal'), 'nogletal', 'nogletal'):
@@ -1198,7 +1228,7 @@ class Planner:
             for status in (GO, WARN, STOP):
                 ui.html(f'<span class="text-[11px] text-[var(--txt-3)] flex items-center gap-1.5">'
                         f'<i class="dot" style="background:{STATUS_COLOR[status]}"></i>'
-                        f'{STATUS_LABEL[status]}</span>')
+                        f'{esc(t(STATUS_LABEL[status]))}</span>')
 
     @staticmethod
     def _level(value: float, limit: float) -> str:
@@ -1212,10 +1242,11 @@ class Planner:
         """Turen delt op dér, hvor kursen skifter — ikke dér, hvor man satte et kryds."""
         briefs = narrative.stretch_briefs(route, p, boat)
         if not self._section(t('Stræk for stræk'), 'straek', 'straek',
-                             standard=False, hint=f'{len(briefs)} stræk'):
+                             standard=False,
+                             hint=plural(len(briefs), 'stræk', 'stræk')):
             return
-        ui.label('Ruten er delt op efter kursskift, så hvert stykke gælder præcis '
-                 'dér, hvor du styrer den kurs.') \
+        ui.label(t('Ruten er delt op efter kursskift, så hvert stykke gælder '
+                   'præcis dér, hvor du styrer den kurs.')) \
             .classes('text-[11.5px] text-[var(--txt-3)] mb-2 block leading-snug')
         with ui.element('div').classes('plan-legs mb-4'):
             for brief in briefs:
@@ -1258,7 +1289,7 @@ class Planner:
         if not text:
             return
         ui.clipboard.write(text)
-        ui.notify('Hele sejlplanen er kopieret', type='positive', position='bottom')
+        ui.notify(t('Hele sejlplanen er kopieret'), type='positive', position='bottom')
 
     def _plan_text(self) -> str:
         p = self.s.plan
@@ -1273,11 +1304,12 @@ class Planner:
 
         if not self._section(t('Time for time'), t('timer'), 'time-for-time',
                              standard=False,
-                             hint=f'{len(p.segments)} timer'):
+                             hint=plural(len(p.segments), 'time', 'timer')):
             return
         if not self.s.has_waves:
-            ui.html('<div class="chip chip--warn mb-2">Ingen bølgeprognose for dette '
-                    'farvand — vurder søgangen ud fra vind og stræk.</div>')
+            ui.html('<div class="chip chip--warn mb-2">'
+                    + esc(t('Ingen bølgeprognose for dette farvand — vurder '
+                            'søgangen ud fra vind og stræk.')) + '</div>')
 
         motor = self.s.boat.is_motor
         # Strømmen får kun en søjle, når der er noget at vise. På en tur i
@@ -1294,7 +1326,8 @@ class Planner:
                             f'{esc(day(s.time, False))}</td></tr>')
             # Sidste kolonne er det, der gør tabellen brugbar ombord: ikke bare
             # hvor hårdt det blæser, men hvordan båden ligger i det.
-            mode = s.sea if motor else (t('motor') if s.motoring else point_of_sail(s.twa))
+            mode = (t(s.sea) if motor else
+                    t('motor') if s.motoring else t(point_of_sail(s.twa)))
             rows.append(
                 f'<tr>'
                 f'<td class="num tnum">{clock(s.time)}</td>'
@@ -1310,15 +1343,21 @@ class Planner:
 
         ui.html(
             '<div class="card overflow-hidden"><table class="wx-table">'
-            '<thead><tr><th>Tid</th><th></th><th>Vind</th><th>Fra</th>'
-            f'<th>Bølger</th>{"<th>Strøm</th>" if strom else ""}'
-            f'<th>Fart</th><th>{"Søen" if motor else "Sejlføring"}</th>'
+            f'<thead><tr><th>{esc(t("Tid"))}</th><th></th>'
+            f'<th>{esc(t("Vind"))}</th><th>{esc(t("Fra"))}</th>'
+            f'<th>{esc(t("Bølger"))}</th>'
+            + (f'<th>{esc(t("Strøm"))}</th>' if strom else '')
+            + f'<th>{esc(t("Fart"))}</th>'
+            f'<th>{esc(t("Søen") if motor else t("Sejlføring"))}</th>'
             f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
 
         peak = max(p.segments, key=lambda s: s.wind_kn)
-        ui.label(f'Kraftigst omkring {day_time(peak.time)}: {peak.wind_kn:.0f} kn '
-                 f'({beaufort(peak.wind_kn)}) fra {compass(peak.wind_dir)}, '
-                 f'kast op til {peak.gust_kn:.0f} kn.') \
+        ui.label(t('Kraftigst omkring {tid}: {kn} kn ({styrke}) fra '
+                   '{retning}, kast op til {kast} kn.',
+                   tid=day_time(peak.time), kn=f'{peak.wind_kn:.0f}',
+                   styrke=beaufort(peak.wind_kn),
+                   retning=compass(peak.wind_dir),
+                   kast=f'{peak.gust_kn:.0f}')) \
             .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mt-2 block')
 
         if strom:
@@ -1326,12 +1365,13 @@ class Planner:
             # opløser ikke de danske bælter helt — i Storebælt og Grønsund kan
             # der løbe mere, end den viser, og det skal skipperen vide.
             med = sum(x.cur_along_kn for x in p.segments) / len(p.segments)
-            ui.label(
-                f'Farten er over grunden — strømmen er regnet med, og står i '
-                f'søjlen Strøm: {dk(abs(med))} knob '
-                f'{"med" if med >= 0 else "imod"} i snit. Tallene kommer fra en '
-                f'global havmodel, der ikke opløser de danske bælter helt. I '
-                f'Storebælt og Grønsund kan der løbe mere, end den viser.') \
+            ui.label(t(
+                'Farten er over grunden — strømmen er regnet med, og står i '
+                'søjlen Strøm: {kn} knob {retning} i snit. Tallene kommer fra '
+                'en global havmodel, der ikke opløser de danske bælter helt. '
+                'I Storebælt og Grønsund kan der løbe mere, end den viser.',
+                kn=dk(abs(med)),
+                retning=t('med') if med >= 0 else t('imod'))) \
                 .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mt-1 block')
 
     def _ai_tab(self) -> None:
@@ -1348,9 +1388,9 @@ class Planner:
         if not self.s.ai_text:
             with ui.element('div').classes('empty pb-4'):
                 ui.icon('auto_awesome').classes('text-[38px] text-[var(--accent)] opacity-70 mb-2')
-                ui.label('Få en skippervurdering').classes('empty-title')
-                ui.label('En erfaren sejlkonsulent gennemgår ruten ben for ben og '
-                         'anbefaler, hvornår du bør kaste los.').classes('empty-sub')
+                ui.label(t('Få en skippervurdering')).classes('empty-title')
+                ui.label(t('En erfaren sejlkonsulent gennemgår ruten ben for '
+                           'ben og anbefaler, hvornår du bør kaste los.'))                     .classes('empty-sub')
 
         self.ai_output()
 
@@ -1437,7 +1477,7 @@ class Planner:
         igen, uden at forstå hvor sejlplanen blev af.
         """
         if had_plan:
-            ui.notify('Ruten er ændret — find afgangstiderne igen',
+            ui.notify(t('Ruten er ændret — find afgangstiderne igen'),
                       type='warning', position='bottom')
 
     # ── Waypoints ───────────────────────────────────────────────────
@@ -1455,8 +1495,9 @@ class Planner:
                 return geocode.from_harbour(near[0])
             water = landmask.nearest_water(lat, lon, max_nm=1.5)
             if water == (lat, lon):
-                ui.notify('Der er land her. Vælg et sted i vandet, eller søg '
-                          'efter en havn.', type='warning', position='bottom')
+                ui.notify(t('Der er land her. Vælg et sted i vandet, eller '
+                            'søg efter en havn.'),
+                          type='warning', position='bottom')
                 return None
             lat, lon = water
         return geocode.at_point(lat, lon)
@@ -1495,7 +1536,8 @@ class Planner:
         self.s.persist()
         self.refresh()
         self._schedule_route()
-        ui.notify(f'Punkt {index + 1} flyttet til {place.name}', position='bottom')
+        ui.notify(t('Punkt {nr} flyttet til {navn}', nr=index + 1,
+                    navn=place.name), position='bottom')
         self._plan_lost(had_plan)
 
     def _add_place(self, place: geocode.Place) -> None:
@@ -1523,25 +1565,30 @@ class Planner:
         self.refresh(fit=True)
         self._schedule_route(fit=True)
 
-        where = ('tilføjet' if index >= len(self.s.waypoints) - 1
-                 else f'lagt ind som stop nr. {index + 1}')
-        ui.notify(f'{wp.name} {where}', type='positive', position='bottom')
+        ui.notify(t('{navn} tilføjet', navn=wp.name)
+                  if index >= len(self.s.waypoints) - 1
+                  else t('{navn} lagt ind som stop nr. {nr}',
+                         navn=wp.name, nr=index + 1),
+                  type='positive', position='bottom')
         self._plan_lost(had_plan)
 
     def _insert_options(self, wp: Waypoint) -> list[tuple[float, int, str]]:
         """Hver plads i ruten, hvad den koster i ekstra sømil, og hvad den hedder."""
         wps = self.s.waypoints
         if len(wps) < 2:
-            return [(0.0, len(wps), 'Som nyt punkt')]
+            return [(0.0, len(wps), t('Som nyt punkt'))]
 
         def d(a, b) -> float:
             return haversine(a.lat, a.lon, b.lat, b.lon)
 
-        out = [(d(wps[-1], wp), len(wps), f'Som ny destination, efter {wps[-1].name}'),
-               (d(wp, wps[0]), 0, f'Som ny afgang, før {wps[0].name}')]
+        out = [(d(wps[-1], wp), len(wps),
+                t('Som ny destination, efter {navn}', navn=wps[-1].name)),
+               (d(wp, wps[0]), 0,
+                t('Som ny afgang, før {navn}', navn=wps[0].name))]
         for i in range(len(wps) - 1):
             out.append((d(wps[i], wp) + d(wp, wps[i + 1]) - d(wps[i], wps[i + 1]),
-                        i + 1, f'Mellem {wps[i].name} og {wps[i + 1].name}'))
+                        i + 1, t('Mellem {a} og {b}', a=wps[i].name,
+                                 b=wps[i + 1].name)))
         out.sort(key=lambda row: row[0])
         return out
 
@@ -1564,7 +1611,7 @@ class Planner:
                         with ui.element('div').classes('min-w-0 flex-1'):
                             ui.label(label).classes(
                                 'text-[13px] font-medium truncate block')
-                            ui.label(f'{nm(cost)} sømil ekstra')                                 .classes('text-[11px] text-[var(--txt-3)] '
+                            ui.label(t('{sm} sømil ekstra', sm=nm(cost)))                                 .classes('text-[11px] text-[var(--txt-3)] '
                                          'tnum block')
                         ui.icon('chevron_right').classes(
                             'text-[18px] text-[var(--txt-3)] shrink-0')
@@ -1640,7 +1687,7 @@ class Planner:
         self.s.reverse()
         self.refresh()
         self._schedule_route()
-        ui.notify('Ruten er vendt om', position='bottom')
+        ui.notify(t('Ruten er vendt om'), position='bottom')
         self._plan_lost(had_plan)
 
     # ── Planen med om bord ──────────────────────────────────────────
@@ -1673,14 +1720,15 @@ class Planner:
     def _open_saved(self, rid: str) -> None:
         """Læg en gemt rute på bordet. Havvejen skal regnes forfra."""
         if not self.s.open_route(rid):
-            ui.notify('Ruten kunne ikke åbnes', type='warning', position='bottom')
+            ui.notify(t('Ruten kunne ikke åbnes'), type='warning', position='bottom')
             return
         self._suggestions = []
         if self.search_input:
             self.search_input.value = ''
         self.refresh(fit=True)
         self._schedule_route(fit=True)
-        ui.notify(f'"{self.s.saved_name}" er åbnet', position='bottom')
+        ui.notify(t('"{navn}" er åbnet', navn=self.s.saved_name),
+                  position='bottom')
 
     def _clear_route(self) -> None:
         """Spørg først. Det her sletter hele arbejdet, og der er ingen fortryd."""
@@ -1691,8 +1739,10 @@ class Planner:
                 'w-full max-w-[380px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
             with ui.element('div').classes('px-5 pt-5 pb-3'):
                 ui.label(t('Ryd hele ruten?')).classes('text-[16px] font-bold block')
-                ui.label(f'{len(self.s.waypoints)} punkter og den beregnede plan '
-                         f'forsvinder. Det kan ikke fortrydes.') \
+                ui.label(t('{punkter} og den beregnede plan forsvinder. Det '
+                           'kan ikke fortrydes.',
+                           punkter=plural(len(self.s.waypoints), 'punkt',
+                                          'punkter'))) \
                     .classes('text-[13px] text-[var(--txt-2)] leading-snug mt-1 block')
             with ui.row().classes('w-full items-center gap-2 px-5 pb-4 no-wrap'):
                 ui.element('div').classes('flex-1')
@@ -1744,10 +1794,10 @@ class Planner:
     # ── Beregning ───────────────────────────────────────────────────
     async def run_analysis(self) -> None:
         if not self.s.can_analyse:
-            ui.notify('Tilføj mindst to punkter først', type='warning', position='bottom')
+            ui.notify(t('Tilføj mindst to punkter først'), type='warning', position='bottom')
             return
 
-        self._busy = 'Lægger ruten udenom land…'
+        self._busy = t('Lægger ruten udenom land…')
         self._refresh_panel()
         try:
             if not self.s.route_ready:
@@ -1757,12 +1807,12 @@ class Planner:
                 self.s.set_tracks(key, legs)
             route = self.s.route
 
-            self._busy = 'Henter vejrudsigt for hvert ben…'
+            self._busy = t('Henter vejrudsigt for hvert ben…')
             self._refresh_panel()
             self.s.weather = await weather.fetch_weather(route)
             self.s.has_waves = weather.has_wave_data(self.s.weather)
 
-            self._busy = 'Finder havne undervejs og gennemsejler alle afgangstider…'
+            self._busy = t('Finder havne undervejs og gennemsejler alle afgangstider…')
             self._refresh_panel()
             await asyncio.sleep(0)  # lad panelet nå at tegne sig
 
@@ -1784,8 +1834,9 @@ class Planner:
             self.s.step = 1
             self._nav = 'back'
             self.refresh()
-            ui.notify('Ingen afgange passer til dine grænser. Prøv et bredere '
-                      'datointerval, et længere sejldøgn eller en højere vindgrænse.',
+            ui.notify(t('Ingen afgange passer til dine grænser. Prøv et '
+                        'bredere datointerval, et længere sejldøgn eller en '
+                        'højere vindgrænse.'),
                       type='warning', position='bottom', timeout=7000)
             return
 
@@ -1795,16 +1846,21 @@ class Planner:
 
         best = self.s.windows[0]
         if best.late_arrival:
-            ui.notify(f'Turen kan ikke nås inden kl. {self.s.limits.day_end:02d}:00. '
-                      f'Se forslagene — de fleste kræver en overnatning undervejs.',
+            ui.notify(t('Turen kan ikke nås inden kl. {tid}:00. Se '
+                        'forslagene — de fleste kræver en overnatning '
+                        'undervejs.', tid=f'{self.s.limits.day_end:02d}'),
                       type='warning', position='bottom', timeout=8000)
         elif best.stops:
-            ui.notify(f'{len(self.s.windows)} afgange fundet. Turen kræver '
-                      f'{best.nights} overnatning{"er" if best.nights > 1 else ""} '
-                      f'undervejs — første stop i {best.stops[0].name}.',
+            ui.notify(t('{afgange} fundet. Turen kræver {overnatninger} '
+                        'undervejs — første stop i {havn}.',
+                        afgange=plural(len(self.s.windows), 'afgang',
+                                       'afgange'),
+                        overnatninger=plural(best.nights, 'overnatning',
+                                             'overnatninger'),
+                        havn=best.stops[0].name),
                       type='positive', position='bottom', timeout=7000)
         else:
-            ui.notify(f'{len(self.s.windows)} afgangstider fundet',
+            ui.notify(t('{n} afgangstider fundet', n=len(self.s.windows)),
                       type='positive', position='bottom')
 
     def _select_window(self, index: int) -> None:
@@ -1821,7 +1877,7 @@ class Planner:
 
         self.s.ai_text = ''
         self.ai_output.refresh()
-        spinner = ui.notification('Claude læser vejrudsigten…', spinner=True,
+        spinner = ui.notification(t('Claude læser vejrudsigten…'), spinner=True,
                                   position='bottom', timeout=None)
         buffer: list[str] = []
         last_flush = 0.0
@@ -1856,17 +1912,17 @@ class Planner:
     # ── Deling ──────────────────────────────────────────────────────
     async def _copy_link(self) -> None:
         if not self.s.waypoints:
-            ui.notify('Der er ingen rute at dele endnu', position='bottom')
+            ui.notify(t('Der er ingen rute at dele endnu'), position='bottom')
             return
         token = share.encode_route(self.s.waypoints, self.s.boat_id)
         origin = await ui.run_javascript('window.location.origin', timeout=3)
         ui.clipboard.write(f'{origin}/?rute={token}')
-        ui.notify('Delelink kopieret — send det til gasterne',
+        ui.notify(t('Delelink kopieret — send det til gasterne'),
                   type='positive', position='bottom')
 
     def _download_gpx(self) -> None:
         if not self.s.waypoints:
-            ui.notify('Der er ingen rute at eksportere endnu', position='bottom')
+            ui.notify(t('Der er ingen rute at eksportere endnu'), position='bottom')
             return
         wps = self.s.waypoints
         name = f'{wps[0].name} → {wps[-1].name}' if len(wps) > 1 else wps[0].name

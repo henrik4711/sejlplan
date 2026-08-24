@@ -330,4 +330,100 @@ WORDS: dict[str, str] = {
         'lege zuerst eine Route.',
     'Beskeden findes ikke længere.': 'Die Nachricht gibt es nicht mehr.',
     'Kunne ikke sendes': 'Konnte nicht gesendet werden',
+
+    # ── Ugedage, måneder og tidsenheder ─────────────────────────────
+    'mandag': 'Montag', 'tirsdag': 'Dienstag', 'onsdag': 'Mittwoch',
+    'torsdag': 'Donnerstag', 'fredag': 'Freitag', 'lørdag': 'Samstag',
+    'søndag': 'Sonntag',
+    'man': 'Mo', 'tir': 'Di', 'ons': 'Mi', 'tor': 'Do', 'fre': 'Fr',
+    'lør': 'Sa', 'søn': 'So',
+    'januar': 'Januar', 'februar': 'Februar', 'marts': 'März',
+    'april': 'April', 'maj': 'Mai', 'juni': 'Juni', 'juli': 'Juli',
+    'august': 'August', 'september': 'September', 'oktober': 'Oktober',
+    'november': 'November', 'december': 'Dezember',
+    'jan': 'Jan', 'feb': 'Feb', 'mar': 'Mär', 'apr': 'Apr', 'jun': 'Jun',
+    'jul': 'Jul', 'aug': 'Aug', 'sep': 'Sep', 'okt': 'Okt', 'nov': 'Nov',
+    'dec': 'Dez',
+    # Timer, døgn og minutter. Korte af en grund: de står inde i sætninger.
+    't': 'Std', 'd': 'T', 'min': 'Min',
+
+    # ── Kompasset ───────────────────────────────────────────────────
+    # Dansk skriver Ø for øst og V for vest; tysk skriver O og W.
+    'NNØ': 'NNO', 'NØ': 'NO', 'ØNØ': 'ONO', 'Ø': 'O', 'ØSØ': 'OSO',
+    'SØ': 'SO', 'SSØ': 'SSO', 'SSV': 'SSW', 'SV': 'SW', 'VSV': 'WSW',
+    'V': 'W', 'VNV': 'WNW', 'NV': 'NW', 'NNV': 'NNW',
+
+    # ── Vindstyrke ──────────────────────────────────────────────────
+    # Beauforts skala har sine egne tyske navne. De er ikke oversættelser
+    # af de danske — de er de ord, der står i en tysk farvandsudsigt.
+    'Stille': 'Windstille',
+    'Svag vind': 'leiser Zug',
+    'Let vind': 'leichte Brise',
+    'Let brise': 'schwache Brise',
+    'Jævn vind': 'mäßige Brise',
+    'Frisk vind': 'frische Brise',
+    'Kuling': 'starker Wind',
+    'Hård kuling': 'steifer Wind',
+    'Stormende kuling': 'stürmischer Wind',
+    'Storm': 'Sturm',
+    'Orkan': 'Orkan',
+
+    # ── Sejlføring, halse og sø ─────────────────────────────────────
+    'i vindøjet': 'im Wind',
+    'skarp bidevind': 'hart am Wind',
+    'bidevind': 'am Wind',
+    'halvvind': 'halber Wind',
+    'rumskøds': 'raumer Wind',
+    'læns': 'vor dem Wind',
+    'styrbords halse': 'Steuerbordbug',
+    'bagbords halse': 'Backbordbug',
+    'lige forfra': 'genau von vorn',
+    'lige agterfra': 'genau von achtern',
+    'modsø': 'Gegensee',
+    'tværsø': 'querlaufende See',
+    'medsø': 'mitlaufende See',
+    'smult vande': 'glattes Wasser',
+
+    # ── Timernes dom ────────────────────────────────────────────────
+    'God': 'Gut',
+    'Skærpet': 'Anspruchsvoll',
+    'Frarådes': 'Abgeraten',
+
+    # ── Flertalsformer ──────────────────────────────────────────────
+    # Dansk siger "to sejldøgn", tysk siger "zwei Etmale". Nøglen med
+    # |flertal slås op, når tallet er større end ét.
+    'sejldøgn|flertal': 'Etmale',
+    'ben|flertal': 'Etappen',
+    'døgn': 'Tag',
+    'døgn|flertal': 'Tage',
+    'time': 'Stunde',
+    'timer|flertal': 'Stunden',
+    'timer': 'Stunden',
+    'sømil': 'Seemeilen',
+    'knob': 'Knoten',
+    'meter': 'Meter',
+
+    # ── Sejlføringen inde i en sætning ──────────────────────────────
+    # "halber Wind" hedder "bei halbem Wind", når det står i en sætning.
+    # Dansk bøjer ikke, så dér er der intet at slå op.
+    'i vindøjet|sætning': 'im Wind',
+    'skarp bidevind|sætning': 'hart am Wind',
+    'bidevind|sætning': 'am Wind',
+    'halvvind|sætning': 'bei halbem Wind',
+    'rumskøds|sætning': 'bei raumem Wind',
+    'læns|sætning': 'vor dem Wind',
+
+    # ── Bådtyper og skrog ───────────────────────────────────────────
+    'Sejlbåd': 'Segelboot',
+    'Motorbåd': 'Motorboot',
+    'fortrængning': 'Verdränger',
+    'halvplanende': 'Halbgleiter',
+    'planende': 'Gleiter',
+
+    # ── Timetabellens kolonner ──────────────────────────────────────
+    'Tid': 'Zeit',
+    'Vind': 'Wind',
+    'Bølger': 'Wellen',
+    'Fart': 'Fahrt',
+    'Sejlføring': 'Segelführung',
 }

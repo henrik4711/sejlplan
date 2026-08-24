@@ -71,7 +71,11 @@ def true_wind_angle(course: float, wind_dir: float) -> float:
 
 
 def compass(deg: float) -> str:
-    return _COMPASS[round(deg / 22.5) % 16]
+    # Kompasset oversættes her, ikke ude i fladen: dansk skriver Ø for øst,
+    # tysk skriver O. Ingen steder sammenlignes med strengen — den tælles op
+    # og skrives ud — så det er sikkert at gøre det ved kilden.
+    from .i18n import t
+    return t(_COMPASS[round(deg / 22.5) % 16])
 
 
 def point_of_sail(twa: float) -> str:
@@ -102,10 +106,11 @@ def tack(course: float, wind_dir: float) -> str:
 
 
 def beaufort(knots: float) -> str:
+    from .i18n import t
     for limit, label in _BEAUFORT:
         if knots < limit:
-            return label
-    return 'Orkan'
+            return t(label)
+    return t('Orkan')
 
 
 def sea_direction(course: float, wave_dir: float, wave_m: float) -> str:

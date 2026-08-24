@@ -24,6 +24,10 @@ sys.path.insert(0, str(ROOT))
 # Funktionerne, hvis første argument er en tekst, der skal oversættes.
 CALLS = {'t', 'plural'}
 
+# Flertalsformerne har ingen dansk sætning at høre til — de er en tysk
+# bøjning af et ord, der står i tabellen i forvejen.
+PLURAL_MARK = '|flertal'
+
 
 def _text_args(node: ast.Call) -> list[str]:
     """De tekster, et kald bærer. `plural` har to."""
@@ -57,6 +61,23 @@ def strings_in(path: Path) -> list[str]:
     return out
 
 
+def manual_strings() -> list[str]:
+    """Manualens tekster.
+
+    De står som data i `app/help.py` og går først gennem `t()` ude i fladen,
+    når siden tegnes. En scanner, der kun leder efter `t('…')`, ser dem ikke —
+    og så ville 2600 ord manual tælle som oversat, uden at være det.
+    """
+    from app import help as helptext
+    out = []
+    for group, topics in helptext.groups():
+        out.append(group)
+        for e in topics:
+            out += [e.title, e.short, *e.body]
+    out.append(helptext.DISCLAIMER)
+    return [s.strip() for s in out if s and s.strip()]
+
+
 def all_strings() -> list[str]:
     """Alt, der er markeret til oversættelse, i den rækkefølge filerne læses."""
     seen, out = set(), []
@@ -67,17 +88,26 @@ def all_strings() -> list[str]:
             if s not in seen:
                 seen.add(s)
                 out.append(s)
+    for s in manual_strings():
+        if s not in seen:
+            seen.add(s)
+            out.append(s)
     return out
 
 
 def main() -> None:
-    from app.lang import de
+    from app.lang import de, de_manual, de_plan, de_ui
+    # Samme tre tabeller, som i18n lægger sammen. Læste værktøjet kun de.py,
+    # ville manualen og sejlplanens prosa tælle som umarkerede.
+    ord_ = {**de.WORDS, **de_ui.WORDS, **de_manual.WORDS,
+            **de_plan.WORDS}
 
     found = all_strings()
     bad = [s for s in found if s.startswith('\0F-STRENG')]
     real = [s for s in found if not s.startswith('\0F-STRENG')]
-    missing = [s for s in real if s not in de.WORDS]
-    stale = [s for s in de.WORDS if s not in real]
+    missing = [s for s in real if s not in ord_]
+    stale = [s for s in ord_
+             if s not in real and not s.endswith(PLURAL_MARK)]
 
     print(f'{len(real)} tekster markeret til oversættelse')
     print(f'{len(real) - len(missing)} oversat til tysk, {len(missing)} mangler')

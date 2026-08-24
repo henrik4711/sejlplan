@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from . import harbours
 from .boats import PLANING, Boat
+from .i18n import plural, t, t_in_sentence
 from .dates import clock, day, day_time, duration, full, spell
 from .sailing import (CALM, GO, HEAD, STOP, WARN, Limits, Plan, Route,
                       beaufort, compass, haversine, point_of_sail, tack)
@@ -26,10 +27,6 @@ from .sailing import (CALM, GO, HEAD, STOP, WARN, Limits, Plan, Route,
 def num(value: float, decimals: int = 1) -> str:
     """Dansk talformat — komma som decimaltegn."""
     return f'{value:.{decimals}f}'.replace('.', ',')
-
-
-def plural(n: int, one: str, many: str) -> str:
-    return f'{n} {one if n == 1 else many}'
 
 
 # ── Vendepunkter ──────────────────────────────────────────────────────────────
@@ -55,8 +52,8 @@ def place_name(lat: float, lon: float) -> str:
     """Det nærmeste sted, en skipper ville pege på."""
     near = harbours.nearest(lat, lon, 1)
     if near and haversine(lat, lon, near[0].lat, near[0].lon) <= TURN_NAME_NM:
-        return f'ud for {short_name(near[0].name)}'
-    return 'vendepunktet'
+        return t('ud for {sted}', sted=short_name(near[0].name))
+    return t('vendepunktet')
 
 
 # ── Stræk for stræk ───────────────────────────────────────────────────────────
@@ -100,43 +97,58 @@ class StretchBrief:
 
     @property
     def heading(self) -> str:
-        return f'kurs {self.course}° {compass(self.course)}'
+        return t('kurs {grader}° {retning}', grader=self.course,
+                 retning=compass(self.course))
 
     @property
     def sentence(self) -> str:
         # Kursen står som mærkat på kortet, så den gentages ikke her.
-        parts = [f'{num(self.distance_nm)} sømil, {spell(self.hours)} undervejs.']
+        parts = [t('{sm} sømil, {tid} undervejs.',
+                   sm=num(self.distance_nm), tid=spell(self.hours))]
 
         if round(self.wind_min) == round(self.wind_max):
-            parts.append(f'Vinden står {num(self.wind_max, 0)} knob fra {self.wind_from}.')
+            parts.append(t('Vinden står {kn} knob fra {retning}.',
+                           kn=num(self.wind_max, 0), retning=self.wind_from))
         else:
-            parts.append(f'Vinden står {num(self.wind_min, 0)}–{num(self.wind_max, 0)} '
-                         f'knob fra {self.wind_from}.')
+            parts.append(t('Vinden står {fra}–{til} knob fra {retning}.',
+                           fra=num(self.wind_min, 0),
+                           til=num(self.wind_max, 0), retning=self.wind_from))
 
         if self.is_motor:
             if self.speed_min < self.speed_max - 0.5:
-                parts.append(f'Farten svinger mellem {num(self.speed_min)} og '
-                             f'{num(self.speed_max)} knob.')
+                parts.append(t('Farten svinger mellem {fra} og {til} knob.',
+                               fra=num(self.speed_min),
+                               til=num(self.speed_max)))
             else:
-                parts.append(f'Der holdes {num(self.speed_max)} knob.')
+                parts.append(t('Der holdes {kn} knob.',
+                               kn=num(self.speed_max)))
         elif self.motor_share > 0.6:
             # Står motoren på det meste af strækket, er sejlføringen ikke det,
             # der beskriver turen. Så er det motorsejlads.
-            parts.append('Der er for lidt vind til at sejle strækket — '
-                         'motoren må trække det meste af vejen.')
+            parts.append(t('Der er for lidt vind til at sejle strækket — '
+                           'motoren må trække det meste af vejen.'))
         elif self.sail == 'i vindøjet':
-            parts.append('Kursen ligger så tæt på vinden, at strækket skal krydses.')
+            parts.append(t('Kursen ligger så tæt på vinden, at strækket skal '
+                           'krydses.'))
         else:
-            parts.append(f'Det sejles for {self.sail} på {self.tack}.')
+            parts.append(t('Det sejles for {sejlføring} på {halse}.',
+                           sejlføring=t_in_sentence(self.sail),
+                           halse=t(self.tack)))
 
         if self.wave_max >= 0.1:
-            where = f' i {self.sea}' if self.sea != CALM else ''
-            parts.append(f'Bølger op til {num(self.wave_max)} meter{where}.')
+            # To hele sætninger frem for en indskudt bisætning: tysk bøjer
+            # "i modsø" efter køn, og det kan ikke limes sammen af stumper.
+            parts.append(
+                t('Bølger op til {m} meter.', m=num(self.wave_max))
+                if self.sea == CALM else
+                t('Bølger op til {m} meter i {sø}.', m=num(self.wave_max),
+                  sø=t(self.sea)))
         if not self.is_motor and 0 < self.motor_share <= 0.6:
-            parts.append(f'{spell(self.hours * self.motor_share)} af det for motor.')
+            parts.append(t('{tid} af det for motor.',
+                           tid=spell(self.hours * self.motor_share)))
         if self.night:
-            parts.append(f'Strækket brydes af natten i {self.night} — '
-                         f'timerne dér er ikke talt med.')
+            parts.append(t('Strækket brydes af natten i {havn} — timerne dér '
+                           'er ikke talt med.', havn=self.night))
         return ' '.join(parts)
 
 
@@ -276,18 +288,22 @@ def estimate(boat: Boat, route: Route, limits: Limits) -> tuple[str, int]:
     hours = route.total_nm / speed
     days = max(1, math.ceil(hours / limits.day_hours))
 
-    where = 'ved marchfart' if boat.is_motor else 'i jævn vind'
-    text = f'{num(route.total_nm)} sømil · ca. {spell(hours)} {where}'
+    where = t('ved marchfart') if boat.is_motor else t('i jævn vind')
+    text = t('{sm} sømil · ca. {tid} {hvordan}', sm=num(route.total_nm),
+             tid=spell(hours), hvordan=where)
     return text, days
 
 
 def days_note(days: int, limits: Limits) -> str:
     """Én linje om hvad antallet af sejldøgn betyder for turen."""
     if days <= 1:
-        return f'Kan nås inden for ét sejldøgn ({limits.day_start:02d}–{limits.day_end:02d}).'
+        return t('Kan nås inden for ét sejldøgn ({fra}–{til}).',
+                 fra=f'{limits.day_start:02d}', til=f'{limits.day_end:02d}')
     nights = plural(days - 1, 'overnatning', 'overnatninger')
-    return (f'Kræver {days} sejldøgn — altså {nights} undervejs, '
-            f'medmindre du slår mørkesejlads til.')
+    return t('Kræver {sejldøgn} — altså {overnatninger} undervejs, medmindre '
+             'du slår mørkesejlads til.',
+             sejldøgn=plural(days, 'sejldøgn', 'sejldøgn'),
+             overnatninger=nights)
 
 
 # ── Hvordan turen føles ───────────────────────────────────────────────────────
@@ -304,37 +320,43 @@ def ride(boat: Boat, plan: Plan) -> str:
 
     if not boat.is_motor:
         if calm > len(rows) * 0.7:
-            return 'Der er næsten ingen sø. Det bliver en behagelig tur.'
+            return t('Der er næsten ingen sø. Det bliver en behagelig tur.')
         if head > len(rows) * 0.5 and worst_felt > 1.0:
-            return ('Søen kommer ind forfra det meste af vejen. Båden stamper, '
-                    'og der bliver vådt på fordækket — hold godt fast under skiftene.')
+            return t('Søen kommer ind forfra det meste af vejen. Båden '
+                     'stamper, og der bliver vådt på fordækket — hold godt '
+                     'fast under skiftene.')
         if worst_felt > 1.2:
-            return ('Der er sø nok til at man mærker den. Sørg for at alt er '
-                    'surret, og at kabyssen kan bruges med én hånd.')
-        return 'Søen er til at leve med, og turen bør være behagelig.'
+            return t('Der er sø nok til at man mærker den. Sørg for at alt er '
+                     'surret, og at kabyssen kan bruges med én hånd.')
+        return t('Søen er til at leve med, og turen bør være behagelig.')
 
     # Motorbåd: farten er det, søen tager fra dig.
-    speed = f'Marchfarten er {num(boat.cruise_kn, 0)} knob'
     if lost >= 3:
-        speed += (f', men søen tager omkring {num(lost, 0)} knob af den — '
-                  f'du kommer frem med {num(plan.avg_speed_kn)} i snit')
+        speed = t('Marchfarten er {kn} knob, men søen tager omkring {tab} '
+                  'knob af den — du kommer frem med {snit} i snit',
+                  kn=num(boat.cruise_kn, 0), tab=num(lost, 0),
+                  snit=num(plan.avg_speed_kn))
     else:
-        speed += f', og den kan holdes stort set hele vejen ({num(plan.avg_speed_kn)} i snit)'
+        speed = t('Marchfarten er {kn} knob, og den kan holdes stort set hele '
+                  'vejen ({snit} i snit)', kn=num(boat.cruise_kn, 0),
+                  snit=num(plan.avg_speed_kn))
 
     if calm > len(rows) * 0.7:
-        feel = 'Vandet er så småt, at turen bliver stille og hurtig.'
+        feel = t('Vandet er så småt, at turen bliver stille og hurtig.')
     elif head > len(rows) * 0.4 and worst_felt > 0.8:
-        feel = ('Søen står ind forfra. Det banker i skroget, og det bliver en '
-                'tur, hvor man tager farten af og sætter den på igen.'
+        feel = (t('Søen står ind forfra. Det banker i skroget, og det bliver '
+                  'en tur, hvor man tager farten af og sætter den på igen.')
                 if boat.hull == PLANING else
-                'Søen står ind forfra. Der er stampen i det, men båden bliver ved.')
+                t('Søen står ind forfra. Der er stampen i det, men båden '
+                  'bliver ved.'))
     elif worst_felt > 0.8:
-        feel = 'Søen kommer skråt ind. Regn med rulning — sørg for at alt står fast.'
+        feel = t('Søen kommer skråt ind. Regn med rulning — sørg for at alt '
+                 'står fast.')
     else:
-        feel = 'Der er lidt sø, men ikke nok til at det bliver ubehageligt.'
+        feel = t('Der er lidt sø, men ikke nok til at det bliver ubehageligt.')
 
-    fuel = (f' Der går omkring {num(plan.fuel_l, 0)} liter brændstof på turen.'
-            if plan.fuel_l >= 5 else '')
+    fuel = (' ' + t('Der går omkring {liter} liter brændstof på turen.',
+                    liter=num(plan.fuel_l, 0)) if plan.fuel_l >= 5 else '')
     return f'{speed}. {feel}{fuel}'
 
 
@@ -350,26 +372,32 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
     names = ' → '.join(w.name for w in route.waypoints)
     legs = len(route.waypoints) - 1
 
-    head = (f'Ruten {names} er på {num(plan.total_nm)} sømil fordelt på '
-            f'{plural(legs, "ben", "ben")}. ')
+    head = t('Ruten {navne} er på {sm} sømil fordelt på {ben}. ',
+             navne=names, sm=num(plan.total_nm),
+             ben=plural(legs, 'ben', 'ben'))
     if plan.incomplete:
         # Planen rakte ikke hele vejen. Så hører timetallet til dét, den nåede
         # — ikke til hele ruten — og der er ingen ankomst at melde.
-        opening = (head + f'Vejrudsigten rækker ikke hele vejen. Kaster du los '
-                          f'{full(plan.depart)}, når du {num(plan.reached_nm)} '
-                          f'sømil på {spell(plan.under_way_h)} under vejs med '
-                          f'{boat.name}, før prognosen slipper op '
-                          f'{full(plan.arrival)}')
+        opening = head + t(
+            'Vejrudsigten rækker ikke hele vejen. Kaster du los {afgang}, når '
+            'du {nået} sømil på {tid} under vejs med {båd}, før prognosen '
+            'slipper op {slut}',
+            afgang=full(plan.depart), nået=num(plan.reached_nm),
+            tid=spell(plan.under_way_h), båd=boat.name,
+            slut=full(plan.arrival))
     else:
-        opening = (head + f'Med {boat.name} tager den beregnet '
-                          f'{spell(plan.under_way_h)} under vejs. Du kaster los '
-                          f'{full(plan.depart)} og er fremme {full(plan.arrival)}')
+        opening = head + t(
+            'Med {båd} tager den beregnet {tid} under vejs. Du kaster los '
+            '{afgang} og er fremme {ankomst}',
+            båd=boat.name, tid=spell(plan.under_way_h),
+            afgang=full(plan.depart), ankomst=full(plan.arrival))
     if plan.stops:
         nights = plural(plan.nights, 'overnatning', 'overnatninger')
         stops = ', '.join(s.name for s in plan.stops)
-        opening += f' — med {nights} undervejs i {stops}.'
+        opening += t(' — med {overnatninger} undervejs i {havne}.',
+                     overnatninger=nights, havne=stops)
     else:
-        opening += '.' if plan.incomplete else ' i én stræk.'
+        opening += '.' if plan.incomplete else t(' i én stræk.')
 
     paragraphs = [opening]
 
@@ -377,10 +405,13 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
     winds = [s.wind_kn for s in rows]
     first_dir, last_dir = compass(rows[0].wind_dir), compass(rows[-1].wind_dir)
 
-    wind_text = (f'Vinden ligger mellem {num(min(winds), 0)} og {num(max(winds), 0)} knob '
-                 f'({beaufort(max(winds))} på det kraftigste)')
-    wind_text += (f' og drejer fra {first_dir} til {last_dir} undervejs.'
-                  if first_dir != last_dir else f' fra {first_dir} hele vejen.')
+    wind_text = t('Vinden ligger mellem {fra} og {til} knob ({styrke} på det '
+                  'kraftigste)', fra=num(min(winds), 0),
+                  til=num(max(winds), 0), styrke=beaufort(max(winds)))
+    wind_text += (t(' og drejer fra {fra} til {til} undervejs.',
+                    fra=first_dir, til=last_dir)
+                  if first_dir != last_dir
+                  else t(' fra {retning} hele vejen.', retning=first_dir))
 
     if boat.is_motor:
         middle = wind_text
@@ -388,13 +419,16 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
         sails = Counter(point_of_sail(s.twa) for s in rows)
         dominant = sails.most_common(1)[0][0]
         middle = wind_text + (
-            ' Store dele af turen ligger i vindøjet og skal krydses.'
-            if dominant == 'i vindøjet' else f' Det meste sejles for {dominant}.')
+            t(' Store dele af turen ligger i vindøjet og skal krydses.')
+            if dominant == 'i vindøjet'
+            else t(' Det meste sejles for {sejlføring}.',
+                   sejlføring=t_in_sentence(dominant)))
 
     if plan.worst_wave_m >= 0.1:
-        middle += f' Bølgerne når op på {num(plan.worst_wave_m)} meter.'
+        middle += t(' Bølgerne når op på {m} meter.',
+                    m=num(plan.worst_wave_m))
     else:
-        middle += ' Der er ingen nævneværdig søgang i prognosen.'
+        middle += t(' Der er ingen nævneværdig søgang i prognosen.')
 
     paragraphs.append(middle)
 
@@ -404,14 +438,15 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
 
     practical = []
     if plan.motor_hours and not boat.is_motor:
-        practical.append(f'{plan.motor_hours} af timerne er så vindsvage, '
-                         f'at motoren må hjælpe')
+        practical.append(t('{n} af timerne er så vindsvage, at motoren må '
+                           'hjælpe', n=plan.motor_hours))
     if plan.night_hours:
-        practical.append(f'{plan.night_hours} timer ligger uden for dit sejldøgn')
+        practical.append(t('{n} timer ligger uden for dit sejldøgn',
+                           n=plan.night_hours))
     gusts = max(s.gust_kn for s in rows)
     if gusts > plan.worst_wind_kn + 5:
-        practical.append(f'vindstødene går op til {num(gusts, 0)} knob, '
-                         f'altså noget over middelvinden')
+        practical.append(t('vindstødene går op til {kn} knob, altså noget '
+                           'over middelvinden', kn=num(gusts, 0)))
     if practical:
         text = ', '.join(practical)
         paragraphs.append(text[0].upper() + text[1:] + '.')
@@ -424,9 +459,11 @@ def day_lines(plan: Plan) -> list[str]:
     """Turen sat op som de sejldøgn, den falder i."""
     out = []
     for i, d in enumerate(plan.days, start=1):
-        out.append(f'Dag {i} · {day(d.date, short=False)}: {d.frm} → {d.to}, '
-                   f'{num(d.nm)} sømil, {clock(d.depart)}–{clock(d.arrive)} '
-                   f'({spell(d.under_way_h)} under vejs).')
+        out.append(t('Dag {nr} · {dato}: {fra} → {til}, {sm} sømil, '
+                     '{afgang}–{ankomst} ({tid} under vejs).',
+                     nr=i, dato=day(d.date, short=False), fra=d.frm, til=d.to,
+                     sm=num(d.nm), afgang=clock(d.depart),
+                     ankomst=clock(d.arrive), tid=spell(d.under_way_h)))
     return out
 
 
@@ -437,23 +474,28 @@ def _weatherbound(o) -> str:
     man kigger på vejret frem til man er fremme, ikke bagefter.
     """
     days = plural(o.stuck_days, 'sejldøgn', 'sejldøgn')
-    head = (f'Du bliver formentlig blæst inde i {o.place}. Efter ankomsten '
-            f'viser prognosen {days} i træk uden et vindue, du kan sejle i — '
-            f'op til {num(o.worst_wind_kn, 0)} knobs vind')
     if o.worst_wave_m >= 0.3:
-        head += f' og {num(o.worst_wave_m)} meter sø'
-    head += '. '
+        head = t('Du bliver formentlig blæst inde i {sted}. Efter ankomsten '
+                 'viser prognosen {døgn} i træk uden et vindue, du kan sejle '
+                 'i — op til {kn} knobs vind og {m} meter sø. ',
+                 sted=o.place, døgn=days, kn=num(o.worst_wind_kn, 0),
+                 m=num(o.worst_wave_m))
+    else:
+        head = t('Du bliver formentlig blæst inde i {sted}. Efter ankomsten '
+                 'viser prognosen {døgn} i træk uden et vindue, du kan sejle '
+                 'i — op til {kn} knobs vind. ',
+                 sted=o.place, døgn=days, kn=num(o.worst_wind_kn, 0))
 
     if o.runs_out:
-        return head + (
-            f'Og det holder ikke op, før prognosen gør: den rækker til '
-            f'{day(o.checked_to, short=False)}, og der blæser det stadig. '
-            f'Regn med at ligge stille, til vejret vender, og læg hjemturen '
-            f'som en tur for sig.')
-    return head + (
-        f'Først {full(o.next_window)} er der noget at sejle i igen. Skal du '
-        f'på arbejde inden da, så vælg en anden afgang — eller en havn, du '
-        f'kommer hjem fra.')
+        return head + t(
+            'Og det holder ikke op, før prognosen gør: den rækker til {dato}, '
+            'og der blæser det stadig. Regn med at ligge stille, til vejret '
+            'vender, og læg hjemturen som en tur for sig.',
+            dato=day(o.checked_to, short=False))
+    return head + t(
+        'Først {tidspunkt} er der noget at sejle i igen. Skal du på arbejde '
+        'inden da, så vælg en anden afgang — eller en havn, du kommer hjem '
+        'fra.', tidspunkt=full(o.next_window))
 
 
 # ── Advarsler ─────────────────────────────────────────────────────────────────
@@ -497,132 +539,170 @@ def warnings(plan: Plan, limits: Limits, boat: Boat,
     # rykke — og det skal stå der, ikke gemmes i en disclaimer.
     ahead = (plan.arrival.date() - date.today()).days
     if ahead >= UNCERTAIN_AFTER_DAYS and not plan.incomplete:
-        out.append(Note(NOTE_INFO,
-            f'Turen slutter {plural(ahead, "døgn", "døgn")} ude i prognosen. '
-            f'Så langt frem er en vejrudsigt en tendens, ikke en tidsplan: '
-            f'retningen holder tit, men styrken og timerne rykker sig. Læg '
-            f'planen, og se den efter igen et par dage før afgang.'))
+        out.append(Note(NOTE_INFO, t(
+            'Turen slutter {døgn} ude i prognosen. Så langt frem er en '
+            'vejrudsigt en tendens, ikke en tidsplan: retningen holder tit, '
+            'men styrken og timerne rykker sig. Læg planen, og se den efter '
+            'igen et par dage før afgang.',
+            døgn=plural(ahead, 'døgn', 'døgn'))))
 
     if plan.incomplete:
         rest = max(0.0, plan.total_nm - plan.reached_nm)
-        out.append(Note(NOTE_STOP,
-            f'Turen når ikke frem inden for den vejrudsigt, vi har. Du kommer '
-            f'{num(plan.reached_nm)} af {num(plan.total_nm)} sømil — de sidste '
-            f'{num(rest)} sømil kan først planlægges, når prognosen rækker så '
-            f'langt. Læg turen tidligere, eller planlæg den sidste del om nogle '
-            f'dage.'))
+        out.append(Note(NOTE_STOP, t(
+            'Turen når ikke frem inden for den vejrudsigt, vi har. Du kommer '
+            '{nået} af {ialt} sømil — de sidste {rest} sømil kan først '
+            'planlægges, når prognosen rækker så langt. Læg turen tidligere, '
+            'eller planlæg den sidste del om nogle dage.',
+            nået=num(plan.reached_nm), ialt=num(plan.total_nm),
+            rest=num(rest))))
 
     for stop in plan.stops:
         if stop.late:
-            out.append(Note(NOTE_STOP,
-                f'Du er først fortøjet i {stop.name} kl. {clock(stop.arrive)} — '
-                f'efter dit sejldøgn, der slutter {limits.day_end}:00. Der var '
-                f'ingen havn tættere på, du kunne nå. Overvej at afgå tidligere, '
-                f'eller at lægge et stop ind før.'))
+            out.append(Note(NOTE_STOP, t(
+                'Du er først fortøjet i {havn} kl. {tid} — efter dit '
+                'sejldøgn, der slutter {slut}:00. Der var ingen havn tættere '
+                'på, du kunne nå. Overvej at afgå tidligere, eller at lægge '
+                'et stop ind før.',
+                havn=stop.name, tid=clock(stop.arrive), slut=limits.day_end)))
 
     if plan.stops and not any(s.late for s in plan.stops):
         first = plan.stops[0]
-        out.append(Note(NOTE_INFO,
-            f'Turen kan ikke sejles inden for ét sejldøgn. Planen lægger '
-            f'{plural(plan.nights, "overnatning", "overnatninger")} ind — '
-            f'første gang i {first.name} kl. {clock(first.arrive)}. '
-            f'Vil du hele vejen i én stræk, skal du slå mørkesejlads til.'))
+        out.append(Note(NOTE_INFO, t(
+            'Turen kan ikke sejles inden for ét sejldøgn. Planen lægger '
+            '{overnatninger} ind — første gang i {havn} kl. {tid}. Vil du '
+            'hele vejen i én stræk, skal du slå mørkesejlads til.',
+            overnatninger=plural(plan.nights, 'overnatning', 'overnatninger'),
+            havn=first.name, tid=clock(first.arrive))))
 
     early = [s for s in plan.stops
              if (s.arrive.replace(hour=limits.day_end, minute=0)
                  - s.arrive).total_seconds() > 3 * 3600]
     if early:
         first = early[0]
-        out.append(Note(NOTE_INFO,
-            f'Du ligger fortøjet i {first.name} allerede kl. {clock(first.arrive)}, '
-            f'og der er timer tilbage af dagen. Det er med vilje: næste stræk er '
-            f'for langt til at nås inden kl. {limits.day_end:02d}:00, og der er '
-            f'ingen havn imellem. Sejler du videre nu, ender du i mørke.'))
+        out.append(Note(NOTE_INFO, t(
+            'Du ligger fortøjet i {havn} allerede kl. {tid}, og der er timer '
+            'tilbage af dagen. Det er med vilje: næste stræk er for langt til '
+            'at nås inden kl. {slut}:00, og der er ingen havn imellem. Sejler '
+            'du videre nu, ender du i mørke.',
+            havn=first.name, tid=clock(first.arrive),
+            slut=f'{limits.day_end:02d}')))
 
     if plan.red_hours:
         worst = [s for s in plan.segments if s.status == STOP]
-        out.append(Note(NOTE_STOP,
-            f'{plan.red_hours} timer ligger over dine grænser — fra '
-            f'{day_time(worst[0].time)}. Der er op til {num(max(s.wind_kn for s in worst), 0)} '
-            f'knob og {num(max(s.wave_m for s in worst))} meter bølger. '
-            f'Overvej at udskyde eller søge havn undervejs.'))
+        out.append(Note(NOTE_STOP, t(
+            '{n} timer ligger over dine grænser — fra {hvornår}. Der er op '
+            'til {kn} knob og {m} meter bølger. Overvej at udskyde eller søge '
+            'havn undervejs.',
+            n=plan.red_hours, hvornår=day_time(worst[0].time),
+            kn=num(max(s.wind_kn for s in worst), 0),
+            m=num(max(s.wave_m for s in worst)))))
     elif plan.yellow_hours:
-        out.append(Note(NOTE_WARN,
-            f'{plan.yellow_hours} timer nærmer sig dine grænser '
-            f'({num(limits.max_wind, 0)} knob og {num(limits.max_wave)} meter). '
-            f'{"Sæt farten ned i tide" if boat.is_motor else "Reb i god tid"}, '
-            f'og hold øje med om prognosen flytter sig.'))
+        out.append(Note(NOTE_WARN, t(
+            '{n} timer nærmer sig dine grænser ({kn} knob og {m} meter). '
+            '{råd}, og hold øje med om prognosen flytter sig.',
+            n=plan.yellow_hours, kn=num(limits.max_wind, 0),
+            m=num(limits.max_wave),
+            råd=t('Sæt farten ned i tide') if boat.is_motor
+            else t('Reb i god tid'))))
 
     if plan.night_hours:
         night = [s for s in plan.segments if s.night]
-        out.append(Note(NOTE_WARN,
-            f'{plan.night_hours} timer sejles uden for sejldøgnet, første gang '
-            f'omkring {clock(night[0].time)}. Sørg for lanterner, vagtplan og at '
-            f'besætningen er udhvilet.'))
+        out.append(Note(NOTE_WARN, t(
+            '{n} timer sejles uden for sejldøgnet, første gang omkring {tid}. '
+            'Sørg for lanterner, vagtplan og at besætningen er udhvilet.',
+            n=plan.night_hours, tid=clock(night[0].time))))
 
     gusts = max((s.gust_kn for s in plan.segments), default=0)
     if gusts >= limits.max_wind:
-        out.append(Note(NOTE_WARN,f'Vindstødene når {num(gusts, 0)} knob. Middelvinden holder sig '
-                   f'lavere, men {"farten" if boat.is_motor else "rebningen"} skal '
-                   f'passe til stødene, ikke til middelværdien.'))
+        out.append(Note(NOTE_WARN, t(
+            'Vindstødene når {kn} knob. Middelvinden holder sig lavere, men '
+            '{hvad} skal passe til stødene, ikke til middelværdien.',
+            kn=num(gusts, 0),
+            hvad=t('farten') if boat.is_motor else t('rebningen'))))
 
     if boat.is_motor and plan.fuel_l:
-        out.append(Note(NOTE_INFO,f'Regn med omkring {num(plan.fuel_l, 0)} liter brændstof. '
-                   f'Læg en fjerdedel oveni til reserve og til at ligge og vente.'))
+        out.append(Note(NOTE_INFO, t(
+            'Regn med omkring {liter} liter brændstof. Læg en fjerdedel '
+            'oveni til reserve og til at ligge og vente.',
+            liter=num(plan.fuel_l, 0))))
 
     longest = max((d.hours for d in plan.days), default=0)
     if longest >= 14:
-        out.append(Note(NOTE_WARN,f'Den længste dag er på {duration(longest)} i træk. Aftal '
-                   f'hvem der styrer hvornår, og hvor I kan afbryde undervejs.'))
+        out.append(Note(NOTE_WARN, t(
+            'Den længste dag er på {tid} i træk. Aftal hvem der styrer '
+            'hvornår, og hvor I kan afbryde undervejs.',
+            tid=duration(longest))))
 
     if not out:
-        out.append(Note(NOTE_GOOD,'Prognosen holder sig inden for dine grænser hele vejen, og du '
-                   'er i havn inden sejldøgnet er omme. Det ser ud til at blive en god tur.'))
+        out.append(Note(NOTE_GOOD, t(
+            'Prognosen holder sig inden for dine grænser hele vejen, og du er '
+            'i havn inden sejldøgnet er omme. Det ser ud til at blive en god '
+            'tur.')))
     return out
 
 
 # ── Hele planen ───────────────────────────────────────────────────────────────
 def as_text(boat: Boat, route: Route, plan: Plan, limits: Limits) -> str:
     """Hele planen som ren tekst — til udklipsholderen eller en mail til gasten."""
+    # Rubrikkerne sættes op i en kolonne. Den tyske "Ankunft:" er ikke lige så
+    # lang som den danske "Ankomst:", så bredden regnes ud af de ord, der
+    # faktisk står der — ellers står tallene i takker.
+    navne = [t('Båd'), t('Afgang'), t('Ankomst'), t('Distance'),
+             t('Varighed'), t('Brændstof'), t('Ophold')]
+    bred = max(len(n) for n in navne) + 1
+    baad, afgang, ankomst, distance, varighed, braendstof, ophold = navne
+
+    def rubrik(navn: str, værdi: str) -> str:
+        return f'{navn + ":":<{bred}} {værdi}'
+
     lines = [
-        f'SEJLPLAN — {" → ".join(w.name for w in route.waypoints)}',
+        f'{t("SEJLPLAN")} — {" → ".join(w.name for w in route.waypoints)}',
         '=' * 60,
         '',
-        f'Båd:      {boat.name} ({boat.kind}, {num(boat.length_m)} m)',
-        f'Afgang:   {full(plan.depart)}',
-        f'Ankomst:  {full(plan.arrival)}',
-        f'Distance: {num(plan.total_nm)} sømil',
-        f'Varighed: {spell(plan.under_way_h)} under vejs · '
-        f'snitfart {num(plan.avg_speed_kn)} knob',
+        rubrik(baad, f'{boat.name} ({t(boat.kind)}, {num(boat.length_m)} m)'),
+        rubrik(afgang, full(plan.depart)),
+        rubrik(ankomst, full(plan.arrival)),
+        rubrik(distance, t('{sm} sømil', sm=num(plan.total_nm))),
+        rubrik(varighed, t('{tid} under vejs · snitfart {kn} knob',
+                           tid=spell(plan.under_way_h),
+                           kn=num(plan.avg_speed_kn))),
     ]
     if boat.is_motor:
-        lines.append(f'Brændstof: ca. {num(plan.fuel_l, 0)} liter')
+        lines.append(rubrik(braendstof,
+                            t('ca. {liter} liter', liter=num(plan.fuel_l, 0))))
     if plan.stops:
-        lines.append(f'Ophold:   {", ".join(s.name for s in plan.stops)}')
+        lines.append(rubrik(ophold, ', '.join(s.name for s in plan.stops)))
 
-    lines += ['', 'OVERBLIK', '-' * 60]
+    lines += ['', t('OVERBLIK'), '-' * 60]
     lines += overview(boat, route, plan)
 
     if len(plan.days) > 1:
-        lines += ['', 'DAG FOR DAG', '-' * 60]
+        lines += ['', t('DAG FOR DAG'), '-' * 60]
         lines += day_lines(plan)
 
-    lines += ['', 'VÆR OPMÆRKSOM PÅ', '-' * 60]
+    lines += ['', t('VÆR OPMÆRKSOM PÅ'), '-' * 60]
     lines += [f'- {w}' for w in warnings(plan, limits, boat)]
 
-    lines += ['', 'STRÆK FOR STRÆK', '-' * 60]
+    lines += ['', t('STRÆK FOR STRÆK'), '-' * 60]
     for brief in stretch_briefs(route, plan, boat):
         lines += [f'{brief.headline}  ({brief.starts} → {brief.ends})',
                   f'  {brief.sentence}', '']
 
-    lines += ['TIME FOR TIME', '-' * 60,
-              'Tid            Vind        Bølger  Fart   Sejlføring']
+    # Overskriften sættes op efter de samme bredder som rækkerne nedenfor.
+    # Skrevet i hånden passede den kun til de danske ord, og på tysk stod
+    # tallene under den forkerte overskrift.
+    lines += [t('TIME FOR TIME'), '-' * 60,
+              f'{t("Tid"):<15}{t("Vind"):<11}{t("Bølger"):<8}'
+              f'{t("Fart"):<10}{t("Sejlføring")}']
+    kn, m = t('kn'), t('m')
     for s in plan.segments:
-        mode = 'motor' if s.motoring else point_of_sail(s.twa)
+        mode = t('motor') if s.motoring else t(point_of_sail(s.twa))
         lines.append(
-            f'{day_time(s.time):<14} {num(s.wind_kn, 0):>2} kn {compass(s.wind_dir):<4} '
-            f'{num(s.wave_m):>5} m {num(s.speed_kn):>5} kn  {mode}')
+            f'{day_time(s.time):<15}'
+            f'{num(s.wind_kn, 0):>2} {kn} {compass(s.wind_dir):<4}'
+            f'{num(s.wave_m):>5} {m}  '
+            f'{num(s.speed_kn):>5} {kn}  {mode}')
 
-    lines += ['', 'Prognoser er prognoser. Planen erstatter ikke søkort, '
-                  'farvandsudsigt eller almindelig sømandskab.']
-    return '\n'.join(lines)
+    lines += ['', t('Prognoser er prognoser. Planen erstatter ikke søkort, '
+                    'farvandsudsigt eller almindelig sømandskab.')]
+    return chr(10).join(lines)

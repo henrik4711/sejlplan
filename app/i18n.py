@@ -41,10 +41,12 @@ def _table(code: str) -> dict[str, str]:
     """Hent et sprogs tabel. Indlæses første gang, det bruges."""
     if code not in _TABLES:
         if code == DE:
-            from .lang import de, de_manual
-            # Manualens prosa ligger for sig. Den fylder mere end hele resten
-            # af fladen, og den skal kunne rettes uden at røre knapperne.
-            _TABLES[DE] = {**de.WORDS, **de_manual.WORDS}
+            from .lang import de, de_manual, de_plan, de_ui
+            # Prosaen ligger for sig: manualen og sejlplanens egen tekst
+            # fylder tilsammen mere end hele resten af fladen, og de skal
+            # kunne rettes uden at røre knapperne.
+            _TABLES[DE] = {**de.WORDS, **de_ui.WORDS, **de_manual.WORDS,
+                           **de_plan.WORDS}
         else:
             _TABLES[code] = {}
     return _TABLES[code]
@@ -102,7 +104,30 @@ def t(text: str, **kwargs) -> str:
     return out
 
 
+# Dansk bøjer ikke altid i flertal — "et sejldøgn", "to sejldøgn", "et ben",
+# "to ben". Tysk gør: ein Etmal, zwei Etmale. Så flertalsformen slås op for
+# sig, med nøglen "ordet|flertal". Findes den ikke, bruges entalsordet, og for
+# dansk er det altid det rigtige.
+PLURAL_MARK = '|flertal'
+
+# Nogle ord skifter form, når de sættes ind i en sætning. Dansk siger "for
+# halvvind" og "halvvind" med samme ord; tysk siger "halber Wind", men "bei
+# halbem Wind". Så sætningsformen slås op for sig, med nøglen "ordet|sætning".
+SENTENCE_MARK = '|sætning'
+
+
+def t_in_sentence(text: str) -> str:
+    """Ordet, som det lyder inde i en sætning. Dansk bøjer ikke — så det er
+    det samme ord, og opslaget falder igennem til `t()`."""
+    return _table(lang()).get(text + SENTENCE_MARK) or t(text)
+
+
+
 def plural(n: int, one: str, many: str) -> str:
     """Tal og ord, bøjet. Begge ord oversættes hver for sig."""
-    return f'{n} {t(one) if n == 1 else t(many)}'
+    if n == 1:
+        return f'{n} {t(one)}'
+    tabel = _table(lang())
+    ord_ = tabel.get(many + PLURAL_MARK) or t(many)
+    return f'{n} {ord_}'
 
