@@ -24,10 +24,11 @@ from __future__ import annotations
 import asyncio
 from datetime import date, datetime
 
-from . import chat, fleetmap, mailer, reports, share, watch, weatherbound
+from . import chat, fleetmap, i18n, mailer, reports, share, watch, weatherbound
 from .boats import BOATS, DEFAULT_BOAT, custom_boat
 from .config import settings
 from .dates import full
+from .i18n import t
 from .mishap import report
 from .sailing import GO, Limits, Route, Waypoint, WARN, find_windows
 from .searoute import plan_route
@@ -134,35 +135,45 @@ async def tell(w: watch.Watch, hit: dict) -> bool:
     open_url = _link(f'/?rute={code}')
     stop_url = _link(f'/vagt/stop/{w.id}')
 
-    hello = f'Hej {w.name}' if w.name else 'Hej'
-    stops = (f'\nUndervejs ligger du i {", ".join(s.name for s in plan.stops)}.'
-             if plan.stops else '')
+    # Mailen skrives på det sprog, vagten blev lagt på. Der er ingen browser
+    # at spørge her — vagten blev lagt for uger siden.
+    with i18n.using(w.lang):
+        hello = t('Hej {navn}', navn=w.name) if w.name else t('Hej')
+        stops = (chr(10) + t('Undervejs ligger du i {havne}.',
+                             havne=', '.join(s.name for s in plan.stops))
+                 if plan.stops else '')
 
-    text = f"""{hello}
+        text = t("""{hilsen}
 
-Nu er der vejr til {w.title}.
+Nu er der vejr til {rute}.
 
-Afgang     {full(plan.depart)}
-Ankomst    {full(plan.arrival)}
-Distance   {_da(plan.total_nm, 0)} sømil
-Under vejs {_da(plan.under_way_h, 0)} timer, snit {_da(plan.avg_speed_kn)} knob
-Vind       op til {_da(plan.worst_wind_kn, 0)} knob
-Bølger     op til {_da(plan.worst_wave_m)} meter{stops}
+Afgang     {afgang}
+Ankomst    {ankomst}
+Distance   {sm} sømil
+Under vejs {timer} timer, snit {snit} knob
+Vind       op til {vind} knob
+Bølger     op til {boelger} meter{ophold}
 
 Åbn turen i Sejlplan, så kan du se hele planen — dag for dag, stræk for stræk
 og time for time:
-{open_url}
+{link}
 
 Prognosen kan nå at flytte sig. Se den efter igen dagen før, du kaster los.
 
 Vagten er hermed brugt. Vil du holde øje med en ny tur, så læg en ny vagt.
-Vil du stoppe den her med det samme: {stop_url}
+Vil du stoppe den her med det samme: {stop}
 
 God tur.
 Sejlplan
-"""
-    return await mailer.send(
-        w.email, f'Nu er der vejr til {w.title}', text)
+""", hilsen=hello, rute=w.title, afgang=full(plan.depart),
+              ankomst=full(plan.arrival), sm=_da(plan.total_nm, 0),
+              timer=_da(plan.under_way_h, 0), snit=_da(plan.avg_speed_kn),
+              vind=_da(plan.worst_wind_kn, 0),
+              boelger=_da(plan.worst_wave_m), ophold=stops,
+              link=open_url, stop=stop_url)
+        emne = t('Nu er der vejr til {rute}', rute=w.title)
+
+    return await mailer.send(w.email, emne, text)
 
 
 def _da(value: float, decimals: int = 1) -> str:
@@ -179,26 +190,29 @@ async def confirm_mail(w: watch.Watch) -> bool:
     """Bed brugeren bekræfte sin adresse. Uden det skriver vi ikke igen."""
     yes_url = _link(f'/vagt/ja/{w.id}')
     stop_url = _link(f'/vagt/stop/{w.id}')
-    hello = f'Hej {w.name}' if w.name else 'Hej'
     start, end = w.window
 
-    text = f"""{hello}
+    with i18n.using(w.lang):
+        hello = t('Hej {navn}', navn=w.name) if w.name else t('Hej')
+        text = t("""{hilsen}
 
-Du har bedt Sejlplan holde øje med vejret til {w.title}
-mellem {start.strftime('%d.%m.%Y')} og {end.strftime('%d.%m.%Y')}.
+Du har bedt Sejlplan holde øje med vejret til {rute}
+mellem {fra} og {til}.
 
 Bekræft, at adressen er din, så går vagten i gang:
-{yes_url}
+{ja}
 
 Vi skriver én gang — når der er et vindue, du kan sejle i. Ikke oftere.
 
 Var det ikke dig, skal du ingenting gøre. Så bliver vagten aldrig aktiv, og
-den ryger af sig selv. Vil du være sikker: {stop_url}
+den ryger af sig selv. Vil du være sikker: {stop}
 
 Sejlplan
-"""
-    return await mailer.send(
-        w.email, f'Bekræft vejrvagt: {w.title}', text)
+""", hilsen=hello, rute=w.title, fra=start.strftime('%d.%m.%Y'),
+              til=end.strftime('%d.%m.%Y'), ja=yes_url, stop=stop_url)
+        emne = t('Bekræft vejrvagt: {rute}', rute=w.title)
+
+    return await mailer.send(w.email, emne, text)
 
 
 # ── Selve udkiggen ────────────────────────────────────────────────────────────

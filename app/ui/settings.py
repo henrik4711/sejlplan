@@ -213,7 +213,7 @@ def _boat_card(boat, chosen: bool, on_pick) -> None:
             ui.label(boat.name).classes('text-[13px] font-semibold truncate')
         ui.label(boat.summary).classes(
             'text-[11px] text-[var(--txt-3)] mt-0.5 truncate block')
-        ui.label(boat.crew_note or boat.desc).classes(
+        ui.label(t(boat.crew_note or boat.desc)).classes(
             'text-[11px] text-[var(--txt-3)] italic truncate block')
     card.on('click', lambda _: on_pick())
 

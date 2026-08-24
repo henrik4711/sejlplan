@@ -14,6 +14,7 @@ from collections.abc import AsyncIterator
 
 import anthropic
 
+from .i18n import t
 from .boats import Boat
 from .config import settings
 from .dates import day_time, full
@@ -51,6 +52,31 @@ generelle forbehold om at tjekke vejrudsigten; skipperen ved det godt. \
 Maksimalt 600 ord."""
 
 
+# Sproglaget lægges ovenpå. Selve prompten bliver stående på dansk: den er
+# skrevet med præcise søfartsudtryk, og en oversat prompt ville koste netop
+# den præcision, som er hele grunden til at spørge.
+SPROG_TILLAEG = {
+    'de': """
+
+VIGTIGT — SPROG: Skipperen læser tysk. Skriv hele svaret på tysk med korrekte
+tyske søfartsudtryk (Etmal, am Wind, raumer Wind, Gegensee, reffen, Nothafen).
+Brug disse overskrifter i stedet:
+
+## Gesamteinschätzung
+## Abschnitt für Abschnitt
+## Empfohlene Abfahrt
+## Risiken und Vorbehalte
+## Segelstrategie""",
+}
+
+
+def _system_prompt() -> str:
+    """Prompten på dansk, med en sprogbesked ovenpå, hvis der er brug for en."""
+    from .i18n import lang
+    return SYSTEM_PROMPT + SPROG_TILLAEG.get(lang(), '')
+
+
+
 class AIUnavailable(RuntimeError):
     """Serveren har ingen brugbar API-nøgle, eller tjenesten svarer ikke."""
 
@@ -58,8 +84,8 @@ class AIUnavailable(RuntimeError):
 def _client() -> anthropic.AsyncAnthropic:
     if not settings.ai_available:
         raise AIUnavailable(
-            'AI-analysen er ikke slået til på denne server. '
-            'Sæt ANTHROPIC_API_KEY i .env og genstart.')
+            t('AI-analysen er ikke slået til på denne server. '
+              'Sæt ANTHROPIC_API_KEY i .env og genstart.'))
     return anthropic.AsyncAnthropic(api_key=settings.anthropic_key)
 
 
@@ -178,7 +204,7 @@ async def stream_analysis(boat: Boat, route: Route, plan: Plan,
         async with client.messages.stream(
             model=settings.ai_model,
             max_tokens=MAX_TOKENS,
-            system=SYSTEM_PROMPT,
+            system=_system_prompt(),
             thinking={'type': 'adaptive'},
             output_config={'effort': 'medium'},
             messages=[{'role': 'user', 'content': prompt}],
@@ -186,10 +212,17 @@ async def stream_analysis(boat: Boat, route: Route, plan: Plan,
             async for text in stream.text_stream:
                 yield text
     except anthropic.AuthenticationError as exc:
-        raise AIUnavailable('Serverens API-nøgle blev afvist. Tjek ANTHROPIC_API_KEY.') from exc
+        raise AIUnavailable(
+            t('Serverens API-nøgle blev afvist. Tjek '
+              'ANTHROPIC_API_KEY.')) from exc
     except anthropic.RateLimitError as exc:
-        raise AIUnavailable('For mange forespørgsler lige nu. Prøv igen om et øjeblik.') from exc
+        raise AIUnavailable(
+            t('For mange forespørgsler lige nu. Prøv igen om et '
+              'øjeblik.')) from exc
     except anthropic.APIStatusError as exc:
-        raise AIUnavailable(f'AI-tjenesten svarede med fejl {exc.status_code}.') from exc
+        raise AIUnavailable(
+            t('AI-tjenesten svarede med fejl {kode}.',
+              kode=exc.status_code)) from exc
     except anthropic.APIConnectionError as exc:
-        raise AIUnavailable('Kunne ikke få forbindelse til AI-tjenesten.') from exc
+        raise AIUnavailable(
+            t('Kunne ikke få forbindelse til AI-tjenesten.')) from exc

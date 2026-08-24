@@ -17,6 +17,8 @@ from datetime import datetime
 
 from nicegui import app, ui
 
+from .i18n import t
+
 log = logging.getLogger('sejlplan')
 
 # Fejlnumre tælles op i den kørende server. De skal ikke være unikke i verden,
@@ -44,8 +46,8 @@ def tell(exc: Exception, where: str = '') -> None:
     ref = report(exc, where)
     try:
         ui.notify(
-            f'Noget gik galt her — det er ikke dig. Prøv igen, og skriv '
-            f'fejl {ref}, hvis det bliver ved.',
+            t('Noget gik galt her — det er ikke dig. Prøv igen, og skriv '
+              'fejl {ref}, hvis det bliver ved.', ref=ref),
             type='negative', position='bottom', multi_line=True,
             timeout=9000, close_button='OK',
             classes='max-w-[380px]')

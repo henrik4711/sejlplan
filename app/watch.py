@@ -55,6 +55,10 @@ class Watch:
     confirmed: int = 0
     notified: str = ''
     cancelled: int = 0
+    # Sproget skal med. Mailen bliver skrevet dage senere af en baggrundstråd,
+    # der ikke har nogen browsersession at spørge — havde den ikke stået her,
+    # ville en tysk sejler få sin gevinst på dansk.
+    lang: str = 'da'
 
     @property
     def title(self) -> str:
@@ -107,6 +111,12 @@ def _open() -> sqlite3.Connection:
             notified  TEXT NOT NULL DEFAULT '',
             cancelled INTEGER NOT NULL DEFAULT 0
         )""")
+    # Tilføjet efter at der allerede lå vagter i databasen. En vagt uden sprog
+    # er dansk — det var det eneste, der fandtes, da den blev lagt.
+    if 'lang' not in {r['name'] for r in
+                      con.execute('PRAGMA table_info(watches)')}:
+        con.execute("ALTER TABLE watches ADD COLUMN lang TEXT "
+                    "NOT NULL DEFAULT 'da'")
     con.commit()
     return con
 
@@ -118,29 +128,33 @@ def _row(r: sqlite3.Row) -> Watch:
         limits=json.loads(r['limits']), date_from=r['date_from'],
         date_to=r['date_to'], quality=r['quality'], created=r['created'],
         confirmed=r['confirmed'], notified=r['notified'],
-        cancelled=r['cancelled'])
+        cancelled=r['cancelled'],
+        lang=(r['lang'] if 'lang' in r.keys() else 'da') or 'da')
 
 
 # ── Læg, hent, ryd ────────────────────────────────────────────────────────────
 def create(email: str, name: str, waypoints: list, boat: dict, limits: dict,
-           date_from: str, date_to: str, quality: str = 'god') -> Watch:
+           date_from: str, date_to: str, quality: str = 'god',
+           lang: str = 'da') -> Watch:
     """Læg en vagt. Den er stille, til brugeren har bekræftet sin adresse."""
     watch = Watch(
         id=secrets.token_urlsafe(18), email=email.strip().lower(),
         name=name.strip(), waypoints=waypoints, boat=boat, limits=limits,
         date_from=date_from, date_to=date_to,
         quality=quality if quality in QUALITY else 'god',
-        created=datetime.now().isoformat(timespec='seconds'))
+        created=datetime.now().isoformat(timespec='seconds'), lang=lang)
 
     with _open() as con:
         con.execute(
             'INSERT INTO watches (id,email,name,waypoints,boat,limits,'
-            'date_from,date_to,quality,created) VALUES (?,?,?,?,?,?,?,?,?,?)',
+            'date_from,date_to,quality,created,lang) '
+            'VALUES (?,?,?,?,?,?,?,?,?,?,?)',
             (watch.id, watch.email, watch.name,
              json.dumps(watch.waypoints, ensure_ascii=False),
              json.dumps(watch.boat, ensure_ascii=False),
              json.dumps(watch.limits, ensure_ascii=False),
-             watch.date_from, watch.date_to, watch.quality, watch.created))
+             watch.date_from, watch.date_to, watch.quality, watch.created,
+             watch.lang))
     return watch
 
 

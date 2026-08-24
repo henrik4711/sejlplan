@@ -144,7 +144,8 @@ class Waypoint:
     @property
     def where(self) -> str:
         """Undertekst til listen. Koordinater kun når der ikke er andet."""
-        return self.detail or f'{self.lat:.3f}°N {self.lon:.3f}°Ø'
+        from .i18n import t
+        return self.detail or f'{self.lat:.3f}°N {self.lon:.3f}°{t("Ø")}'
 
     def as_dict(self) -> dict:
         return {'lat': self.lat, 'lon': self.lon, 'name': self.name,

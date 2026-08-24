@@ -16,6 +16,7 @@ import zlib
 from datetime import datetime
 from xml.sax.saxutils import escape
 
+from .i18n import t
 from .sailing import Route, Waypoint
 
 
@@ -106,7 +107,7 @@ def route_points(route: Route) -> list[tuple[float, float, str]]:
                 out.append((lat, lon, route.waypoints[leg].name))
             elif i < len(track) - 1:
                 knee += 1
-                out.append((lat, lon, f'Knæk {knee}'))
+                out.append((lat, lon, t('Knæk {nr}', nr=knee)))
             # Sidste punkt i et ben er første punkt i det næste – tages dér.
     last = route.waypoints[-1]
     out.append((last.lat, last.lon, last.name))

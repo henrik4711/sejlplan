@@ -91,6 +91,7 @@ class Sailboat:
     @property
     def character(self) -> str:
         """Bådens væsen i to ord — dét man ville sige om den på broen."""
+        from .i18n import t
         sd, dl = self.sail_area_disp, self.disp_length
         if dl > 300:
             weight = 'tung'
@@ -108,13 +109,14 @@ class Sailboat:
             rig = 'almindeligt sejlført'
         else:
             rig = 'beskedent sejlført'
-        return f'{weight}, {rig}'
+        return f'{t(weight)}, {t(rig)}'
 
     @property
     def summary(self) -> str:
+        from .i18n import t
         return (f'{_da(self.loa_m, 2)} m · {_da(self.disp_kg / 1000, 1)} t · '
-                f'{_da(self.sail_m2, 0)} m² sejl · '
-                f'{_da(self.draft_m, 2)} m dybgang')
+                f'{_da(self.sail_m2, 0)} m² {t("sejl")} · '
+                f'{_da(self.draft_m, 2)} m {t("dybgang")}')
 
     @property
     def reach_text(self) -> str:

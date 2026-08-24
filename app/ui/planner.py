@@ -436,7 +436,8 @@ class Planner:
                 icon = ('<span class="material-icons" style="font-size:13px">check</span>'
                         if mark == 'check' else mark)
                 el = ui.html(f'<div class="step {state}">'
-                             f'<span class="step-num">{icon}</span>{esc(label)}</div>')
+                             f'<span class="step-num">{icon}</span>'
+                             f'{esc(t(label))}</div>')
                 if unlocked:
                     el.on('click', lambda _, n=num: self._go_to_step(n))
                 else:
@@ -551,7 +552,8 @@ class Planner:
             return
 
         with ui.element('div').classes('flex items-center gap-2 mt-3 mb-1.5'):
-            ui.html('<span class="section-label">Ruten</span>')
+            ui.html('<span class="section-label">' + esc(t('Ruten'))
+                    + '</span>')
             if self.s.saved_name:
                 # Arbejder man i en gemt rute, skal man kunne se hvilken. Navnet
                 # er brugerens eget og kan være langt — det må ikke kunne skubbe
@@ -579,7 +581,8 @@ class Planner:
 
     def _waypoint_row(self, i: int, wp: Waypoint, last: int) -> None:
         kind = 'start' if i == 0 else 'end' if i == last and last > 0 else 'via'
-        role = {'start': 'Afgang', 'end': 'Destination', 'via': 'Mellemstop'}[kind]
+        role = t({'start': 'Afgang', 'end': 'Destination',
+                  'via': 'Mellemstop'}[kind])
 
         with ui.element('div').classes('wp group').props(
                 f'data-spot="{wp.lat:.5f},{wp.lon:.5f}"'):
@@ -632,7 +635,8 @@ class Planner:
             # Har man ruter på hylden, er det her, man vil have fat i dem —
             # ikke bag et ikon oppe i hjørnet.
             with ui.element('div').classes('flex items-center gap-2 mt-1 mb-2'):
-                ui.html('<span class="section-label">Mine ruter</span>')
+                ui.html('<span class="section-label">' + esc(t('Mine ruter'))
+                        + '</span>')
                 ui.element('div').classes('flex-1')
                 ui.button(t('Se alle'), on_click=self._open_routes) \
                     .props('flat dense no-caps size=sm') \

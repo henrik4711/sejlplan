@@ -20,6 +20,9 @@ båden og ruterne og rejser med den kopi, browseren får.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+
 from nicegui import app
 
 DA = 'da'
@@ -52,8 +55,28 @@ def _table(code: str) -> dict[str, str]:
     return _TABLES[code]
 
 
+# Et sprog, der er sat med vilje, uden at der er en browser at spørge.
+# Vejrvagten skriver sine mails fra en baggrundstråd dage efter, at brugeren
+# lagde vagten — dér findes der ingen session, og uden det her ville en tysk
+# sejler få sin gevinst på dansk.
+_forced: ContextVar[str | None] = ContextVar('sejlplan_sprog', default=None)
+
+
+@contextmanager
+def using(code: str):
+    """Kør et stykke arbejde på et bestemt sprog."""
+    token = _forced.set(code if code in LANGUAGES else DA)
+    try:
+        yield
+    finally:
+        _forced.reset(token)
+
+
 def lang() -> str:
     """Brugerens sprog. Dansk, hvis der ikke er valgt noget."""
+    valgt = _forced.get()
+    if valgt:
+        return valgt
     try:
         code = app.storage.user.get(STORAGE_KEY)
     except (RuntimeError, KeyError):

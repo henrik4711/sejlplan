@@ -19,6 +19,7 @@ from html import escape as esc
 
 from .boats import Boat
 from .dates import clock, day_time, full, spell
+from .i18n import DE, lang, t
 from .narrative import (day_lines, num, overview, stretch_briefs,
                         warnings)
 from .sailing import Limits, Plan, Route, compass, point_of_sail
@@ -124,17 +125,18 @@ footer { margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--line);
 
 
 def _keys(boat: Boat, plan: Plan) -> list[tuple[str, str]]:
+    kn, m = t('kn'), t('m')
     out = [
-        (spell(plan.under_way_h), 'Under vejs'),
-        (f'{num(plan.avg_speed_kn)} kn', 'Gns. fart'),
-        (f'{num(plan.total_nm, 0)} sm', 'Distance'),
-        (f'{num(plan.worst_wind_kn, 0)} kn', 'Højeste vind'),
-        (f'{num(plan.worst_wave_m)} m', 'Højeste bølger'),
+        (spell(plan.under_way_h), t('Under vejs')),
+        (f'{num(plan.avg_speed_kn)} {kn}', t('Gns. fart')),
+        (f'{num(plan.total_nm, 0)} {t("sm")}', t('Distance')),
+        (f'{num(plan.worst_wind_kn, 0)} {kn}', t('Højeste vind')),
+        (f'{num(plan.worst_wave_m)} {m}', t('Højeste bølger')),
     ]
     if boat.is_motor or plan.fuel_l >= 1:
-        out.append((f'{num(plan.fuel_l, 0)} l', 'Brændstof'))
+        out.append((f'{num(plan.fuel_l, 0)} {t("l")}', t('Brændstof')))
     else:
-        out.append((f'{plan.red_hours} t', 'Frarådet'))
+        out.append((f'{plan.red_hours} {t("t")}', t('Frarådet')))
     return out
 
 
@@ -143,42 +145,46 @@ def document(boat: Boat, route: Route, plan: Plan, limits: Limits,
     """Byg hele planen som én HTML-fil uden et eneste kald ud af siden."""
     saved = saved or datetime.now()
     names = ' → '.join(w.name for w in route.waypoints)
-    tail = (f'når {plan.reached_nm:.0f} af {plan.total_nm:.0f} sømil'
-            if plan.incomplete else f'ankomst {full(plan.arrival)}')
+    tail = (t('når {nået} af {ialt} sømil',
+              nået=f'{plan.reached_nm:.0f}', ialt=f'{plan.total_nm:.0f}')
+            if plan.incomplete
+            else t('ankomst {tid}', tid=full(plan.arrival)))
 
     p: list[str] = []
     add = p.append
 
-    add(f'<div class="bar">Gemt om bord {day_time(saved)} · '
-        f'virker uden dækning</div>')
+    add('<div class="bar">'
+        + esc(t('Gemt om bord {tid} · virker uden dækning',
+                tid=day_time(saved))) + '</div>')
     add('<div class="wrap">')
 
     add('<header>'
-        '<div class="eyebrow">Sejlplan</div>'
+        f'<div class="eyebrow">{esc(t("Sejlplan"))}</div>'
         f'<h1>{esc(names)}</h1>'
-        f'<p class="sub">{esc(boat.name)} · afgang {esc(full(plan.depart))} '
-        f'· {esc(tail)}</p>'
-        '</header>')
+        f'<p class="sub">'
+        + esc(t('{båd} · afgang {tid} · {hale}', båd=boat.name,
+                tid=full(plan.depart), hale=tail))
+        + '</p></header>')
 
-    add('<h2>Overblik</h2><div class="card">')
+    add(f'<h2>{esc(t("Overblik"))}</h2><div class="card">')
     for para in overview(boat, route, plan):
         add(f'<p>{esc(para)}</p>')
     add('</div>')
 
     notes = warnings(plan, limits, boat, outlook)
     if notes:
-        add('<h2>Vær opmærksom på</h2>')
+        add(f'<h2>{esc(t("Vær opmærksom på"))}</h2>')
         for note in notes:
             add(f'<div class="card warn"><p>{esc(note)}</p></div>')
 
-    add('<h2>Nøgletal</h2><div class="keys">')
+    add(f'<h2>{esc(t("Nøgletal"))}</h2><div class="keys">')
     for value, label in _keys(boat, plan):
         add(f'<div class="key"><b class="tnum">{esc(value)}</b>'
             f'<span>{esc(label)}</span></div>')
     add('</div>')
 
     if len(plan.days) > 1:
-        add('<h2>Dag for dag</h2>')
+        add(f'<h2>{esc(t("Dag for dag"))}</h2>')
         for i, line in enumerate(day_lines(plan), 1):
             head, _, rest = line.partition(': ')
             add(f'<div class="day"><div class="n">{i}</div><div class="t">'
@@ -187,16 +193,17 @@ def document(boat: Boat, route: Route, plan: Plan, limits: Limits,
 
     briefs = stretch_briefs(route, plan, boat)
     if briefs:
-        add('<h2>Stræk for stræk</h2>')
+        add(f'<h2>{esc(t("Stræk for stræk"))}</h2>')
         for b in briefs:
             add(f'<div class="leg"><b>{esc(b.headline)}</b>'
                 f'<div class="meta tnum">{esc(b.heading)} · '
                 f'{esc(b.starts)} → {esc(b.ends)}</div>'
                 f'<p>{esc(b.sentence)}</p></div>')
 
-    add('<h2>Time for time</h2><div class="scroll"><table>'
-        '<tr><th>Tid</th><th>Vind</th><th>Fra</th><th>Bølger</th>'
-        '<th>Fart</th><th>Sejlføring</th></tr>')
+    add(f'<h2>{esc(t("Time for time"))}</h2><div class="scroll"><table>'
+        f'<tr><th>{esc(t("Tid"))}</th><th>{esc(t("Vind"))}</th>'
+        f'<th>{esc(t("Fra"))}</th><th>{esc(t("Bølger"))}</th>'
+        f'<th>{esc(t("Fart"))}</th><th>{esc(t("Sejlføring"))}</th></tr>')
     seen = None
     for s in plan.segments:
         if s.time.date() != seen:
@@ -205,28 +212,30 @@ def document(boat: Boat, route: Route, plan: Plan, limits: Limits,
                 f'</td></tr>')
         colour = {'go': 'var(--go)', 'warn': 'var(--warn)'}.get(
             s.status, 'var(--stop)')
-        mode = 'motor' if s.motoring else point_of_sail(s.twa)
+        mode = t('motor') if s.motoring else t(point_of_sail(s.twa))
         add(f'<tr><td class="tnum">'
             f'<span class="dot" style="background:{colour}"></span>'
             f'{esc(clock(s.time))}</td>'
-            f'<td class="tnum">{num(s.wind_kn, 0)} kn</td>'
+            f'<td class="tnum">{num(s.wind_kn, 0)} {esc(t("kn"))}</td>'
             f'<td>{esc(compass(s.wind_dir))}</td>'
-            f'<td class="tnum">{num(s.wave_m)} m</td>'
-            f'<td class="tnum">{num(s.speed_kn)} kn</td>'
+            f'<td class="tnum">{num(s.wave_m)} {esc(t("m"))}</td>'
+            f'<td class="tnum">{num(s.speed_kn)} {esc(t("kn"))}</td>'
             f'<td>{esc(mode)}</td></tr>')
     add('</table></div>')
 
-    add('<footer>Prognoser er prognoser. Planen erstatter ikke søkort, '
-        'farvandsudsigt eller almindelig sømandskab.<br>'
-        f'Hentet {esc(full(saved))} og gemt i telefonen. Åbn Sejlplan med '
-        f'dækning for at regne den om.</footer>')
+    add('<footer>'
+        + esc(t('Prognoser er prognoser. Planen erstatter ikke søkort, '
+                'farvandsudsigt eller almindelig sømandskab.')) + '<br>'
+        + esc(t('Hentet {tid} og gemt i telefonen. Åbn Sejlplan med dækning '
+                'for at regne den om.', tid=full(saved))) + '</footer>')
     add('</div>')
 
     return (
-        '<!doctype html><html lang="da"><head><meta charset="utf-8">'
+        f'<!doctype html><html lang="{lang()}"><head>'
+        '<meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         '<meta name="color-scheme" content="light dark">'
-        f'<title>Sejlplan — {esc(names)}</title>'
+        f'<title>{esc(t("Sejlplan"))} — {esc(names)}</title>'
         f'<style>{CSS}</style></head><body>'
         + ''.join(p) +
         '</body></html>'

@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 import httpx
 
+from .i18n import t
 from . import harbours
 from .config import settings
 
@@ -92,8 +93,9 @@ def _fold(s: str) -> str:
 def from_harbour(h: harbours.Harbour) -> Place:
     detail = h.detail
     if h.berths:
-        detail = f'{detail} · {h.berths} pladser' if detail else f'{h.berths} pladser'
-    return Place(h.name, detail or 'Lystbådehavn', h.lat, h.lon, HAVN)
+        pladser = t('{n} pladser', n=h.berths)
+        detail = f'{detail} · {pladser}' if detail else pladser
+    return Place(h.name, detail or t('Lystbådehavn'), h.lat, h.lon, HAVN)
 
 
 # ── Positioner ───────────────────────────────────────────────────────────────
@@ -137,7 +139,7 @@ def _f(value: str) -> float:
 def _spot(lat: float, lon: float) -> Place | None:
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
         return None
-    return Place(f'{lat:.4f}°N {lon:.4f}°Ø'.replace('.', ','),
+    return Place(f'{lat:.4f}°N {lon:.4f}°{t("Ø")}'.replace('.', ','),
                  'Indtastet position', lat, lon, SPOT)
 
 
@@ -171,7 +173,7 @@ async def search_remote(query: str, limit: int = 6) -> list[Place]:
         region = ' · '.join(x for x in (item.get('admin1'), item.get('country')) if x)
         places.append(Place(
             name=item.get('name') or query,
-            detail=region or 'Ukendt område',
+            detail=region or t('Ukendt område'),
             lat=float(item['latitude']), lon=float(item['longitude']),
             kind=kind,
         ))
@@ -195,9 +197,10 @@ def at_point(lat: float, lon: float) -> Place:
         if distance <= HIT_NM:
             return from_harbour(h)
         if distance <= NEAR_NM:
-            return Place(f'Ud for {short_name(h.name)}', h.detail, lat, lon, SPOT)
-    return _spot(lat, lon) or Place(f'{lat:.3f}°N {lon:.3f}°Ø',
-                                    'Position', lat, lon, SPOT)
+            return Place(t('Ud for {sted}', sted=short_name(h.name)),
+                         h.detail, lat, lon, SPOT)
+    return _spot(lat, lon) or Place(f'{lat:.3f}°N {lon:.3f}°{t("Ø")}',
+                                    t('Position'), lat, lon, SPOT)
 
 
 # Ord man ikke siger, når man peger på et sted på søkortet: "ud for Køge" er
@@ -233,7 +236,8 @@ def snap_to_harbour(place: Place) -> Place:
         return place
     if _fold(h.name) == _fold(place.name):
         return from_harbour(h)
-    return Place(h.name, f'{h.detail} · ved {place.name}', h.lat, h.lon, HAVN)
+    return Place(h.name, t('{detalje} · ved {sted}', detalje=h.detail,
+                           sted=place.name), h.lat, h.lon, HAVN)
 
 
 def _nm(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

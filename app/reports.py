@@ -91,17 +91,18 @@ class Report:
         Alderen er det vigtigste ved en melding. "Fuld" for tre timer siden er
         noget andet end "fuld" i går aftes.
         """
+        from .i18n import t
         minutes = (datetime.now() - self.when).total_seconds() / 60
         if minutes < 45:
-            return 'lige nu'
+            return t('lige nu')
         hours = minutes / 60
         if hours < 2:
-            return 'for en time siden'
+            return t('for en time siden')
         if hours < 20:
-            return f'for {hours:.0f} timer siden'
+            return t('for {n} timer siden', n=f'{hours:.0f}')
         if hours < 34:
-            return 'i går'
-        return f'for {hours / 24:.0f} dage siden'
+            return t('i går')
+        return t('for {n} dage siden', n=f'{hours / 24:.0f}')
 
     @property
     def fresh(self) -> bool:

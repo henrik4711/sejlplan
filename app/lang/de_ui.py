@@ -401,4 +401,120 @@ WORDS: dict[str, str] = {
         'wieder darüber.',
     'Linket er forkert, eller vagten er allerede stoppet.':
         'Der Link ist falsch, oder die Wache ist bereits gestoppt.',
+
+    # ── Breve, fejlbeskeder og bådenes væsen ───────────────────
+    'AI-analysen er ikke slået til på denne server. Sæt '
+        'ANTHROPIC_API_KEY i .env og genstart.':
+        'Die KI-Analyse ist auf diesem Server nicht eingeschaltet. Setze '
+        'ANTHROPIC_API_KEY in .env und starte neu.',
+    'Serverens API-nøgle blev afvist. Tjek ANTHROPIC_API_KEY.':
+        'Der API-Schlüssel des Servers wurde abgelehnt. Prüfe '
+        'ANTHROPIC_API_KEY.',
+    'For mange forespørgsler lige nu. Prøv igen om et øjeblik.':
+        'Gerade zu viele Anfragen. Versuche es gleich noch einmal.',
+    'AI-tjenesten svarede med fejl {kode}.':
+        'Der KI-Dienst antwortete mit Fehler {kode}.',
+    'Kunne ikke få forbindelse til AI-tjenesten.':
+        'Es kam keine Verbindung zum KI-Dienst zustande.',
+    'sejl':
+        'Segel',
+    'dybgang':
+        'Tiefgang',
+    '{n} pladser':
+        '{n} Liegeplätze',
+    '{detalje} · ved {sted}':
+        '{detalje} · bei {sted}',
+    'Lystbådehavn':
+        'Sportboothafen',
+    'Position':
+        'Position',
+    'Ud for {sted}':
+        'Vor {sted}',
+    'Ukendt område':
+        'Unbekanntes Gebiet',
+    '{hilsen}\n\nNu er der vejr til {rute}.\n\nAfgang     {afgang}\nAnkomst    {ankomst}\nDistance   {sm} sømil\nUnder vejs {timer} timer, snit {snit} knob\nVind       op til {vind} knob\nBølger     op til {boelger} meter{ophold}\n\nÅbn turen i Sejlplan, så kan du se hele planen — dag for dag, stræk for stræk\nog time for time:\n{link}\n\nPrognosen kan nå at flytte sig. Se den efter igen dagen før, du kaster los.\n\nVagten er hermed brugt. Vil du holde øje med en ny tur, så læg en ny vagt.\nVil du stoppe den her med det samme: {stop}\n\nGod tur.\nSejlplan\n':
+        '{hilsen}\n\nJetzt gibt es Wetter für {rute}.\n\nAbfahrt    {afgang}\nAnkunft    {ankomst}\nDistanz    {sm} Seemeilen\nUnterwegs  {timer} Stunden, Schnitt {snit} Knoten\nWind       bis zu {vind} Knoten\nWellen     bis zu {boelger} Meter{ophold}\n\nÖffne den Törn in Segelplan, dann siehst du den ganzen Plan — Tag für Tag,\nAbschnitt für Abschnitt und Stunde für Stunde:\n{link}\n\nDie Vorhersage kann sich noch verschieben. Sieh sie am Tag vor dem Ablegen\nnoch einmal durch.\n\nDamit ist die Wache verbraucht. Willst du einen neuen Törn im Auge behalten,\ndann lege eine neue Wache.\nWillst du diese hier sofort stoppen: {stop}\n\nGuten Törn.\nSegelplan\n',
+    'Nu er der vejr til {rute}':
+        'Jetzt gibt es Wetter für {rute}',
+    '{hilsen}\n\nDu har bedt Sejlplan holde øje med vejret til {rute}\nmellem {fra} og {til}.\n\nBekræft, at adressen er din, så går vagten i gang:\n{ja}\n\nVi skriver én gang — når der er et vindue, du kan sejle i. Ikke oftere.\n\nVar det ikke dig, skal du ingenting gøre. Så bliver vagten aldrig aktiv, og\nden ryger af sig selv. Vil du være sikker: {stop}\n\nSejlplan\n':
+        '{hilsen}\n\nDu hast Segelplan gebeten, für {rute}\nzwischen {fra} und {til} das Wetter im Auge zu behalten.\n\nBestätige, dass die Adresse deine ist, dann läuft die Wache los:\n{ja}\n\nWir schreiben ein einziges Mal — wenn sich ein Fenster auftut, in dem du\nsegeln kannst. Nicht öfter.\n\nWarst du das nicht, brauchst du nichts zu tun. Dann wird die Wache nie aktiv\nund verfällt von selbst. Willst du sichergehen: {stop}\n\nSegelplan\n',
+    'Bekræft vejrvagt: {rute}':
+        'Wetterwache bestätigen: {rute}',
+    'Hej {navn}':
+        'Hallo {navn}',
+    'Hej':
+        'Hallo',
+    'Undervejs ligger du i {havne}.':
+        'Unterwegs liegst du in {havne}.',
+    'Noget gik galt her — det er ikke dig. Prøv igen, og skriv fejl '
+        '{ref}, hvis det bliver ved.':
+        'Hier ist etwas schiefgegangen — es liegt nicht an dir. Versuche '
+        'es noch einmal, und nenne Fehler {ref}, wenn es dabei bleibt.',
+    'Under vejs':
+        'Unterwegs',
+    'Gemt om bord {tid} · virker uden dækning':
+        'An Bord gespeichert {tid} · funktioniert ohne Empfang',
+    'Hentet {tid} og gemt i telefonen. Åbn Sejlplan med dækning for '
+        'at regne den om.':
+        'Abgerufen {tid} und im Telefon gespeichert. Öffne Segelplan mit '
+        'Empfang, um ihn neu zu rechnen.',
+    'for {n} dage siden':
+        'vor {n} Tagen',
+    'for {n} timer siden':
+        'vor {n} Stunden',
+    'Knæk {nr}':
+        'Knick {nr}',
+    'Vejrtjenesten svarer ikke. Prøv igen om lidt.':
+        'Der Wetterdienst antwortet nicht. Versuche es gleich noch '
+        'einmal.',
+    'Vejrtjenesten returnerede ingen data for ruten.':
+        'Der Wetterdienst lieferte keine Daten für die Route.',
+    'Kunne ikke hente vejrdata: {fejl}':
+        'Wetterdaten konnten nicht geholt werden: {fejl}',
+    'Familiekrydser':
+        'Familienkreuzer',
+    'Fortrængningsbåd':
+        'Verdränger',
+    'Langturssejler':
+        'Fahrtensegler',
+    'Stor planende':
+        'Großer Gleiter',
+    'Weekendbåd':
+        'Wochenendboot',
+    'den brede middelvej':
+        'der breite Mittelweg',
+    'hurtig i smult vande, hård i sø':
+        'schnell im glatten Wasser, hart im Seegang',
+    'komfort og rækkevidde':
+        'Komfort und Reichweite',
+    'langsom, men uanfægtet':
+        'langsam, aber unbeirrt',
+    'rolig og tilgivende':
+        'ruhig und nachsichtig',
+    'rummelig og hurtig nok':
+        'geräumig und schnell genug',
+    'tåler mest af dem alle':
+        'steckt am meisten weg',
+    'tung':
+        'schwer',
+    'solid':
+        'solide',
+    'moderat':
+        'mäßig',
+    'let':
+        'leicht',
+    'rigeligt sejl':
+        'reichlich Segel',
+    'godt sejlført':
+        'gut besegelt',
+    'almindeligt sejlført':
+        'normal besegelt',
+    'beskedent sejlført':
+        'knapp besegelt',
+    'Min båd':
+        'Mein Boot',
+    'Din egen':
+        'Dein eigenes',
+    'Tur':
+        'Törn',
 }

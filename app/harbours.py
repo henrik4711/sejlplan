@@ -73,10 +73,10 @@ class Harbour:
     def detail(self) -> str:
         """Stedet, som en sejler ville sige det: farvandet, og landet hvis det er ude."""
         if self.home:
-            return self.water or 'Lystbådehavn'
+            return self.water or t('Lystbådehavn')
         if self.water and self.country:
             return f'{self.water} · {self.country}'
-        return self.country or self.water or 'Lystbådehavn'
+        return self.country or self.water or t('Lystbådehavn')
 
 
 _all: list[Harbour] | None = None

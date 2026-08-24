@@ -24,6 +24,7 @@ from datetime import datetime
 import httpx
 
 from .config import TIMEZONE, settings
+from .i18n import t
 from .sailing import Route
 
 FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
@@ -131,10 +132,11 @@ async def fetch_weather(route: Route) -> Series:
             wind_res, wave_res = await asyncio.gather(wind_task, wave_task,
                                                       return_exceptions=True)
         except httpx.HTTPError as exc:
-            raise WeatherError(f'Kunne ikke hente vejrdata: {exc}') from exc
+            raise WeatherError(
+                t('Kunne ikke hente vejrdata: {fejl}', fejl=exc)) from exc
 
     if isinstance(wind_res, BaseException):
-        raise WeatherError('Vejrtjenesten svarer ikke. Prøv igen om lidt.') from wind_res
+        raise WeatherError(t('Vejrtjenesten svarer ikke. Prøv igen om lidt.')) from wind_res
 
     # Bølgedata findes ikke overalt (fx snævre fjorde og indre farvande). Det er
     # ikke en fejl – vi regner bare videre med bølgehøjde 0 og siger det tydeligt.
@@ -173,7 +175,7 @@ async def fetch_weather(route: Route) -> Series:
         series.append(rows)
 
     if not series or not series[0]:
-        raise WeatherError('Vejrtjenesten returnerede ingen data for ruten.')
+        raise WeatherError(t('Vejrtjenesten returnerede ingen data for ruten.'))
 
     async with _lock:
         _cache[key] = (time.time(), series)

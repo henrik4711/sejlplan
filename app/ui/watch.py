@@ -18,7 +18,7 @@ from .. import lookout, watch
 from ..config import settings
 from ..dates import day
 from ..state import MAX_FORECAST_DAYS
-from ..i18n import t
+from ..i18n import lang, t
 
 # Så langt frem kan man lægge en vagt. Prognosen rækker ti døgn, men en vagt
 # giver netop mening længere ude end det — det er hele pointen, at den venter
@@ -157,7 +157,7 @@ async def _save(s, felter: dict, dlg) -> None:
                 'day_start': lim.day_start, 'day_end': lim.day_end,
                 'night_ok': lim.night_ok, 'use_motor': lim.use_motor},
         date_from=a.isoformat(), date_to=b.isoformat(),
-        quality=felter['quality'].value or 'god')
+        quality=felter['quality'].value or 'god', lang=lang())
 
     dlg.close()
     if await lookout.confirm_mail(w):
