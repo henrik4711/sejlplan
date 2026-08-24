@@ -175,7 +175,7 @@ def document(boat: Boat, route: Route, plan: Plan, limits: Limits,
     if notes:
         add(f'<h2>{esc(t("Vær opmærksom på"))}</h2>')
         for note in notes:
-            add(f'<div class="card warn"><p>{esc(note)}</p></div>')
+            add(f'<div class="card warn"><p>{esc(note.text)}</p></div>')
 
     add(f'<h2>{esc(t("Nøgletal"))}</h2><div class="keys">')
     for value, label in _keys(boat, plan):
