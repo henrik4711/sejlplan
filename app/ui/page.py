@@ -8,6 +8,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from .. import pwa, share, theme
+from ..i18n import t
 from ..boats import BOATS
 from .planner import Planner
 
@@ -15,7 +16,7 @@ from .planner import Planner
 @ui.page('/')
 async def index(rute: str = '') -> None:
     """Forsiden. `?rute=…` åbner en rute, nogen har delt."""
-    ui.page_title('Sejlplan – find den bedste afgang')
+    ui.page_title(t('Sejlplan – find den bedste afgang'))
     theme.apply()
     pwa.head()
 
@@ -34,12 +35,14 @@ async def index(rute: str = '') -> None:
             planner.s.invalidate()
             planner.s.persist()
         else:
-            ui.notify('Delelinket kunne ikke læses', type='warning', position='bottom')
+            ui.notify(t('Delelinket kunne ikke læses'), type='warning',
+                      position='bottom')
 
     await planner.s.adopt_browser_copy()
 
     planner.build()
 
     if rute and planner.s.waypoints:
-        ui.notify(f'Rute åbnet: {planner.s.waypoints[0].name} → '
-                  f'{planner.s.waypoints[-1].name}', position='bottom')
+        ui.notify(t('Rute åbnet: {fra} → {til}',
+                    fra=planner.s.waypoints[0].name,
+                    til=planner.s.waypoints[-1].name), position='bottom')

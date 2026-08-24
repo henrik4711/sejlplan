@@ -100,9 +100,9 @@ def bar(planner) -> None:
             return
 
         if not p.on_route:
-            ui.label(f'Du er {p.off_route_nm:.1f} sømil fra ruten. '
-                     f'Så længe det er sådan, kan vi ikke sige, om du er '
-                     f'foran eller bagud.'.replace('.', ',', 1)) \
+            ui.label(t('Du er {sm} sømil fra ruten. Så længe det er sådan, '
+                       'kan vi ikke sige, om du er foran eller bagud.',
+                       sm=_da(p.off_route_nm))) \
                 .classes('text-[12.5px] text-[var(--txt-2)] leading-snug block')
             return
 
@@ -111,13 +111,13 @@ def bar(planner) -> None:
 
 def _numbers(p) -> None:
     if not p.started:
-        ui.label('Turen er ikke begyndt endnu — afgangen ligger frem i tiden. '
-                 'Når du har kastet los, står der her, om du er foran eller '
-                 'bagud.') \
+        ui.label(t('Turen er ikke begyndt endnu — afgangen ligger frem i '
+                   'tiden. Når du har kastet los, står der her, om du er '
+                   'foran eller bagud.')) \
             .classes('text-[12.5px] text-[var(--txt-2)] leading-snug block')
         return
 
-    tone = {'foran': 'var(--go)', t('bagud'): 'var(--warn)',
+    tone = {'foran': 'var(--go)', 'bagud': 'var(--warn)',
             'som planlagt': 'var(--txt-1)', 'fremme': 'var(--go)',
             'ikke begyndt': 'var(--txt-2)'}[p.verdict]
 
@@ -130,25 +130,27 @@ def _numbers(p) -> None:
     if p.verdict == 'som planlagt':
         head = t('Du følger planen')
     else:
-        head = (f'Du er {minutes:.0f} minutter {p.verdict}'
+        head = (t('Du er {n} minutter {dom}', n=f'{minutes:.0f}',
+                  dom=t(p.verdict))
                 if minutes < 90 else
-                f'Du er {minutes / 60:.1f} timer {p.verdict}'.replace('.', ','))
+                t('Du er {n} timer {dom}', n=_da(minutes / 60),
+                  dom=t(p.verdict)))
 
     ui.label(head).classes('text-[15px] font-semibold block mb-1') \
         .style(f'color: {tone}')
 
-    dele = [f'{_da(p.along_nm)} sømil sejlet',
-            f'{_da(p.remaining_nm)} tilbage',
-            f'{_da(p.made_good_kn)} knob i snit']
+    dele = [t('{sm} sømil sejlet', sm=_da(p.along_nm)),
+            t('{sm} tilbage', sm=_da(p.remaining_nm)),
+            t('{kn} knob i snit', kn=_da(p.made_good_kn))]
     ui.label(' · '.join(dele)).classes(
         'text-[12px] text-[var(--txt-2)] tnum block')
 
     if p.eta:
-        ui.label(f'Med den fart er du fremme {clock(p.eta)}.') \
+        ui.label(t('Med den fart er du fremme {tid}.', tid=clock(p.eta))) \
             .classes('text-[12px] text-[var(--txt-3)] block mt-0.5')
 
-    ui.label('Positionen bliver på din telefon. Den gemmes ikke, og ingen '
-             'andre kan se den.') \
+    ui.label(t('Positionen bliver på din telefon. Den gemmes ikke, og ingen '
+               'andre kan se den.')) \
         .classes('text-[10.5px] text-[var(--txt-3)] leading-snug block mt-2')
 
 

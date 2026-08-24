@@ -154,9 +154,9 @@ def dialog(harbour, on_done=None) -> None:
 
         with ui.element('div').classes('px-5 pt-5 pb-1'):
             ui.label(t('Er der plads?')).classes('text-[16px] font-bold block')
-            ui.label(f'{harbour.name} — din melding hjælper den, der kommer '
-                     f'i eftermiddag. Den står i halvandet døgn og forsvinder '
-                     f'så af sig selv.') \
+            ui.label(t('{havn} — din melding hjælper den, der kommer i '
+                       'eftermiddag. Den står i halvandet døgn og forsvinder '
+                       'så af sig selv.', havn=harbour.name)) \
                 .classes('text-[12.5px] text-[var(--txt-2)] leading-snug '
                          'mt-1 block')
 
@@ -169,15 +169,16 @@ def dialog(harbour, on_done=None) -> None:
                     with card:
                         ui.icon(icon).style(f'color: {tone}') \
                             .classes('text-[26px] block mx-auto mb-1')
-                        ui.label(label).classes(
+                        ui.label(t(label)).classes(
                             'text-[12px] font-medium block')
                     card.on('click', lambda _, lv=level: _send(
                         harbour, lv, author, dlg, on_done))
 
-            ui.label('Meldingen er anonym, og der er ikke andet at skrive: '
-                     'kun havnen, svaret og hvornår. Så findes der ikke et '
-                     'sted i Sejlplan, hvor nogen kan skrive noget til nogen '
-                     '— og dermed heller ikke noget at moderere.') \
+            ui.label(t('Meldingen er anonym, og der er ikke andet at '
+                       'skrive: kun havnen, svaret og hvornår. Så findes der '
+                       'ikke et sted i Sejlplan, hvor nogen kan skrive noget '
+                       'til nogen — og dermed heller ikke noget at '
+                       'moderere.')) \
                 .classes('text-[11px] text-[var(--txt-3)] leading-snug '
                          'mt-3 block')
 
@@ -193,10 +194,11 @@ def _send(harbour, level: str, author: str, dlg, on_done) -> None:
     rep = reports.add(harbour.lat, harbour.lon, harbour.name, level, author)
     dlg.close()
     if rep is None:
-        ui.notify('Du har meldt rigeligt i dag. Prøv igen i morgen.',
+        ui.notify(t('Du har meldt rigeligt i dag. Prøv igen i morgen.'),
                   type='warning', position='bottom')
         return
-    ui.notify(f'Tak — {harbour.name} står nu som "{rep.label}".',
+    ui.notify(t('Tak — {havn} står nu som "{svar}".', havn=harbour.name,
+                svar=t(rep.label)),
               type='positive', position='bottom')
     if on_done:
         on_done()

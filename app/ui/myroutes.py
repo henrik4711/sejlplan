@@ -17,13 +17,14 @@ from datetime import date
 from nicegui import ui
 
 from ..dates import day
-from ..i18n import t
+from ..i18n import plural, t
 
 
 def save_dialog(s, refresh) -> None:
     """Gem ruten. Har man en åben i forvejen, er det den, der opdateres."""
     if len(s.waypoints) < 1:
-        ui.notify('Der er ingen rute at gemme', type='warning', position='bottom')
+        ui.notify(t('Der er ingen rute at gemme'), type='warning',
+                  position='bottom')
         return
 
     open_name = s.saved_name
@@ -33,18 +34,21 @@ def save_dialog(s, refresh) -> None:
         with ui.element('div').classes('px-5 pt-5 pb-1'):
             ui.label(t('Gem ruten') if not open_name else t('Gem ændringer')) \
                 .classes('text-[16px] font-bold block')
-            ui.label(f'{len(s.waypoints)} punkter · {s.total_nm:.0f} sømil') \
+            ui.label(t('{punkter} · {sm} sømil',
+                       punkter=plural(len(s.waypoints), 'punkt', 'punkter'),
+                       sm=f'{s.total_nm:.0f}')) \
                 .classes('text-[12.5px] text-[var(--txt-3)] mt-0.5 block')
 
         with ui.element('div').classes('px-5 pt-3'):
-            navn = ui.input('Navn', value=open_name or s.route_title) \
+            navn = ui.input(t('Navn'), value=open_name or s.route_title) \
                 .props('outlined dense autofocus maxlength=60').classes('w-full')
 
         def gem(as_new: bool) -> None:
             s.save_route(navn.value, as_new=as_new)
             dialog.close()
             refresh()
-            ui.notify(f'"{s.saved_name}" er gemt', type='positive', position='bottom')
+            ui.notify(t('"{navn}" er gemt', navn=s.saved_name),
+                      type='positive', position='bottom')
 
         with ui.row().classes('w-full items-center gap-2 px-5 py-4 no-wrap'):
             if open_name:
@@ -93,8 +97,8 @@ def rows(s, on_open, changed) -> None:
             ui.icon('bookmark_border') \
                 .classes('text-[36px] text-[var(--accent)] opacity-40 mb-2')
             ui.label(t('Ingen gemte ruter endnu')).classes('empty-title')
-            ui.label('Læg en rute, og tryk Gem. Så ligger den her næste gang — '
-                     'også hvis du lukker fanen.').classes('empty-sub')
+            ui.label(t('Læg en rute, og tryk Gem. Så ligger den her næste '
+                       'gang — også hvis du lukker fanen.'))                 .classes('empty-sub')
         return
 
     for row in list(s.routes):
@@ -117,10 +121,12 @@ def _row(s, row: dict, on_open, changed) -> None:
             + ('text-[var(--accent)]' if aktiv else 'text-[var(--txt-3)]'))
 
         with ui.element('div').classes('min-w-0 flex-1'):
-            ui.label(row.get('name') or 'Uden navn') \
+            ui.label(row.get('name') or t('Uden navn')) \
                 .classes('text-[13.5px] font-semibold truncate block')
-            ui.label(f'{n} punkter · {row.get("nm", 0):.0f} sømil '
-                     f'· gemt {_when(row.get("saved"))}') \
+            ui.label(t('{punkter} · {sm} sømil · gemt {hvornår}',
+                       punkter=plural(n, 'punkt', 'punkter'),
+                       sm=f'{row.get("nm", 0):.0f}',
+                       hvornår=_when(row.get('saved')))) \
                 .classes('text-[11px] text-[var(--txt-3)] truncate block')
 
         with ui.button(icon='more_horiz').props('flat round dense size=sm') \
@@ -164,8 +170,8 @@ def _confirm_delete(s, row: dict, changed) -> None:
             'w-full max-w-[380px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
         with ui.element('div').classes('px-5 pt-5 pb-3'):
             ui.label(t('Slet ruten?')).classes('text-[16px] font-bold block')
-            ui.label(f'"{row.get("name") or "Uden navn"}" forsvinder. '
-                     f'Det kan ikke fortrydes.') \
+            ui.label(t('"{navn}" forsvinder. Det kan ikke fortrydes.',
+                       navn=row.get('name') or t('Uden navn'))) \
                 .classes('text-[13px] text-[var(--txt-2)] leading-snug mt-1 block')
 
         def slet() -> None:
@@ -188,10 +194,10 @@ def _when(iso: str | None) -> str:
     try:
         d = date.fromisoformat(str(iso))
     except (TypeError, ValueError):
-        return 'tidligere'
+        return t('tidligere')
     delta = (date.today() - d).days
     if delta <= 0:
-        return 'i dag'
+        return t('i dag')
     if delta == 1:
-        return 'i går'
+        return t('i går')
     return day(d, short=False)

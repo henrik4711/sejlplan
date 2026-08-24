@@ -49,13 +49,15 @@ def settings_dialog(planner) -> None:
                 # lambda venter med opslaget, til brugeren rent faktisk trykker.
                 own_boat_block(s, boat_block.refresh,
                                lambda: limits_block.refresh())
-                ui.html('<span class="section-label">Eller et eksempel</span>')
-                ui.label('Vælg den, der ligner din mest, hvis du ikke vil taste '
-                         'din egen ind.')                     .classes('text-[11px] text-[var(--txt-3)] mt-1 mb-2 block')
+                ui.html('<span class="section-label">'
+                        + t('Eller et eksempel') + '</span>')
+                ui.label(t('Vælg den, der ligner din mest, hvis du ikke vil '
+                           'taste din egen ind.'))                     .classes('text-[11px] text-[var(--txt-3)] mt-1 mb-2 block')
                 for title, boats, note in (
-                        (t('Sejlbåde'), SAILBOATS, 'Farten kommer fra polardiagrammet.'),
+                        (t('Sejlbåde'), SAILBOATS,
+                         t('Farten kommer fra polardiagrammet.')),
                         (t('Motorbåde'), MOTORBOATS,
-                         'Farten er marchfarten, minus det søen tager.')):
+                         t('Farten er marchfarten, minus det søen tager.'))):
                     with ui.element('div').classes('flex items-baseline gap-2 mb-2 mt-1'):
                         ui.html(f'<span class="section-label">{title}</span>')
                         ui.html(f'<span class="text-[11px] text-[var(--txt-3)]">{note}</span>')
@@ -73,9 +75,10 @@ def settings_dialog(planner) -> None:
 
             # ── Komfortgrænser ──
             ui.label(t('Komfortgrænser')).classes('section-label mb-1 block')
-            ui.label('Over disse værdier markeres timerne som skærpede, '
-                     'og et stykke over dem som frarådede. Bølgehøjden vejes efter '
-                     'hvor søen kommer fra — modsø tæller hårdere end medsø.') \
+            ui.label(t('Over disse værdier markeres timerne som skærpede, '
+                       'og et stykke over dem som frarådede. Bølgehøjden '
+                       'vejes efter hvor søen kommer fra — modsø tæller '
+                       'hårdere end medsø.')) \
                 .classes('text-[11.5px] text-[var(--txt-3)] mb-3 block leading-snug')
 
             @ui.refreshable
@@ -109,24 +112,29 @@ def settings_dialog(planner) -> None:
                 if lim.date_from > lim.date_to:
                     lim.date_from = lim.date_to
 
-            ui.label(f'Vejrudsigten rækker til og med {day(horizon, short=False)}.') \
+            ui.label(t('Vejrudsigten rækker til og med {dato}.',
+                       dato=day(horizon, short=False))) \
                 .classes('text-[11px] text-[var(--txt-3)] mb-4 block')
 
             # ── Sejldøgn ──
             ui.label(t('Sejldøgn')).classes('section-label mt-5 mb-1 block')
-            ui.label('Det tidsrum, du vil ligge og sejle i. Slutklokkeslættet er '
-                     'ikke et ønske om at afgå senest da — det er hvornår du vil '
-                     'ligge fortøjet. Rækker turen ikke, deler planlæggeren den og '
-                     'finder en havn undervejs at overnatte i.') \
+            ui.label(t('Det tidsrum, du vil ligge og sejle i. '
+                       'Slutklokkeslættet er ikke et ønske om at afgå senest '
+                       'da — det er hvornår du vil ligge fortøjet. Rækker '
+                       'turen ikke, deler planlæggeren den og finder en havn '
+                       'undervejs at overnatte i.')) \
                 .classes('text-[11.5px] text-[var(--txt-3)] mb-3 block leading-snug')
 
             @ui.refreshable
             def day_block() -> None:
-                _slider_row('Tidligst ud af havn', lim.day_start, 0, 12, 1, ':00',
+                _slider_row(t('Tidligst ud af havn'), lim.day_start, 0, 12,
+                            1, ':00',
                             lambda v: _set_day('day_start', int(v)), decimals=0)
-                _slider_row('Senest i havn igen', lim.day_end, 8, 23, 1, ':00',
+                _slider_row(t('Senest i havn igen'), lim.day_end, 8, 23, 1,
+                            ':00',
                             lambda v: _set_day('day_end', int(v)), decimals=0)
-                ui.label(f'Det giver {lim.day_hours} timers sejlads i døgnet.') \
+                ui.label(t('Det giver {n} timers sejlads i døgnet.',
+                           n=lim.day_hours)) \
                     .classes('text-[11px] text-[var(--txt-3)] -mt-1 mb-2 block')
 
             def _set_day(field: str, value: int) -> None:
@@ -142,11 +150,12 @@ def settings_dialog(planner) -> None:
             # ── Til- og fravalg ──
             ui.label(t('Sejlads')).classes('section-label mt-5 mb-2 block')
             _switch_row(t('Sejl også om natten'), lim.night_ok,
-                        'Slået til lægges der ingen overnatninger ind — turen '
-                        'sejles i ét stræk, og mørketimerne tælles for sig.',
+                        t('Slået til lægges der ingen overnatninger ind — '
+                          'turen sejles i ét stræk, og mørketimerne tælles '
+                          'for sig.'),
                         lambda v: setattr(lim, 'night_ok', v))
             _switch_row(t('Brug motor i svag vind'), lim.use_motor,
-                        'Under 3 knobs fart tændes motoren i beregningen.',
+                        t('Under 3 knobs fart tændes motoren i beregningen.'),
                         lambda v: setattr(lim, 'use_motor', v))
 
             # ── Appen ──
@@ -186,7 +195,8 @@ def _reset(planner, dialog) -> None:
     planner.s.limits = default_limits()
     planner.s.set_boat('jeanneau')
     dialog.close()
-    ui.notify('Indstillingerne er sat tilbage til standard', position='bottom')
+    ui.notify(t('Indstillingerne er sat tilbage til standard'),
+              position='bottom')
 
 
 # ── Byggeklodser ──────────────────────────────────────────────────────────────
@@ -331,8 +341,8 @@ def _app_block() -> None:
             with ui.element('div').classes('flex-1 min-w-0'):
                 ui.label(t('Læg på hjemmeskærmen')) \
                     .classes('text-[13px] font-medium block')
-                ui.label('Så åbner Sejlplan i sit eget vindue — og den seneste '
-                         'sejlplan kan læses uden dækning.') \
+                ui.label(t('Så åbner Sejlplan i sit eget vindue — og den '
+                           'seneste sejlplan kan læses uden dækning.')) \
                     .classes('text-[11px] text-[var(--txt-3)] leading-snug block')
             ui.button(t('Installér'), on_click=_install) \
                 .props('outline dense no-caps') \
@@ -344,7 +354,7 @@ async def _install() -> None:
     try:
         besked = await ui.run_javascript(_INSTALL_JS, timeout=15.0)
     except Exception:
-        besked = 'Browseren kunne ikke installere appen herfra.'
+        besked = t('Browseren kunne ikke installere appen herfra.')
     if besked:
         ui.notify(besked, position='bottom', multi_line=True,
                   classes='max-w-[340px]')

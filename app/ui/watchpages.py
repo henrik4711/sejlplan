@@ -27,16 +27,16 @@ def register() -> None:
         w = watch.confirm(watch_id)
         if w is None:
             _shell(t('Vagten findes ikke'),
-                   'Linket er forkert, eller vagten er allerede stoppet.',
+                   t('Linket er forkert, eller vagten er allerede stoppet.'),
                    'help_outline')
             return
         start, end = w.window
         _shell(
-            'Vagten er i gang',
-            f'Vi holder øje med {w.title} mellem '
-            f'{day(start, short=False)} og {day(end, short=False)}. '
-            f'Du hører fra os, når der er et vindue, du kan sejle i — '
-            f'og kun den ene gang.',
+            t('Vagten er i gang'),
+            t('Vi holder øje med {rute} mellem {fra} og {til}. Du hører fra '
+              'os, når der er et vindue, du kan sejle i — og kun den ene '
+              'gang.', rute=w.title, fra=day(start, short=False),
+              til=day(end, short=False)),
             'notifications_active', stop_id=w.id)
 
     @ui.page('/vagt/stop/{watch_id}')
@@ -45,12 +45,12 @@ def register() -> None:
         w = watch.cancel(watch_id)
         if w is None:
             _shell(t('Vagten findes ikke'),
-                   'Linket er forkert, eller vagten er allerede stoppet.',
+                   t('Linket er forkert, eller vagten er allerede stoppet.'),
                    'help_outline')
             return
         _shell(t('Vagten er stoppet'),
-               f'Vi holder ikke længere øje med {w.title}, og vi skriver ikke '
-               f'til dig om den igen.',
+               t('Vi holder ikke længere øje med {rute}, og vi skriver ikke '
+                 'til dig om den igen.', rute=w.title),
                'notifications_off')
 
 

@@ -29,7 +29,7 @@ MAX_AHEAD_DAYS = 120
 def dialog(s) -> None:
     """Læg en vagt på den rute, der ligger på bordet."""
     if len(s.waypoints) < 2:
-        ui.notify('Læg først en rute med mindst to punkter',
+        ui.notify(t('Læg først en rute med mindst to punkter'),
                   type='warning', position='bottom')
         return
 
@@ -53,9 +53,9 @@ def dialog(s) -> None:
             ui.button(icon='close', on_click=dlg.close).props('flat round dense')
 
         with ui.element('div').classes('scroll-y px-5 py-4 max-h-[70dvh] w-full'):
-            ui.label(f'Vi holder øje med {s.route_title} og skriver til dig, '
-                     f'når der er et vindue, du kan sejle i. Én mail — ikke '
-                     f'en strøm af dem.') \
+            ui.label(t('Vi holder øje med {rute} og skriver til dig, når '
+                       'der er et vindue, du kan sejle i. Én mail — ikke en '
+                       'strøm af dem.', rute=s.route_title)) \
                 .classes('text-[12.5px] text-[var(--txt-2)] leading-snug '
                          'mb-4 block')
 
@@ -68,33 +68,40 @@ def dialog(s) -> None:
             ui.label(t('Hvornår kan I komme afsted?')) \
                 .classes('text-[11.5px] text-[var(--txt-3)] mt-5 mb-1 block')
             with ui.element('div').classes('grid grid-cols-2 gap-3'):
-                felter['from'] = ui.input('Tidligst', value=start.isoformat()) \
+                felter['from'] = ui.input(t('Tidligst'),
+                                          value=start.isoformat()) \
                     .props('outlined dense type=date '
                            f'min={today.isoformat()} '
                            f'max={(today + timedelta(days=MAX_AHEAD_DAYS)).isoformat()}') \
                     .classes('w-full')
-                felter['to'] = ui.input('Senest', value=slut.isoformat()) \
+                felter['to'] = ui.input(t('Senest'),
+                                        value=slut.isoformat()) \
                     .props('outlined dense type=date '
                            f'min={today.isoformat()} '
                            f'max={(today + timedelta(days=MAX_AHEAD_DAYS)).isoformat()}') \
                     .classes('w-full')
-            ui.label(f'Prognosen rækker {MAX_FORECAST_DAYS} døgn frem — til og '
-                     f'med {day(today + timedelta(days=MAX_FORECAST_DAYS - 1), short=False)}. '
-                     f'Ligger dit vindue længere ude, venter vagten, til '
-                     f'prognosen når derhen.') \
+            ui.label(t('Prognosen rækker {døgn} døgn frem — til og med '
+                       '{dato}. Ligger dit vindue længere ude, venter '
+                       'vagten, til prognosen når derhen.',
+                       døgn=MAX_FORECAST_DAYS,
+                       dato=day(today + timedelta(days=MAX_FORECAST_DAYS - 1),
+                                short=False))) \
                 .classes('text-[11px] text-[var(--txt-3)] leading-snug mt-1.5 '
                          'block')
 
             ui.label(t('Hvor godt skal det være?')) \
                 .classes('text-[11.5px] text-[var(--txt-3)] mt-5 mb-1 block')
             felter['quality'] = ui.toggle(
-                {'god': 'Kun gode forhold', 'ok': 'Også skærpede'},
+                {'god': t('Kun gode forhold'), 'ok': t('Også skærpede')},
                 value='god').props('no-caps unelevated dense spread') \
                 .classes('w-full')
-            ui.label(f'Målt mod dine egne grænser: {s.limits.max_wind:.0f} knob '
-                     f'og {s.limits.max_wave:.1f} meter, sejldøgn '
-                     f'{s.limits.day_start:02d}–{s.limits.day_end:02d}. '
-                     f'Vi skriver kun, hvis du også kan komme hjem igen.') \
+            ui.label(t('Målt mod dine egne grænser: {kn} knob og {m} meter, '
+                       'sejldøgn {fra}–{til}. Vi skriver kun, hvis du også '
+                       'kan komme hjem igen.',
+                       kn=f'{s.limits.max_wind:.0f}',
+                       m=f'{s.limits.max_wave:.1f}'.replace('.', ','),
+                       fra=f'{s.limits.day_start:02d}',
+                       til=f'{s.limits.day_end:02d}')) \
                 .classes('text-[11px] text-[var(--txt-3)] leading-snug mt-1.5 '
                          'block')
 
@@ -104,9 +111,9 @@ def dialog(s) -> None:
                         'Sejlplan bliver opdateret.</div>')
 
             ui.html('<div class="hairline mt-5 mb-3"></div>')
-            ui.label('Vi bruger din adresse til denne ene besked og sletter '
-                     'vagten bagefter. Du kan stoppe den når som helst med '
-                     'linket i mailen.') \
+            ui.label(t('Vi bruger din adresse til denne ene besked og '
+                       'sletter vagten bagefter. Du kan stoppe den når som '
+                       'helst med linket i mailen.')) \
                 .classes('text-[11px] text-[var(--txt-3)] leading-snug block')
 
         with ui.row().classes('w-full items-center gap-2 px-5 py-3.5 border-t '
@@ -124,7 +131,7 @@ def dialog(s) -> None:
 async def _save(s, felter: dict, dlg) -> None:
     email = (felter['email'].value or '').strip()
     if '@' not in email or '.' not in email.split('@')[-1]:
-        ui.notify('Skriv en mailadresse, vi kan skrive til',
+        ui.notify(t('Skriv en mailadresse, vi kan skrive til'),
                   type='warning', position='bottom')
         return
 
@@ -132,12 +139,13 @@ async def _save(s, felter: dict, dlg) -> None:
         a = date.fromisoformat(felter['from'].value)
         b = date.fromisoformat(felter['to'].value)
     except (TypeError, ValueError):
-        ui.notify('Vælg to datoer', type='warning', position='bottom')
+        ui.notify(t('Vælg to datoer'), type='warning', position='bottom')
         return
     if b < a:
         a, b = b, a
     if b < date.today():
-        ui.notify('Vinduet ligger i fortiden', type='warning', position='bottom')
+        ui.notify(t('Vinduet ligger i fortiden'), type='warning',
+                  position='bottom')
         return
 
     lim = s.limits
@@ -153,13 +161,13 @@ async def _save(s, felter: dict, dlg) -> None:
 
     dlg.close()
     if await lookout.confirm_mail(w):
-        ui.notify(f'Vi har skrevet til {email}. Bekræft i mailen, '
-                  f'så går vagten i gang.',
+        ui.notify(t('Vi har skrevet til {adresse}. Bekræft i mailen, så går '
+                    'vagten i gang.', adresse=email),
                   type='positive', position='bottom', multi_line=True,
                   timeout=9000, classes='max-w-[380px]')
     else:
         watch.cancel(w.id)
-        ui.notify('Mailen kunne ikke sendes. Prøv igen om lidt.',
+        ui.notify(t('Mailen kunne ikke sendes. Prøv igen om lidt.'),
                   type='negative', position='bottom')
 
 
@@ -168,11 +176,11 @@ def _not_ready() -> None:
     with ui.dialog() as dlg, ui.card().classes(
             'w-full max-w-[420px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
         with ui.element('div').classes('px-5 pt-5 pb-3'):
-            ui.label('Vejrvagt er ikke slået til').classes(
+            ui.label(t('Vejrvagt er ikke slået til')).classes(
                 'text-[16px] font-bold block')
-            ui.label('Serveren har ingen postkasse at skrive fra endnu. Når '
-                     'den har, kan du bede Sejlplan holde øje med vejret til '
-                     'en tur og skrive, når der er et vindue.') \
+            ui.label(t('Serveren har ingen postkasse at skrive fra endnu. Når '
+                       'den har, kan du bede Sejlplan holde øje med vejret '
+                       'til en tur og skrive, når der er et vindue.')) \
                 .classes('text-[13px] text-[var(--txt-2)] leading-snug mt-1 '
                          'block')
         with ui.row().classes('w-full items-center px-5 pb-4 no-wrap'):

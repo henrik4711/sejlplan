@@ -62,8 +62,9 @@ def manual_dialog() -> None:
             ui.button(icon='close', on_click=dialog.close).props('flat round dense')
 
         with ui.element('div').classes('scroll-y px-5 py-4 max-h-[72dvh] w-full'):
-            ui.label('Sejlplan fra ende til anden. Det samme står i boblerne '
-                     'ude i programmet — her er det bare samlet.') \
+            ui.label(t('Sejlplan fra ende til anden. Det samme står i '
+                       'boblerne ude i programmet — her er det bare '
+                       'samlet.')) \
                 .classes('text-[12.5px] text-[var(--txt-2)] leading-snug '
                          'mb-4 block')
             for group, topics in helptext.groups():

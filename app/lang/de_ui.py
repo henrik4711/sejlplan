@@ -206,4 +206,199 @@ WORDS: dict[str, str] = {
         'Eine andere Abfahrt wählen',
     'Læs om havnen i havnelods.dk →':
         'Über den Hafen nachlesen bei havnelods.dk →',
+
+    # ── Anden runde: dialoger og sider ─────────────────────────
+    'Tak — {havn} står nu som "{svar}".':
+        'Danke — {havn} steht jetzt als „{svar}“.',
+    'Du har meldt rigeligt i dag. Prøv igen i morgen.':
+        'Du hast heute genug gemeldet. Versuche es morgen wieder.',
+    '{havn} — din melding hjælper den, der kommer i eftermiddag. Den '
+        'står i halvandet døgn og forsvinder så af sig selv.':
+        '{havn} — deine Meldung hilft dem, der heute Nachmittag kommt. '
+        'Sie steht anderthalb Tage und verschwindet dann von selbst.',
+    'Meldingen er anonym, og der er ikke andet at skrive: kun havnen, '
+        'svaret og hvornår. Så findes der ikke et sted i Sejlplan, hvor '
+        'nogen kan skrive noget til nogen — og dermed heller ikke noget '
+        'at moderere.':
+        'Die Meldung ist anonym, und es gibt nichts weiter zu schreiben: '
+        'nur den Hafen, die Antwort und den Zeitpunkt. So gibt es in '
+        'Segelplan keine Stelle, an der jemand jemandem etwas schreiben '
+        'kann — und damit auch nichts zu moderieren.',
+    'Sejlplan fra ende til anden. Det samme står i boblerne ude i '
+        'programmet — her er det bare samlet.':
+        'Segelplan von vorn bis hinten. Dasselbe steht in den Blasen '
+        'draußen im Programm — hier ist es nur gesammelt.',
+    '{navn} er gemt og valgt':
+        '{navn} ist gespeichert und ausgewählt',
+    'Anslået {kn} knob for halvvind i 10 knobs vind, regnet af '
+        'sejlareal, deplacement og vandlinje. Kender du din båds rigtige '
+        'tal, så ret det nedenfor.':
+        'Geschätzte {kn} Knoten bei halbem Wind und 10 Knoten, errechnet '
+        'aus Segelfläche, Verdrängung und Wasserlinie. Kennst du die '
+        'echten Werte deines Bootes, dann ändere sie unten.',
+    'Længde, fart og forbrug. Så regner planen på din båd i stedet '
+        'for på et eksempel.':
+        'Länge, Fahrt und Verbrauch. Dann rechnet der Plan mit deinem '
+        'Boot statt mit einem Beispiel.',
+    'Over de her værdier markerer planen timerne som skærpede.':
+        'Über diesen Werten markiert der Plan die Stunden als '
+        'anspruchsvoll.',
+    'Skroget afgør, hvor meget søen tager af farten. En planende båd '
+        'taber mest.':
+        'Der Rumpf entscheidet, wie viel der Seegang von der Fahrt nimmt. '
+        'Ein Gleiter verliert am meisten.',
+    'Det ene tal skalerer et almindeligt polardiagram, så farten '
+        'passer til din båd. Ved du det ikke, så gæt på en god dag med '
+        'fuld sejlføring.':
+        'Diese eine Zahl skaliert ein gewöhnliches Polardiagramm so, dass '
+        'die Fahrt zu deinem Boot passt. Weißt du sie nicht, dann schätze '
+        'einen guten Tag unter vollen Segeln.',
+    'Ingen båd med det navn i registret. Tast målene ind nedenfor i '
+        'stedet.':
+        'Kein Boot dieses Namens im Register. Trage die Maße stattdessen '
+        'unten ein.',
+    'i dag':
+        'heute',
+    'Der er ingen rute at gemme':
+        'Es gibt keine Route zum Speichern',
+    'tidligere':
+        'früher',
+    '"{navn}" er gemt':
+        '„{navn}“ ist gespeichert',
+    '{punkter} · {sm} sømil':
+        '{punkter} · {sm} Seemeilen',
+    'Læg en rute, og tryk Gem. Så ligger den her næste gang — også '
+        'hvis du lukker fanen.':
+        'Lege eine Route und drücke Speichern. Dann liegt sie beim '
+        'nächsten Mal hier — auch wenn du den Tab schließt.',
+    '{punkter} · {sm} sømil · gemt {hvornår}':
+        '{punkter} · {sm} Seemeilen · gespeichert {hvornår}',
+    '"{navn}" forsvinder. Det kan ikke fortrydes.':
+        '„{navn}“ verschwindet. Das lässt sich nicht rückgängig machen.',
+    'Uden navn':
+        'Ohne Namen',
+    'Sejlplan – find den bedste afgang':
+        'Segelplan – finde die beste Abfahrt',
+    'Rute åbnet: {fra} → {til}':
+        'Route geöffnet: {fra} → {til}',
+    'Delelinket kunne ikke læses':
+        'Der Freigabe-Link ließ sich nicht lesen',
+    'Indstillingerne er sat tilbage til standard':
+        'Die Einstellungen sind auf den Standard zurückgesetzt',
+    'Browseren kunne ikke installere appen herfra.':
+        'Der Browser konnte die App von hier aus nicht installieren.',
+    'Slået til lægges der ingen overnatninger ind — turen sejles i ét '
+        'stræk, og mørketimerne tælles for sig.':
+        'Eingeschaltet werden keine Übernachtungen eingelegt — der Törn '
+        'wird in einem Rutsch gesegelt, und die Dunkelstunden werden '
+        'gesondert gezählt.',
+    'Under 3 knobs fart tændes motoren i beregningen.':
+        'Unter drei Knoten Fahrt wird der Motor in der Berechnung '
+        'angeworfen.',
+    'Tidligst ud af havn':
+        'Frühestens aus dem Hafen',
+    'Senest i havn igen':
+        'Spätestens wieder im Hafen',
+    'Farten kommer fra polardiagrammet.':
+        'Die Fahrt kommt aus dem Polardiagramm.',
+    'Farten er marchfarten, minus det søen tager.':
+        'Die Fahrt ist die Marschfahrt, minus dem, was die See nimmt.',
+    'Over disse værdier markeres timerne som skærpede, og et stykke '
+        'over dem som frarådede. Bølgehøjden vejes efter hvor søen kommer '
+        'fra — modsø tæller hårdere end medsø.':
+        'Über diesen Werten werden die Stunden als anspruchsvoll '
+        'markiert, ein gutes Stück darüber als abgeraten. Die Wellenhöhe '
+        'wird danach gewichtet, woher die See kommt — Gegensee zählt '
+        'härter als mitlaufende See.',
+    'Vejrudsigten rækker til og med {dato}.':
+        'Die Vorhersage reicht bis einschließlich {dato}.',
+    'Det tidsrum, du vil ligge og sejle i. Slutklokkeslættet er ikke '
+        'et ønske om at afgå senest da — det er hvornår du vil ligge '
+        'fortøjet. Rækker turen ikke, deler planlæggeren den og finder en '
+        'havn undervejs at overnatte i.':
+        'Der Zeitraum, in dem du segeln willst. Die Endzeit ist kein '
+        'Wunsch, spätestens dann abzulegen — sie ist, wann du festgemacht '
+        'liegen willst. Reicht der Törn nicht, teilt der Planer ihn und '
+        'sucht einen Hafen unterwegs zum Übernachten.',
+    'Vælg den, der ligner din mest, hvis du ikke vil taste din egen '
+        'ind.':
+        'Wähle das, welches deinem am ähnlichsten ist, wenn du deins '
+        'nicht eintragen willst.',
+    'Det giver {n} timers sejlads i døgnet.':
+        'Das ergibt {n} Stunden Fahrt am Tag.',
+    'Så åbner Sejlplan i sit eget vindue — og den seneste sejlplan '
+        'kan læses uden dækning.':
+        'Dann öffnet sich Segelplan in einem eigenen Fenster — und der '
+        'letzte Segelplan lässt sich ohne Empfang lesen.',
+    '{sm} sømil sejlet':
+        '{sm} Seemeilen gesegelt',
+    '{sm} tilbage':
+        'noch {sm}',
+    '{kn} knob i snit':
+        '{kn} Knoten im Schnitt',
+    'Du er {n} minutter {dom}':
+        'Du bist {n} Minuten {dom}',
+    'Du er {n} timer {dom}':
+        'Du bist {n} Stunden {dom}',
+    'Med den fart er du fremme {tid}.':
+        'Mit dieser Fahrt bist du {tid} da.',
+    'Du er {sm} sømil fra ruten. Så længe det er sådan, kan vi ikke '
+        'sige, om du er foran eller bagud.':
+        'Du bist {sm} Seemeilen von der Route entfernt. Solange das so '
+        'ist, können wir nicht sagen, ob du voraus oder zurück bist.',
+    'Læg først en rute med mindst to punkter':
+        'Lege zuerst eine Route mit mindestens zwei Punkten',
+    'Skriv en mailadresse, vi kan skrive til':
+        'Schreibe eine E-Mail-Adresse, an die wir schreiben können',
+    'Vinduet ligger i fortiden':
+        'Das Fenster liegt in der Vergangenheit',
+    'Vi har skrevet til {adresse}. Bekræft i mailen, så går vagten i '
+        'gang.':
+        'Wir haben an {adresse} geschrieben. Bestätige in der Mail, dann '
+        'läuft die Wache los.',
+    'Mailen kunne ikke sendes. Prøv igen om lidt.':
+        'Die Mail konnte nicht gesendet werden. Versuche es gleich noch '
+        'einmal.',
+    'Vælg to datoer':
+        'Wähle zwei Daten',
+    'Vi holder øje med {rute} og skriver til dig, når der er et '
+        'vindue, du kan sejle i. Én mail — ikke en strøm af dem.':
+        'Wir behalten {rute} im Auge und schreiben dir, wenn sich ein '
+        'Fenster auftut, in dem du segeln kannst. Eine Mail — kein Strom '
+        'davon.',
+    'Prognosen rækker {døgn} døgn frem — til og med {dato}. Ligger '
+        'dit vindue længere ude, venter vagten, til prognosen når derhen.':
+        'Die Vorhersage reicht {døgn} Tage voraus — bis einschließlich '
+        '{dato}. Liegt dein Fenster weiter draußen, wartet die Wache, bis '
+        'die Vorhersage dort hinkommt.',
+    'Målt mod dine egne grænser: {kn} knob og {m} meter, sejldøgn '
+        '{fra}–{til}. Vi skriver kun, hvis du også kan komme hjem igen.':
+        'Gemessen an deinen eigenen Grenzen: {kn} Knoten und {m} Meter, '
+        'Etmal {fra}–{til}. Wir schreiben nur, wenn du auch wieder nach '
+        'Hause kommst.',
+    'Vi bruger din adresse til denne ene besked og sletter vagten '
+        'bagefter. Du kan stoppe den når som helst med linket i mailen.':
+        'Wir benutzen deine Adresse für diese eine Nachricht und löschen '
+        'die Wache danach. Du kannst sie jederzeit mit dem Link in der '
+        'Mail stoppen.',
+    'Vejrvagt er ikke slået til':
+        'Die Wetterwache ist nicht eingeschaltet',
+    'Serveren har ingen postkasse at skrive fra endnu. Når den har, '
+        'kan du bede Sejlplan holde øje med vejret til en tur og skrive, '
+        'når der er et vindue.':
+        'Der Server hat noch keinen Briefkasten, aus dem er schreiben '
+        'kann. Wenn er einen hat, kannst du Segelplan bitten, für einen '
+        'Törn das Wetter im Auge zu behalten und zu schreiben, wenn sich '
+        'ein Fenster auftut.',
+    'Vi holder øje med {rute} mellem {fra} og {til}. Du hører fra os, '
+        'når der er et vindue, du kan sejle i — og kun den ene gang.':
+        'Wir behalten {rute} zwischen {fra} und {til} im Auge. Du hörst '
+        'von uns, wenn sich ein Fenster auftut, in dem du segeln kannst — '
+        'und nur das eine Mal.',
+    'Vi holder ikke længere øje med {rute}, og vi skriver ikke til '
+        'dig om den igen.':
+        'Wir behalten {rute} nicht länger im Auge und schreiben dir nicht '
+        'wieder darüber.',
+    'Linket er forkert, eller vagten er allerede stoppet.':
+        'Der Link ist falsch, oder die Wache ist bereits gestoppt.',
 }
