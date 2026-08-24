@@ -117,7 +117,7 @@ def _numbers(p) -> None:
             .classes('text-[12.5px] text-[var(--txt-2)] leading-snug block')
         return
 
-    tone = {'foran': 'var(--go)', t(t('bagud')): 'var(--warn)',
+    tone = {'foran': 'var(--go)', t('bagud'): 'var(--warn)',
             'som planlagt': 'var(--txt-1)', 'fremme': 'var(--go)',
             'ikke begyndt': 'var(--txt-2)'}[p.verdict]
 
@@ -128,7 +128,7 @@ def _numbers(p) -> None:
 
     minutes = abs(p.ahead_min)
     if p.verdict == 'som planlagt':
-        head = t(t('Du følger planen'))
+        head = t('Du følger planen')
     else:
         head = (f'Du er {minutes:.0f} minutter {p.verdict}'
                 if minutes < 90 else

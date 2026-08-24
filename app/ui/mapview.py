@@ -198,6 +198,7 @@ _FLEET_OFF = """
 """
 
 _HARBOURS_BODY = """
+  if (%(reports)s !== null) c.__berth = %(reports)s;
   if (!c.__harbourData) {
     c.__harbourData = %(data)s;
     c.__harbourLayer = L.layerGroup();
@@ -248,11 +249,17 @@ _HARBOURS_BODY = """
           }
         }
 
+        // Har havnen en frisk melding om plads, får prikken meldingens
+        // farve. Det er dét, man leder efter, når man skal finde et sted at
+        // ligge — grøn betyder, nogen har sagt der er plads.
+        const meldt = (c.__berth || {})[h[0].toFixed(4) + ',' + h[1].toFixed(4)];
+        const klasse = meldt ? ' hb--' + meldt : '';
+
         const marker = L.marker([h[0], h[1]], {
           icon: L.divIcon({
             className: 'hb-icon',
-            html: '<span class="hb' + (big ? ' hb--big' : '') + '"><i></i>'
-                  + label + '</span>',
+            html: '<span class="hb' + (big ? ' hb--big' : '') + klasse
+                  + '"><i></i>' + label + '</span>',
             iconSize: [0, 0], iconAnchor: [0, 0],
           }),
           keyboard: false, riseOnHover: true, zIndexOffset: -500,
@@ -426,7 +433,40 @@ class RouteMap:
         self._run(_HARBOURS_BODY % {
             'data': data, 'min_zoom': HARBOUR_ZOOM,
             'label_zoom': HARBOUR_LABEL_ZOOM, 'max': HARBOUR_MAX,
+            'reports': self._berth_json(),
             'on': 'true' if self._harbours_on else 'false'})
+
+    @staticmethod
+    def _berth_json() -> str:
+        """Havnene med en frisk melding, som position -> niveau.
+
+        Dem, nogen har meldt plads i, skal kunne ses på kortet — det er dét,
+        man leder efter, når man skal finde et sted at ligge for natten.
+        """
+        try:
+            from .. import reports
+            from ..config import settings
+            if not settings.storage_dir:
+                return 'null'
+            with reports._open() as con:
+                from datetime import datetime, timedelta
+                cut = (datetime.now()
+                       - timedelta(hours=reports.FRESH_HOURS)).isoformat(
+                           timespec='seconds')
+                rows = con.execute(
+                    'SELECT * FROM reports WHERE when_at > ? '
+                    'ORDER BY when_at DESC', (cut,)).fetchall()
+            samlet: dict = {}
+            for r in rows:
+                samlet.setdefault(r['harbour'], []).append(reports._row(r))
+            out = {}
+            for key, rs in samlet.items():
+                v = reports._weigh(rs)
+                if v:
+                    out[key] = v.level
+            return json.dumps(out, separators=(',', ':'))
+        except Exception:
+            return 'null'
 
     def show_fleet(self, boats: list) -> None:
         """Tegn de andre både. Tom liste rydder laget."""

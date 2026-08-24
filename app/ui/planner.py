@@ -311,8 +311,8 @@ class Planner:
             with ui.element('div').classes('seg'):
                 self.style_btns = {}
                 for key, label, tip in (
-                        ('chart', t(t('Søkort')), 'Havkort med dybdeforhold'),
-                        ('street', t(t('Landkort')), 'Almindeligt kort med veje og byer')):
+                        ('chart', t('Søkort'), 'Havkort med dybdeforhold'),
+                        ('street', t('Landkort'), 'Almindeligt kort med veje og byer')):
                     item = ui.element('div').classes('seg-item')
                     with item:
                         ui.label(label)
@@ -327,15 +327,22 @@ class Planner:
             # appen kan — så skal man kunne se, at knappen findes.
             with ui.element('div').classes('map-stack'):
                 self.harbour_btn = self._map_button(
-                    'anchor', t(t('Havne')), self._toggle_harbours, on=True,
+                    'anchor', t('Havne'), self._toggle_harbours, on=True,
                     tip='Vis alle lystbådehavne — klik på en for at lægge den i ruten')
                 self.seamark_btn = self._map_button(
-                    'waves', t(t('Sømærker')), self._toggle_seamarks,
+                    'waves', t('Sømærker'), self._toggle_seamarks,
                     tip='Bøjer, fyr og sejlløb fra OpenSeaMap')
                 self._map_button(
-                    'zoom_out_map', t(t('Hele ruten')),
+                    'zoom_out_map', t('Hele ruten'),
                     lambda: self.map and self.map.fit(self.s.route),
                     tip='Zoom ud, så hele ruten er i billedet')
+                # Ligger man i en havn, er det dén, man ved noget om — den
+                # behøver ikke stå på den rute, man har lagt.
+                if berth.available():
+                    self._map_button(
+                        'campaign', t('Meld plads'),
+                        lambda: berth.nearby_dialog(self),
+                        tip='Meld om der er plads i en havn omkring dig')
 
     @staticmethod
     def _map_button(icon: str, label: str, on_click, on: bool = False,
@@ -675,12 +682,12 @@ class Planner:
         """
         lim, boat = self.s.limits, self.s.boat
         rows = [
-            ('directions_boat', t(t('Båd')), boat.name),
-            ('event', t(t('Hvornår')), f'{self._short_date(lim.date_from)} – '
+            ('directions_boat', t('Båd'), boat.name),
+            ('event', t('Hvornår'), f'{self._short_date(lim.date_from)} – '
                                  f'{self._short_date(lim.date_to)}'),
-            ('schedule', t(t('Sejldøgn')), f'{lim.day_start:02d}:00 – {lim.day_end:02d}:00'
+            ('schedule', t('Sejldøgn'), f'{lim.day_start:02d}:00 – {lim.day_end:02d}:00'
                                      + (' · også nat' if lim.night_ok else '')),
-            ('air', t(t('Grænser')), f'{lim.max_wind:.0f} kn vind · '
+            ('air', t('Grænser'), f'{lim.max_wind:.0f} kn vind · '
                                f'{dk(lim.max_wave)} m bølger'),
         ]
         ui.label(t('Turen')).classes('section-label mt-4 mb-1.5 block')
@@ -1150,18 +1157,18 @@ class Planner:
     def _key_figures(self, p, boat) -> None:
         lim = self.s.limits
         metrics = [
-            (spell(p.under_way_h), t(t('Sejltid')), ''),
-            (f'{dk(p.avg_speed_kn)} kn', t(t('Gns. fart')), ''),
-            (f'{p.total_nm:.0f} sm', t(t('Distance')), ''),
-            (f'{p.worst_wind_kn:.0f} kn', t(t('Højeste vind')),
+            (spell(p.under_way_h), t('Sejltid'), ''),
+            (f'{dk(p.avg_speed_kn)} kn', t('Gns. fart'), ''),
+            (f'{p.total_nm:.0f} sm', t('Distance'), ''),
+            (f'{p.worst_wind_kn:.0f} kn', t('Højeste vind'),
              self._level(p.worst_wind_kn, lim.max_wind)),
-            (f'{dk(p.worst_wave_m)} m', t(t('Højeste bølger')),
+            (f'{dk(p.worst_wave_m)} m', t('Højeste bølger'),
              self._level(p.worst_wave_m, lim.max_wave)),
         ]
         if boat.is_motor:
-            metrics.append((f'{p.fuel_l:.0f} l', t(t('Brændstof')), ''))
+            metrics.append((f'{p.fuel_l:.0f} l', t('Brændstof'), ''))
         else:
-            metrics.append((f'{p.red_hours} t', t(t('Frarådet')),
+            metrics.append((f'{p.red_hours} t', t('Frarådet'),
                             'val--stop' if p.red_hours else 'val--go'))
 
         if not self._section(t('Nøgletal'), 'nogletal', 'nogletal'):
@@ -1249,7 +1256,7 @@ class Planner:
         if not p:
             return
 
-        if not self._section(t('Time for time'), t(t('timer')), 'time-for-time',
+        if not self._section(t('Time for time'), t('timer'), 'time-for-time',
                              standard=False,
                              hint=f'{len(p.segments)} timer'):
             return

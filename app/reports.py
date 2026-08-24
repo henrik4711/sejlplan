@@ -54,6 +54,11 @@ KEEP_DAYS = 7
 # for lidt til at fylde noget med.
 MAX_PER_DAY = 12
 
+# Meldingernes vægt halveres for hver af de her timer. En melding fra i
+# formiddags tæller, men den, der kom for et kvarter siden, tæller fire gange
+# så meget — for det er den, der ved noget om nu.
+HALF_LIFE_H = 4.0
+
 
 
 @dataclass
@@ -164,19 +169,75 @@ def count_today(author: str) -> int:
     return int(r['c'])
 
 
-def latest(lat: float, lon: float) -> Report | None:
-    """Den nyeste melding fra havnen, hvis den stadig siger noget."""
+@dataclass
+class Verdict:
+    """Hvad havnen melder — vejet sammen af de meldinger, der er.
+
+    Én melding kan være forkert, eller den kan være fra en, der lå ved en
+    anden bro. Tre, der siger det samme inden for et par timer, er noget
+    andet. Så vi lægger dem sammen — men de friske vejer tungest, for det er
+    dem, der ved noget om nu.
+    """
+    level: str
+    newest: Report
+    votes: int
+    agree: int
+
+    @property
+    def label(self) -> str:
+        return LEVELS.get(self.level, LEVELS['god'])[0]
+
+    @property
+    def icon(self) -> str:
+        return LEVELS.get(self.level, LEVELS['god'])[1]
+
+    @property
+    def tone(self) -> str:
+        return LEVELS.get(self.level, LEVELS['god'])[2]
+
+    @property
+    def age(self) -> str:
+        return self.newest.age
+
+    @property
+    def note(self) -> str:
+        """Hvor mange der har meldt — men kun når det siger noget."""
+        if self.votes < 2:
+            return ''
+        if self.agree == self.votes:
+            return f'{self.votes} meldinger'
+        return f'{self.agree} af {self.votes} meldinger'
+
+
+def _weigh(rows: list[Report]) -> Verdict | None:
+    """Vej meldingerne sammen. Den friskeste tæller mest."""
+    if not rows:
+        return None
+    now = datetime.now()
+    vaegt: dict[str, float] = {}
+    for r in rows:
+        alder = max(0.0, (now - r.when).total_seconds() / 3600)
+        vaegt[r.level] = vaegt.get(r.level, 0.0) + 0.5 ** (alder / HALF_LIFE_H)
+
+    level = max(vaegt, key=lambda k: vaegt[k])
+    rows = sorted(rows, key=lambda r: r.when, reverse=True)
+    return Verdict(level=level, newest=rows[0], votes=len(rows),
+                   agree=sum(1 for r in rows if r.level == level))
+
+
+def latest(lat: float, lon: float) -> Verdict | None:
+    """Havnens dom lige nu, vejet af de meldinger der er."""
     cut = (datetime.now() - timedelta(hours=FRESH_HOURS)).isoformat(timespec='seconds')
     with _open() as con:
-        r = con.execute(
+        rows = con.execute(
             'SELECT * FROM reports WHERE harbour = ? AND when_at > ? '
-            'ORDER BY when_at DESC LIMIT 1',
-            (key_of(lat, lon), cut)).fetchone()
-    return _row(r) if r else None
+            'ORDER BY when_at DESC',
+            (key_of(lat, lon), cut)).fetchall()
+    return _weigh([_row(r) for r in rows])
 
 
-def recent(keys: list[str]) -> dict[str, Report]:
-    """Nyeste melding for hver af de havne — ét opslag i stedet for tyve.
+def recent(keys: list[str]) -> dict[str, Verdict]:
+    """Dommen for hver af de havne — ét opslag i stedet for tyve.
 
     Havnelisten viser en håndfuld havne ad gangen. Ét kald til databasen for
     dem alle er forskellen på en liste, der er der med det samme, og en, der
@@ -190,10 +251,11 @@ def recent(keys: list[str]) -> dict[str, Report]:
         rows = con.execute(
             f'SELECT * FROM reports WHERE harbour IN ({marks}) AND when_at > ? '
             f'ORDER BY when_at DESC', (*keys, cut)).fetchall()
-    out: dict[str, Report] = {}
+
+    samlet: dict[str, list[Report]] = {}
     for r in rows:
-        out.setdefault(r['harbour'], _row(r))
-    return out
+        samlet.setdefault(r['harbour'], []).append(_row(r))
+    return {k: v for k, v in ((k, _weigh(rs)) for k, rs in samlet.items()) if v}
 
 
 def mine(author: str, limit: int = 20) -> list[Report]:

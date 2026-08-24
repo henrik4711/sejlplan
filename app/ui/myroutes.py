@@ -184,7 +184,7 @@ def _confirm_delete(s, row: dict, changed) -> None:
 
 
 def _when(iso: str | None) -> str:
-    """'i dag', t(t('i går')), ellers datoen. Det er sådan man husker det."""
+    """'i dag', t('i går'), ellers datoen. Det er sådan man husker det."""
     try:
         d = date.fromisoformat(str(iso))
     except (TypeError, ValueError):

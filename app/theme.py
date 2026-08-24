@@ -169,6 +169,24 @@ html, body { height: 100%; overflow: hidden; }
   .work:has(.plan-view) aside.sheet { display: none; }
 }
 
+/* ═══ Havne med en melding om plads ══════════════════════════════ */
+/* En havn, nogen har meldt plads i, skal kunne ses på kortet. Grøn er dét, man
+   leder efter, når man skal finde et sted at ligge for natten — og rød er dét,
+   man skal se, før man sejler derhen. Prikken bliver også lidt større, så den
+   springer i øjnene mellem de andre. */
+.hb--god i   { background: var(--go)   !important; }
+.hb--faa i   { background: var(--warn) !important; }
+.hb--fuld i  { background: var(--stop) !important; }
+.hb--god i, .hb--faa i, .hb--fuld i {
+  width: 9px !important; height: 9px !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 1px 3px rgba(13,27,42,.4);
+}
+body.body--dark .hb--god i,
+body.body--dark .hb--faa i,
+body.body--dark .hb--fuld i {
+  box-shadow: 0 0 0 2px rgba(13,27,42,.75), 0 1px 3px rgba(0,0,0,.5);
+}
+
 /* ═══ Andre både ═════════════════════════════════════════════════ */
 /* En anden båd er en lille pil, der peger den vej, den sejler. Den skal kunne
    skelnes fra en havn og fra rutens egne punkter uden at stjæle billedet —

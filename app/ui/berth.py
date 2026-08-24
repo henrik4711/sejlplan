@@ -79,6 +79,72 @@ def button(harbour, on_done=None, small: bool = True) -> None:
     btn.on('click.stop', lambda _: None)
 
 
+def nearby_dialog(planner) -> None:
+    """Meld plads i en havn omkring dig — ikke kun dem på ruten.
+
+    Ligger man i Marstal, er det Marstal, man ved noget om. Den behøver ikke at
+    stå på den rute, man har lagt. Så vi viser havnene omkring positionen med
+    den nærmeste øverst, for det er næsten altid den, man ligger i.
+    """
+    from .. import harbours as havne
+
+    here = planner.last_pos
+    if not here:
+        # Uden position tages rutens sidste punkt — man planlægger tit hjemme,
+        # og så er det destinationen, man ville melde om.
+        wps = planner.s.waypoints
+        here = (wps[-1].lat, wps[-1].lon) if wps else None
+    if not here:
+        ui.notify(t('Vi ved ikke, hvor du er. Slå "Jeg er undervejs" til, '
+                    'eller læg en rute først.'),
+                  type='warning', position='bottom', multi_line=True)
+        return
+
+    naer = havne.nearest(here[0], here[1], count=12)
+    if not naer:
+        ui.notify(t('Ingen havne i nærheden'), position='bottom')
+        return
+
+    meldt = reports.recent([reports.key_of(h.lat, h.lon) for h in naer])
+
+    with ui.dialog() as dlg, ui.card().classes(
+            'w-full max-w-[460px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
+
+        with ui.element('div').classes('px-5 pt-5 pb-1'):
+            ui.label(t('Meld plads')).classes('text-[16px] font-bold block')
+            ui.label(t('Havnene omkring dig, nærmeste først. Vælg den, du '
+                       'ligger i.'))                 .classes('text-[12.5px] text-[var(--txt-2)] leading-snug '
+                         'mt-1 block')
+
+        with ui.element('div').classes('scroll-y px-5 py-3 max-h-[58dvh] w-full'):
+            for h in naer:
+                afstand = reports.key_of(h.lat, h.lon)
+                v = meldt.get(afstand)
+                row = ui.element('div').classes(
+                    'card px-3.5 py-2.5 mb-2 flex items-center gap-3 '
+                    'cursor-pointer hover:border-[var(--line-2)]')
+                with row:
+                    ui.icon('anchor').classes(
+                        'text-[17px] text-[var(--txt-3)] shrink-0')
+                    with ui.element('div').classes('min-w-0 flex-1'):
+                        ui.label(h.name).classes(
+                            'text-[13px] font-medium truncate block')
+                        ui.label(h.detail).classes(
+                            'text-[11px] text-[var(--txt-3)] truncate block')
+                    if v is not None:
+                        ui.icon(v.icon).style(f'color: {v.tone}')                             .classes('text-[17px] shrink-0')
+                    ui.icon('chevron_right').classes(
+                        'text-[17px] text-[var(--txt-3)] shrink-0')
+                row.on('click', lambda _, x=h: (dlg.close(),
+                                                dialog(x, planner.refresh)))
+
+        with ui.row().classes('w-full items-center px-5 pb-4 no-wrap'):
+            ui.element('div').classes('flex-1')
+            ui.button(t('Fortryd'), on_click=dlg.close)                 .props('flat no-caps').classes('text-[var(--txt-2)]')
+
+    dlg.open()
+
+
 def dialog(harbour, on_done=None) -> None:
     """Tre knapper og en valgfri bemærkning. Ikke mere."""
     author = author_id()

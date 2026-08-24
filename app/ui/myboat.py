@@ -97,13 +97,13 @@ def editor(s, refresh_boats, refresh_limits) -> None:
 
             register()
 
-            _number(fields, 'length_m', t(t('Længde overalt')), 'm',
+            _number(fields, 'length_m', t('Længde overalt'), 'm',
                     spec.get('length_m'), 10.0)
 
             @ui.refreshable
             def by_kind() -> None:
                 if kind.value == MOTOR:
-                    _number(fields, 'cruise_kn', t(t('Marchfart i smult vande')), 'kn',
+                    _number(fields, 'cruise_kn', t('Marchfart i smult vande'), 'kn',
                             spec.get('cruise_kn'), 12.0)
                     ui.label(t('Skrogtype')).classes(
                         'text-[11.5px] text-[var(--txt-3)] mt-4 mb-1 block')
@@ -114,18 +114,18 @@ def editor(s, refresh_boats, refresh_limits) -> None:
                     ui.label('Skroget afgør, hvor meget søen tager af farten. '
                              'En planende båd taber mest.') \
                         .classes('text-[11px] text-[var(--txt-3)] mt-1 block leading-snug')
-                    _number(fields, 'fuel_lph', t(t('Forbrug ved marchfart')), 'l/t',
+                    _number(fields, 'fuel_lph', t('Forbrug ved marchfart'), 'l/t',
                             spec.get('fuel_lph'), 40.0)
                 else:
-                    _number(fields, 'reach_kn', t(t('Fart for halvvind i 10 knobs vind')),
+                    _number(fields, 'reach_kn', t('Fart for halvvind i 10 knobs vind'),
                             'kn', spec.get('reach_kn'), reference_speed())
                     ui.label('Det ene tal skalerer et almindeligt polardiagram, så '
                              'farten passer til din båd. Ved du det ikke, så gæt på '
                              'en god dag med fuld sejlføring.') \
                         .classes('text-[11px] text-[var(--txt-3)] mt-1 block leading-snug')
-                    _number(fields, 'motor_speed_kn', t(t('Fart for motor')), 'kn',
+                    _number(fields, 'motor_speed_kn', t('Fart for motor'), 'kn',
                             spec.get('motor_speed_kn'), 5.5)
-                    _number(fields, 'fuel_lph', t(t('Forbrug for motor')), 'l/t',
+                    _number(fields, 'fuel_lph', t('Forbrug for motor'), 'l/t',
                             spec.get('fuel_lph'), 3.0)
 
             by_kind()
@@ -140,9 +140,9 @@ def editor(s, refresh_boats, refresh_limits) -> None:
             ui.label(t('Hvad du kan holde til')).classes('section-label mb-1 block')
             ui.label('Over de her værdier markerer planen timerne som skærpede.') \
                 .classes('text-[11px] text-[var(--txt-3)] mb-1 block leading-snug')
-            _number(fields, 'max_wind_kn', t(t('Højeste vind')), 'kn',
+            _number(fields, 'max_wind_kn', t('Højeste vind'), 'kn',
                     spec.get('max_wind_kn'), 20.0)
-            _number(fields, 'max_wave_m', t(t('Højeste bølger')), 'm',
+            _number(fields, 'max_wave_m', t('Højeste bølger'), 'm',
                     spec.get('max_wave_m'), 1.5)
 
         with ui.row().classes('w-full items-center gap-2 px-5 py-3.5 border-t '
