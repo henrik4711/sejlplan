@@ -169,6 +169,24 @@ html, body { height: 100%; overflow: hidden; }
   .work:has(.plan-view) aside.sheet { display: none; }
 }
 
+/* ═══ Andre både ═════════════════════════════════════════════════ */
+/* En anden båd er en lille pil, der peger den vej, den sejler. Den skal kunne
+   skelnes fra en havn og fra rutens egne punkter uden at stjæle billedet —
+   den er information, ikke hovedsagen. */
+.boat-mark {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+}
+.boat-mark i {
+  display: block; width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 15px solid var(--teal);
+  filter: drop-shadow(0 1px 2px rgba(13,27,42,.45));
+  transform-origin: 50% 65%;
+}
+body.body--dark .boat-mark i { border-bottom-color: var(--teal); }
+
 /* ═══ Hjælp ══════════════════════════════════════════════════════ */
 /* Spørgsmålstegnet står ved siden af overskriften, ikke som en knap for sig.
    Den, der ved hvad et sejldøgn er, skal ikke forstyrres af det — så det er

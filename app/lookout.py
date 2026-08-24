@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 from datetime import date, datetime
 
-from . import mailer, reports, share, watch, weatherbound
+from . import fleetmap, mailer, reports, share, watch, weatherbound
 from .boats import BOATS, DEFAULT_BOAT, custom_boat
 from .config import settings
 from .dates import full
@@ -220,6 +220,9 @@ async def sweep_once() -> int:
     # Meldinger om plads dør af sig selv. En melding fra sidste uge er
     # ikke information, og databasen skal ikke bare vokse.
     reports.sweep()
+    # Positioner, der er udloebet, er alligevel usynlige. Nu findes de
+    # heller ikke — det er hele pointen med, at der ingen historik er.
+    fleetmap.sweep()
     return sent
 
 

@@ -172,6 +172,31 @@ _MARKERS_BODY = """
 # en simpel kollisionstest: den største havn får pladsen, og en etiket, der ville
 # lægge sig oven i en anden, springes over. Det er sådan et rigtigt kort gør det,
 # og det er dét, der gør forskellen på et kort og en samling prikker.
+# Andre både, der har valgt at være synlige. Laget tegnes helt om hver gang —
+# der er højst et par hundrede, og en båd, der er forsvundet, skal væk med det
+# samme, ikke blive hængende, fordi vi ville spare en tegning.
+_FLEET_BODY = """
+  if (!c.__fleetLayer) c.__fleetLayer = L.layerGroup().addTo(c.map);
+  c.__fleetLayer.clearLayers();
+  for (const b of %(boats)s) {
+    const [lat, lon, navn, alder, kurs] = b;
+    const pil = (kurs === null || kurs === undefined)
+      ? '' : ' style="transform: rotate(' + kurs + 'deg)"';
+    L.marker([lat, lon], {
+      icon: L.divIcon({
+        html: '<div class="boat-mark"><i' + pil + '></i></div>',
+        className: '', iconSize: [26, 26], iconAnchor: [13, 13]}),
+      interactive: true, keyboard: false,
+    }).bindTooltip(navn + ' · ' + alder,
+                   {direction: 'top', offset: [0, -14]})
+      .addTo(c.__fleetLayer);
+  }
+"""
+
+_FLEET_OFF = """
+  if (c.__fleetLayer) c.__fleetLayer.clearLayers();
+"""
+
 _HARBOURS_BODY = """
   if (!c.__harbourData) {
     c.__harbourData = %(data)s;
@@ -402,6 +427,19 @@ class RouteMap:
             'data': data, 'min_zoom': HARBOUR_ZOOM,
             'label_zoom': HARBOUR_LABEL_ZOOM, 'max': HARBOUR_MAX,
             'on': 'true' if self._harbours_on else 'false'})
+
+    def show_fleet(self, boats: list) -> None:
+        """Tegn de andre både. Tom liste rydder laget."""
+        if not boats:
+            self._run(_FLEET_OFF)
+            return
+        rows = [[round(b.lat, 5), round(b.lon, 5),
+                 b.name.replace('<', '').replace('>', ''),
+                 b.age, None if b.course is None else round(b.course)]
+                for b in boats]
+        self._run(_FLEET_BODY % {
+            'boats': json.dumps(rows, ensure_ascii=False,
+                                separators=(',', ':'))})
 
     # ── Begivenheder ────────────────────────────────────────────────
     def _handle_drag(self, e) -> None:

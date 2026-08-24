@@ -220,6 +220,48 @@ WORDS: dict[str, str] = {
         'Die Position bleibt auf deinem Telefon. Sie wird nicht gespeichert, '
         'und niemand sonst kann sie sehen.',
 
+    # ── Andre både ──────────────────────────────────────────────────
+    'Vis din båd på kortet': 'Dein Boot auf der Karte zeigen',
+    'Vis min båd for andre': 'Mein Boot für andere sichtbar machen',
+    'Bådens navn': 'Name des Bootes',
+    'Vis mig': 'Zeig mich',
+    'Skjul mig': 'Verbergen',
+    'Du er synlig som': 'Du bist sichtbar als',
+    'Ingen andre både i nærheden lige nu.':
+        'Gerade keine anderen Boote in der Nähe.',
+    '{n} andre både i nærheden.': '{n} andere Boote in der Nähe.',
+    'Giv båden et navn, de andre kan se':
+        'Gib dem Boot einen Namen, den die anderen sehen',
+    'Så kan andre, der også er synlige, se hvor du er — og '
+    'du kan se dem. Kun jer, der har slået det til.':
+        'Dann sehen andere, die ebenfalls sichtbar sind, wo du bist — und du '
+        'siehst sie. Nur ihr, die es eingeschaltet habt.',
+    'Skriv bådens navn, ikke dit eget. Det er dét, de '
+    'andre ser.':
+        'Schreibe den Namen des Bootes, nicht deinen eigenen. Das ist es, was '
+        'die anderen sehen.',
+    'Du er usynlig, indtil du selv tænder — og du '
+    'forsvinder igen i samme øjeblik, du slukker.':
+        'Du bist unsichtbar, bis du selbst einschaltest — und du verschwindest '
+        'wieder in dem Moment, in dem du ausschaltest.',
+    'Positionen udløber af sig selv efter en halv time '
+    'uden opdatering.':
+        'Die Position läuft nach einer halben Stunde ohne Aktualisierung von '
+        'selbst ab.',
+    'Der gemmes ingen historik. Hver ny position skriver '
+    'den forrige over, så ingen kan slå op, hvor du var '
+    'i går.':
+        'Es wird kein Verlauf gespeichert. Jede neue Position überschreibt die '
+        'vorige, sodass niemand nachsehen kann, wo du gestern warst.',
+    'Du ser kun andre, mens du selv er synlig. Ingen kan '
+    'kigge uden at være der selv.':
+        'Du siehst andere nur, solange du selbst sichtbar bist. Niemand kann '
+        'zusehen, ohne selbst dabei zu sein.',
+    'Din båd er nu synlig for andre, der også er det.':
+        'Dein Boot ist jetzt für andere sichtbar, die es ebenfalls sind.',
+    'Du er ikke længere synlig, og din position er slettet.':
+        'Du bist nicht mehr sichtbar, und deine Position wurde gelöscht.',
+
     # ── Enheder og småord ───────────────────────────────────────────
     'sømil': 'Seemeilen',
     'knob': 'Knoten',

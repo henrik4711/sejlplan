@@ -27,6 +27,7 @@ from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
                        point_of_sail)
 from ..state import Session, signature
 from . import berth
+from . import fleet as fleetui
 from . import help as helpui
 from . import underway
 from . import myroutes
@@ -176,6 +177,14 @@ class Planner:
         self.underway = False
         self.progress = None
         self.pos_error = ''
+        # Deler man sin position, ligger den i databasen — ikke i sessionen.
+        # NiceGUI giver hver browser sin egen session, og de kan ikke se
+        # hinandens. Databasen er det fælles sted, og hver browser kigger
+        # selv efter med jævne mellemrum.
+        self.sharing = False
+        self.fleet: list = []
+        self.fleet_timer = None
+        self.last_pos = None
         self.search_input: ui.input | None = None
         # Baggrundsopgaver skal opdatere netop den her browser. NiceGUI's
         # underforståede klient er ikke sat, når en opgave vågner op igen, så
@@ -191,6 +200,12 @@ class Planner:
     # Opbygning
     # ════════════════════════════════════════════════════════════════
     def build(self) -> None:
+        # Tidsmåleren, der henter de andre både. Den laves her, én gang, og
+        # hører til hele fladen — ikke til en dialog, der bliver lukket igen.
+        if fleetui.available():
+            self.fleet_timer = ui.timer(
+                fleetui.POLL_S, lambda: fleetui.tick(self))
+
         # Hele appen bor i en skal, der er spændt ud over skærmen. Det er dét,
         # der gør at panelet kan rulle uafhængigt af hvor langt indholdet er.
         with ui.element('div').classes('app-shell'):
@@ -791,6 +806,7 @@ class Planner:
                     .props('flat dense no-caps') \
                     .classes('w-full mt-1 text-[var(--txt-3)] '
                              'hover:text-[var(--accent)]')
+            self.fleet_line()
 
     @staticmethod
     def _short_date(iso: str) -> str:
@@ -1025,6 +1041,10 @@ class Planner:
         row.on('click', lambda _: self._toggle_section(key, standard))
         return is_open
 
+    @ui.refreshable_method
+    def fleet_line(self) -> None:
+        fleetui.line(self)
+
     # ── Undervejs ───────────────────────────────────────────────────
     def start_underway(self) -> None:
         underway.start(self)
@@ -1035,9 +1055,13 @@ class Planner:
     def _position(self, e) -> None:
         d = e.args or {}
         try:
-            underway.position(self, float(d['lat']), float(d['lon']))
+            lat, lon = float(d['lat']), float(d['lon'])
         except (KeyError, TypeError, ValueError):
-            pass
+            return
+        self.last_pos = (lat, lon)
+        underway.position(self, lat, lon)
+        # Deler man, skal de andre også kunne se, at man har flyttet sig.
+        fleetui.report_position(self, lat, lon, d.get('kurs'), d.get('fart'))
 
     def _position_failed(self, e) -> None:
         self.pos_error = str(e.args or 'Kunne ikke finde positionen.')
