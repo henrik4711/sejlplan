@@ -34,6 +34,8 @@ from . import help as helpui
 from . import underway
 from . import myroutes
 from . import nearby
+from . import marks as marksui
+from . import trim as trimui
 from . import settings as settingsui
 from . import watch as watchui
 from .mapview import RouteMap
@@ -382,6 +384,13 @@ class Planner:
                         'campaign', t('Meld plads'),
                         lambda: berth.nearby_dialog(self),
                         tip=t('Meld om der er plads i en havn omkring dig'))
+                # Sømærkelaget viser mærkerne. Det siger ikke, hvad de
+                # betyder — og det er dét, man står og mangler, når man har
+                # en gul bøje med et kryds tværs for stævnen.
+                self._map_button(
+                    'menu_book', t('Hvad betyder det'),
+                    lambda: marksui.dialog(self),
+                    tip=t('Sømærker, fyrkarakterer, lanterner og signaler'))
 
     @staticmethod
     def _map_button(icon: str, label: str, on_click, on: bool = False,
@@ -1371,8 +1380,8 @@ class Planner:
             for brief in briefs:
                 self._stretch_card(brief)
 
-    @staticmethod
-    def _stretch_card(brief) -> None:
+
+    def _stretch_card(self, brief) -> None:
         with ui.element('div').classes('card px-4 py-3.5'):
             with ui.element('div').classes('flex items-center gap-2 mb-1'):
                 ui.html(f'<i class="dot" style="background:'
@@ -1384,6 +1393,7 @@ class Planner:
                 .classes('text-[11.5px] text-[var(--txt-3)] mb-1.5 block')
             ui.label(brief.sentence).classes(
                 'text-[13px] leading-relaxed text-[var(--txt-2)] block')
+            trimui.card(brief)
 
     def _print_plan(self) -> None:
         """Åbn planen i et nyt vindue, hvor browserens udskrift kan tage over."""

@@ -414,6 +414,18 @@ def by_id(topic_id: str) -> Topic | None:
     return next((t for t in TOPICS if t.id == topic_id), None)
 
 
+# Sømandskabet står i sit eget modul sammen med tegningerne, så teksten og
+# billedet af det samme mærke ikke kan komme til at sige noget forskelligt.
+# Her hentes teksten ind, så den også står i manualen og kan hentes ned.
+def _fra_soemandskab() -> tuple[Topic, ...]:
+    from . import seamanship
+    return tuple(Topic(id, titel, kort, krop, group='Til søs')
+                 for id, titel, kort, krop in seamanship.HELP)
+
+
+TOPICS = TOPICS + _fra_soemandskab()
+
+
 def groups() -> list[tuple[str, list[Topic]]]:
     """Emnerne samlet i den rækkefølge, de står — til manualen."""
     out: list[tuple[str, list[Topic]]] = []

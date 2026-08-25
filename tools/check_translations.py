@@ -75,7 +75,47 @@ def manual_strings() -> list[str]:
         for e in topics:
             out += [e.title, e.short, *e.body]
     out.append(helptext.DISCLAIMER)
+    out += seamanship_strings()
     return [s.strip() for s in out if s and s.strip()]
+
+
+def seamanship_strings() -> list[str]:
+    """Sømærkerne og signalerne.
+
+    De står som data med tegninger ved siden af, og går gennem `t()` ude i
+    fladen. En scanner, der kun leder efter `t('…')`, ser dem ikke.
+    """
+    from app import seamanship as sm
+    ud: list[str] = []
+    for m in sm.MARKS:
+        ud += [m.name, m.meaning, m.action, m.light, m.memo]
+    for _kort, betyder in sm.LIGHTS:
+        ud.append(betyder)
+    ud += [sm.LIGHT_EXAMPLE[1], sm.SECTORS]
+    for gruppe in (sm.LANTERNS, sm.DAY_SHAPES, sm.SOUND_MANOEUVRE,
+                   sm.SOUND_FOG, sm.DISTRESS):
+        for sig in gruppe:
+            ud += [sig.what, sig.means]
+    return ud
+
+
+def trim_strings() -> list[str]:
+    """Trimrådene. Samme sag: data, ikke `t()`-kald.
+
+    Alle kombinationer af vinkel og vindstyrke køres igennem, så vi fanger
+    hver eneste sætning — også dem, der kun står frem i hård vind på læns.
+    """
+    from app import trim
+    ud: list[str] = []
+    for twa in range(0, 181, 5):
+        for kn in (4, 10, 16, 22, 30):
+            r = trim.advise(twa, kn)
+            if r is None:
+                continue
+            ud += [r.sail, r.watch, r.reef, r.warning]
+            for navn, tekst in r.rows:
+                ud += [navn, tekst]
+    return [x for x in ud if x]
 
 
 def all_strings() -> list[str]:
@@ -88,7 +128,7 @@ def all_strings() -> list[str]:
             if s not in seen:
                 seen.add(s)
                 out.append(s)
-    for s in manual_strings():
+    for s in manual_strings() + trim_strings():
         if s not in seen:
             seen.add(s)
             out.append(s)
@@ -96,11 +136,11 @@ def all_strings() -> list[str]:
 
 
 def main() -> None:
-    from app.lang import de, de_manual, de_plan, de_ui
+    from app.lang import de, de_manual, de_plan, de_soe, de_ui
     # Samme tre tabeller, som i18n lægger sammen. Læste værktøjet kun de.py,
     # ville manualen og sejlplanens prosa tælle som umarkerede.
     ord_ = {**de.WORDS, **de_ui.WORDS, **de_manual.WORDS,
-            **de_plan.WORDS}
+            **de_plan.WORDS, **de_soe.WORDS}
 
     found = all_strings()
     bad = [s for s in found if s.startswith('\0F-STRENG')]

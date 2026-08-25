@@ -51,12 +51,12 @@ def _table(code: str) -> dict[str, str]:
     """Hent et sprogs tabel. Indlæses første gang, det bruges."""
     if code not in _TABLES:
         if code == DE:
-            from .lang import de, de_manual, de_plan, de_ui
+            from .lang import de, de_manual, de_plan, de_soe, de_ui
             # Prosaen ligger for sig: manualen og sejlplanens egen tekst
             # fylder tilsammen mere end hele resten af fladen, og de skal
             # kunne rettes uden at røre knapperne.
             _TABLES[DE] = {**de.WORDS, **de_ui.WORDS, **de_manual.WORDS,
-                           **de_plan.WORDS}
+                           **de_plan.WORDS, **de_soe.WORDS}
         else:
             _TABLES[code] = {}
     return _TABLES[code]

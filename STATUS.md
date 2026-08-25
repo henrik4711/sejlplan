@@ -54,7 +54,7 @@ havnelods.dk på position), **manual og hjælpebobler** fra ét sæt tekster.
 
 ### 1. Der er få tests
 
-`tests/` har fem filer og 71 prøver. Det er langtfra nok, men de fleste findes,
+`tests/` har syv filer og 618 prøver. Det er langtfra nok, men de fleste findes,
 fordi de fanger noget, der faktisk gik galt.
 
 `test_dokumenter.py` findes, fordi den offline sejlplan var brudt i stilhed:
@@ -79,10 +79,15 @@ to-tre. Retningen er rigtig, styrken er for lav — det står i fladen og i
 hjælpen. Den rigtige kilde er DMI's DKSS-model. Hentningen ligger samlet i
 `weather.py`, så et skifte rører ikke resten.
 
-### 3. Dybgang bruges ikke
+### 3. Dybgang og grunde
 
 Bådregistret kender dybgangen. Ruten går uden om land, ikke uden om grunde. Det
 eneste rene sikkerhedspunkt på listen.
+
+Sømærkeopslaget siger nu udtrykkeligt, at vi ikke advarer om grunde, og
+hvorfor: masken kender kysten, ikke dybderne, og en advarsel, der ser rigtig ud
+og er forkert, er farligere end ingen. Det er den ærlige udgave, ikke en
+løsning. Løsningen er dybdedata fra et rigtigt søkort.
 
 ### 4. Ingen konti og ingen betaling
 

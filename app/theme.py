@@ -275,6 +275,29 @@ body.body--dark .boat-mark i { border-bottom-color: var(--teal); }
   box-shadow: 0 1px 3px rgba(13,27,42,.25);
 }
 
+/* Sømærkerne. Tegningen står fast i bredden, så navnene under hinanden
+   ligger på linje — ellers hopper listen, og så er den svær at skimme. */
+.mark-art {
+  width: 64px; flex-shrink: 0;
+  display: flex; align-items: flex-start; justify-content: center;
+}
+.mark-art svg { display: block; }
+
+/* Trimmet og fyrkaraktererne bruger den samme to-kolonne-form: hvad man
+   rører ved til venstre, hvad man gør til højre. */
+.trim-part {
+  flex-shrink: 0; width: 6.6rem;
+  font-size: 11.5px; font-weight: 600;
+  color: var(--txt-1);
+  line-height: 1.35;
+}
+.trim.q-expansion-item {
+  border-top: 1px solid var(--line);
+}
+.trim .q-item { padding-left: 0; padding-right: 0; min-height: 34px; }
+.trim .q-item__label { font-size: 12.5px; font-weight: 600; }
+.trim .q-expansion-item__content { padding: 0 0 6px; }
+
 /* ═══ Hjælp ══════════════════════════════════════════════════════ */
 /* Spørgsmålstegnet står ved siden af overskriften, ikke som en knap for sig.
    Den, der ved hvad et sejldøgn er, skal ikke forstyrres af det — så det er

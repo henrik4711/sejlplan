@@ -72,6 +72,10 @@ class StretchBrief:
     wave_max: float
     sea: str
     sail: str
+    # Vindens vinkel ind på båden, midlet over strækket. Sejlstillingen er
+    # regnet af den, men trimrådet skal bruge selve vinklen — "bidevind"
+    # dækker fra 55 til 80 grader, og bommen står ikke ens i hele spændet.
+    twa: float
     tack: str
     speed_min: float
     speed_max: float
@@ -256,6 +260,7 @@ def stretch_briefs(route: Route, plan: Plan, boat: Boat) -> list[StretchBrief]:
             wave_max=max(s.wave_m for s in rows),
             sea=seas.most_common(1)[0][0] if seas else CALM,
             sail=point_of_sail(twa),
+            twa=twa,
             tack=Counter(tack(s.course, s.wind_dir) for s in rows).most_common(1)[0][0],
             speed_min=min(speeds), speed_max=max(speeds),
             motor_share=sum(1 for s in rows if s.motoring) / len(rows),
