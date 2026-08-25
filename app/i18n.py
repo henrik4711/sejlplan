@@ -27,11 +27,13 @@ from nicegui import app
 
 DA = 'da'
 DE = 'de'
+SV = 'sv'
 
 # Sprogene i den rækkefølge, de står i vælgeren.
 LANGUAGES = {
     DA: ('Dansk', '🇩🇰'),
     DE: ('Deutsch', '🇩🇪'),
+    SV: ('Svenska', '🇸🇪'),
 }
 
 STORAGE_KEY = 'sprog'
@@ -50,16 +52,10 @@ _TABLES: dict[str, dict[str, str]] = {}
 def _table(code: str) -> dict[str, str]:
     """Hent et sprogs tabel. Indlæses første gang, det bruges."""
     if code not in _TABLES:
-        if code == DE:
-            from .lang import de, de_manual, de_plan, de_soe, de_ui, de_vhf
-            # Prosaen ligger for sig: manualen og sejlplanens egen tekst
-            # fylder tilsammen mere end hele resten af fladen, og de skal
-            # kunne rettes uden at røre knapperne.
-            _TABLES[DE] = {**de.WORDS, **de_ui.WORDS, **de_manual.WORDS,
-                           **de_plan.WORDS, **de_soe.WORDS,
-                           **de_vhf.WORDS}
-        else:
-            _TABLES[code] = {}
+        # Prosaen ligger for sig: manualen, sejlplanens egen tekst og
+        # sømandskabet fylder tilsammen mere end hele resten af fladen, og de
+        # skal kunne rettes uden at røre knapperne.
+        _TABLES[code] = _saml(code)
     return _TABLES[code]
 
 
@@ -78,6 +74,27 @@ def using(code: str):
         yield
     finally:
         _forced.reset(token)
+
+
+# Filerne, hvert sprog er delt op i. Samme opdeling for alle, så en
+# oversætter kan gå fra det ene til det andet uden at lære en ny inddeling.
+_DELE = ('', '_ui', '_manual', '_plan', '_soe', '_vhf')
+
+
+def _saml(code: str) -> dict[str, str]:
+    """Læg et sprogs filer sammen. Dem, der ikke findes, springes over.
+
+    Et sprog må gerne være halvt oversat — så står resten på dansk, og fladen
+    virker. Det er bedre end at vente, til alt er færdigt.
+    """
+    ud: dict[str, str] = {}
+    for del_ in _DELE:
+        try:
+            modul = __import__(f'app.lang.{code}{del_}', fromlist=['WORDS'])
+        except ImportError:
+            continue
+        ud.update(getattr(modul, 'WORDS', {}))
+    return ud
 
 
 def lang() -> str:
@@ -211,13 +228,17 @@ def retranslate(name: str) -> str:
         return name
     for skabelon in GENERATED:
         for code in LANGUAGES:
-            form = _table(code).get(skabelon, skabelon) if code != DA                 else skabelon
+            if code == DA:
+                form = skabelon
+            else:
+                form = _table(code).get(skabelon, skabelon)
             før, _, efter = form.partition('{sted}')
             if not før and not efter:
                 continue
-            if name.startswith(før) and name.endswith(efter)                     and len(name) > len(før) + len(efter):
-                sted = name[len(før):len(name) - len(efter)] if efter                     else name[len(før):]
-                return t(skabelon, sted=sted)
+            if (name.startswith(før) and name.endswith(efter)
+                    and len(name) > len(før) + len(efter)):
+                slut = len(name) - len(efter) if efter else len(name)
+                return t(skabelon, sted=name[len(før):slut])
     return name
 
 

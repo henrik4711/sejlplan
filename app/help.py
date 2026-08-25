@@ -342,13 +342,13 @@ TOPICS: tuple[Topic, ...] = (
         )),
     Topic(
         'sprog', 'Sprog', group='Gem og tag med',
-        short='Dansk og tysk. Flaget i toppen skifter.',
+        short='Dansk, tysk og svensk. Flaget i toppen skifter.',
         body=(
             'Flaget øverst på siden skifter sprog — tryk på det og vælg. Det '
             'står også under Indstillinger. Siden hentes forfra på det nye '
             'sprog.',
             'Første besøg følger browserens eget førstevalg af sprog — er '
-            'det ikke dansk eller tysk, får du dansk. Derefter vinder dit '
+            'det ikke et af dem, vi har, får du dansk. Derefter vinder dit '
             'valg, og det gemmes hos dig selv, så det holder, også når vi '
             'lægger en ny udgave af Sejlplan ud.',
             'Er en tekst ikke oversat endnu, står den på dansk. Det er med '

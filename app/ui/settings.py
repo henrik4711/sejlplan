@@ -290,7 +290,10 @@ def language_button() -> None:
     det står, hvor man kigger efter det.
     """
     _, flag = i18n.LANGUAGES.get(i18n.lang(), ('Dansk', '🇩🇰'))
-    with ui.button(on_click=None).props('flat round dense')             .classes('text-[15px]').tooltip(t('Sprog / Sprache')):
+    # Boblen står på alle sprogene på én gang: den skal kunne læses af den,
+    # der er endt på et sprog, han ikke forstår, og som leder efter vejen ud.
+    with ui.button(on_click=None).props('flat round dense') \
+            .classes('text-[15px]').tooltip(t('Sprog / Sprache / Språk')):
         ui.label(flag).classes('text-[16px] leading-none')
         with ui.menu().classes('min-w-[170px]'):
             for code, (name, f) in i18n.LANGUAGES.items():
@@ -308,12 +311,19 @@ def _language_row() -> None:
     """Vælg sprog. Fladen tegnes om med det samme, så man kan se det virke."""
     choose = choose_lang
 
+    # To i bredden. Er sprogene et ulige antal, fylder det sidste hele
+    # bredden ud — ellers står der et halvt tomt felt ved siden af, og det
+    # ligner en fejl mere end en tom plads.
+    sidste_alene = len(i18n.LANGUAGES) % 2 == 1
+
     with ui.element('div').classes('grid grid-cols-2 gap-2'):
-        for code, (name, flag) in i18n.LANGUAGES.items():
+        for nr, (code, (name, flag)) in enumerate(i18n.LANGUAGES.items()):
             valgt = code == i18n.lang()
+            alene = sidste_alene and nr == len(i18n.LANGUAGES) - 1
             card = ui.element('div').classes(
                 'card px-3 py-2.5 flex items-center gap-2.5 cursor-pointer '
                 'transition-all '
+                + ('col-span-2 ' if alene else '')
                 + ('ring-1 ring-[var(--accent)] border-[var(--accent)]'
                    if valgt else 'hover:border-[var(--line-2)]'))
             with card:

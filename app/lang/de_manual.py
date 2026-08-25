@@ -505,8 +505,8 @@ WORDS: dict[str, str] = {
         'hat, und jede Mail trägt ihren eigenen Link zum Abbestellen.',
     'Sprog':
         'Sprache',
-    'Dansk og tysk. Flaget i toppen skifter.':
-        'Dänisch und Deutsch. Die Flagge oben schaltet um.',
+    'Dansk, tysk og svensk. Flaget i toppen skifter.':
+        'Dänisch, Deutsch und Schwedisch. Die Flagge oben schaltet um.',
     'Flaget øverst på siden skifter sprog — tryk på det og vælg. Det '
         'står også under Indstillinger. Siden hentes forfra på det nye '
         'sprog.':
@@ -514,7 +514,7 @@ WORDS: dict[str, str] = {
         'und wähle. Sie steht auch unter Einstellungen. Die Seite wird in '
         'der neuen Sprache neu geladen.',
     'Første besøg følger browserens eget førstevalg af sprog — er det ikke '
-        'dansk eller tysk, får du dansk. Derefter vinder dit valg, og det '
+        'et af dem, vi har, får du dansk. Derefter vinder dit valg, og det '
         'gemmes hos dig selv, så det holder, også når vi lægger en ny udgave '
         'af Sejlplan ud.':
         'Beim ersten Besuch folgen wir der ersten Sprachwahl des Browsers — '

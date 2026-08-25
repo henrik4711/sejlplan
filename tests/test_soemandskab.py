@@ -11,6 +11,11 @@ import pytest
 
 from app import i18n, seamanship as sm, trim
 
+# Hvert sprog, fladen kan stilles på. Listen hentes fra i18n, ikke
+# skrevet af her: et nyt sprog skal være dækket fra den dag, det står i
+# vælgeren — ikke den dag, nogen husker at rette prøven.
+SPROG = list(i18n.LANGUAGES)
+
 VINKLER = list(range(0, 181, 5))
 STYRKER = [0, 3, 7, 9, 13, 15, 19, 21, 25, 27, 35, 50]
 
@@ -80,8 +85,8 @@ def test_kardinalmaerkerne_siger_hvilken_side():
         assert side in m.action.lower()
 
 
-@pytest.mark.parametrize('sprog', ['da', 'de'])
-def test_alt_kan_skrives_ud_paa_begge_sprog(sprog):
+@pytest.mark.parametrize('sprog', SPROG)
+def test_alt_kan_skrives_ud_paa_alle_sprog(sprog):
     with i18n.using(sprog):
         for m in sm.MARKS:
             for felt in (m.name, m.meaning, m.action, m.light):
@@ -178,8 +183,8 @@ def test_beviset_forklares_uden_at_spaerre_for_noed():
     assert 'enhver' in tekst and 'hjælp' in tekst
 
 
-@pytest.mark.parametrize('sprog', ['da', 'de'])
-def test_vhf_kan_skrives_ud_paa_begge_sprog(sprog):
+@pytest.mark.parametrize('sprog', SPROG)
+def test_vhf_kan_skrives_ud_paa_alle_sprog(sprog):
     with i18n.using(sprog):
         for l in sm.MAYDAY:
             assert i18n.t(l.say).strip()
@@ -205,7 +210,7 @@ def test_trimmet_staar_i_manualen():
     assert 'Sejltrim' in grupper
 
 
-@pytest.mark.parametrize('sprog', ['da', 'de'])
+@pytest.mark.parametrize('sprog', SPROG)
 def test_manualen_har_trimtabellen(sprog):
     from app.ui import help as hui
     with i18n.using(sprog):

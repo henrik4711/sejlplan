@@ -29,8 +29,8 @@ def sprog():
     i18n._TABLES.clear()
 
 
-@pytest.fixture
-def rent_sessionslager(user):
+@pytest.fixture(autouse=True)
+def rent_sessionslager(request):
     """Tøm NiceGUI's sessionslager, før fiksturet fjerner sin mappe.
 
     NiceGUI's prøvefikstur laver en midlertidig mappe og fjerner den bagefter
@@ -42,6 +42,13 @@ def rent_sessionslager(user):
     revet ned sidst — altså efter at NiceGUI allerede har prøvet at fjerne
     mappen. Første forsøg gjorde netop det, og fejlen kom og gik.
     """
+    # Kun for prøver, der faktisk bruger en side. Uden `user` findes der
+    # ingen midlertidig mappe at rydde, og at bede om fiksturet ville
+    # starte en webserver for ingenting.
+    if 'user' not in request.fixturenames:
+        yield
+        return
+    request.getfixturevalue('user')
     yield
     from nicegui import app
     try:

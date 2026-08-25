@@ -2,6 +2,14 @@
 
 `@ui.page` kører én gang pr. besøgende, så alt der oprettes herinde — også
 `Planner` — tilhører netop den ene bruger.
+
+Registreringen sker i `register()` og ikke som en bivirkning af at importere
+modulet. Det er ikke pedanteri: da den lå i importen, kunne den ikke køres
+igen. Prøverne genindlæser `main` for at bygge siden forfra, men `from app.ui
+import page` var da en tom handling, ruten blev aldrig registreret på ny, og
+`user.open('/')` faldt med "not found" — nogle gange, alt efter hvilken prøve
+der havde importeret modulet først. Den slags fejl ser ud, som om prøven er
+dårlig. Den var ikke; opsætningen var.
 """
 from __future__ import annotations
 
@@ -14,7 +22,6 @@ from ..boats import BOATS
 from .planner import Planner
 
 
-@ui.page('/')
 async def index(rute: str = '') -> None:
     """Forsiden. `?rute=…` åbner en rute, nogen har delt."""
     # Sproget skal stå fast, før der bliver tegnet noget — ellers bygges
@@ -63,3 +70,8 @@ async def index(rute: str = '') -> None:
     # noget at redde.
     if not rute and await planner.s.adopt_browser_copy():
         planner.refresh(fit=True)
+
+
+def register() -> None:
+    """Læg forsiden på. Kaldes én gang ved opstart — og igen i prøverne."""
+    ui.page('/')(index)

@@ -315,7 +315,7 @@ WORDS: dict[str, str] = {
     # ── Manualens ramme og småting ──────────────────────────────────
     'Manual': 'Handbuch',
     'Hentet': 'Abgerufen',
-    'Sprog / Sprache': 'Sprache',
+    'Sprog / Sprache / Språk': 'Sprache',
     'Find den bedste afgang, og tag sejlplanen med til søs. Her står, hvad '
     'tallene betyder, og hvad du selv skal tage stilling til.':
         'Finde die beste Abfahrt und nimm den Segelplan mit an Bord. Hier '

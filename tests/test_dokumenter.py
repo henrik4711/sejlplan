@@ -1,4 +1,4 @@
-"""De tre dokumenter skal kunne skrives ud — på begge sprog.
+"""De tre dokumenter skal kunne skrives ud — på hvert sprog, der findes.
 
 Den her fil findes, fordi den offline sejlplan var brudt i stilhed. `warnings()`
 gav Note-objekter, ikke tekst, og `esc()` kalder `.replace` direkte — så hver
@@ -20,7 +20,10 @@ from app import i18n, narrative, offline
 from app.boats import BOATS, DEFAULT_BOAT
 from app.sailing import Limits, Route, Waypoint, sail
 
-SPROG = ['da', 'de']
+# Alle sprog i vælgeren. Et nyt sprog er dækket, fra det står i
+# `i18n.LANGUAGES` — ellers ville svensk kunne vælte den offline plan,
+# uden at en eneste prøve sagde noget.
+SPROG = list(i18n.LANGUAGES)
 
 
 def _vejr(timer: int = 60) -> list[list[dict]]:

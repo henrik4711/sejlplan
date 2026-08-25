@@ -8,10 +8,11 @@ from nicegui import app, ui
 
 from app import api, lookout, mishap, pwa
 from app.config import settings
-from app.ui import page  # noqa: F401  – registrerer siden ved import
+from app.ui import page
 from app.ui import watchpages
 
 mishap.install()
+page.register()
 pwa.register_routes()
 api.register_routes()
 watchpages.register()

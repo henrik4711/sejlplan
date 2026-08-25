@@ -122,15 +122,42 @@ motorbådsfører kan finde sin egen.
 
 ### 9. Sprog
 
-Dansk og tysk, 573 tekster, alle oversat: fladen, de 24 hjælpeemner, manualen,
-sejlplanens egen tekst, den offline plan, vejrvagtens mails og
-skippervurderingen. `python tools/check_translations.py` siger, hvad der
-mangler, når en dansk sætning bliver rettet.
+Dansk, tysk og svensk, 939 tekster, alle oversat på begge fremmedsprog: fladen,
+hjælpeemnerne, manualen, sømærkerne og VHF-guiden, sejlplanens egen tekst, den
+offline plan, vejrvagtens mails og skippervurderingen.
+`python tools/check_translations.py` gennemgår hvert sprog for sig og siger,
+hvad der mangler, når en dansk sætning bliver rettet.
 
 Oversat, ikke maskinoversat. Sejldøgn er Etmal, ikke Segeltag. Beauforts skala
 har de navne, der står i en tysk farvandsudsigt. Sætninger er bygget hele, for
 tysk bøjer efter køn og kasus: "halvvind" er "halber Wind" alene, men "bei
 halbem Wind" inde i en sætning, og de to former slås op hver for sig.
+
+Svensk er farligere end tysk, netop fordi det ligner: *mil* er ti kilometer på
+svensk, så en distance i "sjömil" kan læses ti gange for stor. Søkortets ord
+er *distansminut* (M), og det er dét, der står. *Slör* er ikke "rumskøds"
+oversat, det er dét, en svensker siger, og bomholderen hedder
+*preventerlina*.
+
+Vindskalaen er svensk, ikke oversat. Til søs hedder Beaufort 7–9 kuling, storm
+begynder først ved 10, og orkan ved 12 — altså over 63 knob. Skalaen er derfor
+forskudt et trin i forhold til den danske: hvor der står "Storm" på dansk ved
+45 knob, står der *halv storm* på svensk, og "Orkan" ved 50 er *storm*. Et
+tal, der hedder orkan på svensk, er noget andet end et tal, der hedder orkan
+på dansk, og en svensk sejler kender forskellen.
+
+Tre danske ord dækker hver især to ting, som svensk skiller ad. *Undervejs* er
+tiden fra kaj til kaj (*till sjöss*), det der ligger langs ruten (*längs
+vägen*), og det at være i gang (*till sjöss*). *Ben* er fra punkt til punkt
+(*etapp*), *stræk* er det stykke, kursen holder (*sträcka*) — blev begge til
+"sträcka", stod der i manualen, at en sträcka deles op i sträckor. Og *meld
+plads* er en *rapport*; *anmäla* er dét, man gør ved en, der har opført sig
+dårligt, og det ord hører til på knappen ved siden af en besked.
+
+Prøverne henter sproglisten fra `i18n.LANGUAGES`, ikke fra en håndskrevet
+liste: siden, de tre dokumenter, sømærkerne, VHF-guiden og manualen bygges på
+hvert sprog, der står i vælgeren. Et fjerde sprog er dækket fra den dag, det
+lægges ind.
 
 Det, der ikke oversættes: punkternes navne. Lægger man "Ud for Køge" ind på
 dansk og skifter til tysk, står der stadig "Ud for Køge" — det er gemt tekst,

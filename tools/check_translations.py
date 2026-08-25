@@ -8,7 +8,8 @@ Det leder efter kald til `t('…')` i koden og slår hver enkelt op i sprogtabel
 Er den der ikke, står den danske sætning i stedet ude i programmet — det virker,
 men det er ikke oversat.
 
-Kør:  python tools/check_translations.py
+Kør:  python tools/check_translations.py             (alle sprog)
+      python tools/check_translations.py --sprog sv  (ét sprog)
       python tools/check_translations.py --liste     (skriv de manglende ud)
       python tools/check_translations.py --skabelon  (klar til at klippe ind)
 """
@@ -24,9 +25,12 @@ sys.path.insert(0, str(ROOT))
 # Funktionerne, hvis første argument er en tekst, der skal oversættes.
 CALLS = {'t', 'plural'}
 
-# Flertalsformerne har ingen dansk sætning at høre til — de er en tysk
-# bøjning af et ord, der står i tabellen i forvejen.
+# Bøjningerne har ingen dansk sætning at høre til — de er et fremmed sprogs
+# form af et ord, der står i tabellen i forvejen. Tælles de med som
+# forældede, står der en håndfuld falske hver gang, og så holder man op med
+# at se på tallet.
 PLURAL_MARK = '|flertal'
+SENTENCE_MARK = '|sætning'
 
 
 def _text_args(node: ast.Call) -> list[str]:
@@ -144,44 +148,64 @@ def all_strings() -> list[str]:
     return out
 
 
+def sprog() -> list[str]:
+    """Hvilke sprog der tjekkes. `--sprog xx`, ellers dem alle sammen.
+
+    Uden argument er svaret hvert sprog i vælgeren undtagen dansk — dansk *er*
+    nøglen. Værktøjet kendte kun tysk, og så kunne et nyt sprog stå halvt
+    oversat, uden at noget sagde det.
+    """
+    from app import i18n
+    if '--sprog' in sys.argv:
+        i = sys.argv.index('--sprog')
+        if i + 1 < len(sys.argv):
+            return [sys.argv[i + 1]]
+    return [k for k in i18n.LANGUAGES if k != i18n.DA]
+
+
 def main() -> None:
-    from app.lang import de, de_manual, de_plan, de_soe, de_ui, de_vhf
-    # Samme tre tabeller, som i18n lægger sammen. Læste værktøjet kun de.py,
-    # ville manualen og sejlplanens prosa tælle som umarkerede.
-    ord_ = {**de.WORDS, **de_ui.WORDS, **de_manual.WORDS,
-            **de_plan.WORDS, **de_soe.WORDS, **de_vhf.WORDS}
+    from app import i18n
 
     found = all_strings()
     bad = [s for s in found if s.startswith('\0F-STRENG')]
     real = [s for s in found if not s.startswith('\0F-STRENG')]
-    missing = [s for s in real if s not in ord_]
-    stale = [s for s in ord_
-             if s not in real and not s.endswith(PLURAL_MARK)]
-
     print(f'{len(real)} tekster markeret til oversættelse')
-    print(f'{len(real) - len(missing)} oversat til tysk, {len(missing)} mangler')
-    if stale:
-        print(f'{len(stale)} tyske tekster hører ikke længere til nogen dansk '
-              f'sætning — de er sandsynligvis blevet omskrevet')
+
+    for kode in sprog():
+        # Samme tabeller, som i18n lægger sammen — også manualen og
+        # sejlplanens prosa, ellers ville de tælle som umarkerede.
+        navn = i18n.LANGUAGES.get(kode, (kode,))[0].lower()
+        ord_ = i18n._saml(kode)
+        if not ord_:
+            print(f'\n{navn}: ingen tabel — app/lang/{kode}.py findes ikke')
+            continue
+        missing = [s for s in real if s not in ord_]
+        stale = [s for s in ord_ if s not in real
+                 and not s.endswith((PLURAL_MARK, SENTENCE_MARK))]
+
+        print(f'\n{navn}: {len(real) - len(missing)} oversat, '
+              f'{len(missing)} mangler')
+        if stale:
+            print(f'   {len(stale)} tekster hører ikke længere til nogen '
+                  f'dansk sætning — de er sandsynligvis blevet omskrevet')
+        if '--liste' in sys.argv:
+            for overskrift, liste in (('MANGLER', missing),
+                                      ('FORÆLDEDE', stale)):
+                if liste:
+                    print(f'   {overskrift}:')
+                    for s in liste:
+                        print(f'      {s}')
+        if '--skabelon' in sys.argv and missing:
+            print('    # ── mangler ──')
+            for s in missing:
+                key = s.replace("'", "\\'")
+                print(f"    '{key}':\n        '',")
+
     if bad:
         print(f'\n{len(bad)} kald bruger en f-streng. De kan ikke slås op — '
               f'pladsholderne skal stå som {{navn}} i teksten:')
         for s in bad[:8]:
             print(f'   {s[10:60]}…')
-
-    if '--liste' in sys.argv:
-        print('\nMANGLER:')
-        for s in missing:
-            print(f'   {s}')
-    if '--skabelon' in sys.argv:
-        print('\n    # ── mangler ──')
-        for s in missing:
-            key = s.replace("'", "\\'")
-            print(f"    '{key}':\n        '',")
-    if stale and '--liste' in sys.argv:
-        print('\nFORÆLDEDE:')
-        for s in stale:
-            print(f'   {s}')
 
 
 if __name__ == '__main__':
