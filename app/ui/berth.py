@@ -15,6 +15,8 @@ oplysningen: "fuld" for tre timer siden er noget andet end "fuld" i går aftes.
 """
 from __future__ import annotations
 
+from html import escape as esc
+
 from nicegui import app, ui
 
 from .. import reports
@@ -51,7 +53,7 @@ def badge(rep) -> None:
     ui.html(
         f'<span class="chip" style="color:{rep.tone};border-color:{rep.tone}33">'
         f'<span class="material-icons chip-ico">{rep.icon}</span>'
-        f'{rep.label} · {rep.age}</span>')
+        f'{esc(t(rep.label))} · {esc(rep.age)}</span>')
 
 
 def line(rep) -> None:
@@ -62,7 +64,8 @@ def line(rep) -> None:
         ui.icon(rep.icon).style(f'color: {rep.tone}') \
             .classes('text-[16px] shrink-0 mt-0.5')
         with ui.element('div').classes('min-w-0'):
-            ui.label(f'{rep.label} — meldt {rep.age}').classes(
+            ui.label(t('{svar} — meldt {hvornår}', svar=t(rep.label),
+                       hvornår=rep.age)).classes(
                 'text-[12px] block').style(f'color: {rep.tone}')
 
 

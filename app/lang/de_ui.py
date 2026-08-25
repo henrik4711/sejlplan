@@ -575,4 +575,9 @@ WORDS: dict[str, str] = {
         'Nachrichten von anderen Booten',
     'Gode forhold':
         'Gute Bedingungen',
+
+    '{svar} — meldt {hvornår}':
+        '{svar} — gemeldet {hvornår}',
+    'efter {sm} sm · {omvej} sm ind fra ruten':
+        'nach {sm} sm · {omvej} sm abseits der Route',
 }

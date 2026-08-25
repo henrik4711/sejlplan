@@ -794,7 +794,9 @@ class Planner:
                     ui.icon('anchor').classes('text-[15px] text-[var(--txt-3)] shrink-0')
                     with ui.element('div').classes('min-w-0 flex-1'):
                         ui.label(h.name).classes('text-[13px] font-medium truncate block')
-                        ui.label(f'efter {nm(along)} sm · {nm(detour)} sm ind fra ruten') \
+                        ui.label(t('efter {sm} sm · {omvej} sm ind fra '
+                                   'ruten', sm=nm(along),
+                                   omvej=nm(detour))) \
                             .classes('text-[11px] text-[var(--txt-3)] tnum truncate block')
                         with ui.element('div').classes(
                                 'flex items-center gap-2.5 flex-wrap'):
