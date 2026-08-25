@@ -8,6 +8,7 @@ var først, da siden blev bygget, at navnet manglede.
 from __future__ import annotations
 
 import os
+import pathlib
 import tempfile
 
 import pytest
@@ -40,8 +41,22 @@ def ryd_sessionslager():
     med at stole på prøverne.
     """
     yield
+    from nicegui import app
     try:
-        from nicegui import app
         app.storage.user.clear()
     except Exception:
         pass
+    # `clear()` tømmer ordbogen, men filen bliver liggende — og det er filen,
+    # rmdir falder over. Så den skal væk.
+    try:
+        mappe = pathlib.Path(app.storage.path)
+    except Exception:
+        return
+    if not mappe.is_dir() or 'nicegui-test-storage' not in mappe.name:
+        return
+    for fil in mappe.iterdir():
+        try:
+            if fil.is_file():
+                fil.unlink()
+        except OSError:
+            pass
