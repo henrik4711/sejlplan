@@ -6,13 +6,14 @@ from __future__ import annotations
 
 from nicegui import app, ui
 
-from app import lookout, mishap, pwa
+from app import api, lookout, mishap, pwa
 from app.config import settings
 from app.ui import page  # noqa: F401  – registrerer siden ved import
 from app.ui import watchpages
 
 mishap.install()
 pwa.register_routes()
+api.register_routes()
 watchpages.register()
 app.on_startup(lookout.start)
 

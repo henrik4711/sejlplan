@@ -580,4 +580,43 @@ WORDS: dict[str, str] = {
         '{svar} — gemeldet {hvornår}',
     'efter {sm} sm · {omvej} sm ind fra ruten':
         'nach {sm} sm · {omvej} sm abseits der Route',
+
+    # ── Oversigten over både, og postbuddet ────────────────────────
+    'Både i nærheden':
+        'Boote in der Nähe',
+    'Se hvem der er i nærheden':
+        'Sieh, wer in der Nähe ist',
+    'En anden båd':
+        'Ein anderes Boot',
+    '{navn} har skrevet til dig':
+        '{navn} hat dir geschrieben',
+    'har skrevet':
+        'hat geschrieben',
+    'båd':
+        'Boot',
+    'både':
+        'Boote',
+    'både|flertal':
+        'Boote',
+    'båd her':
+        'Boot hier',
+    'både her':
+        'Boote hier',
+    'både her|flertal':
+        'Boote hier',
+    '{sm} sm mod {retning}':
+        '{sm} sm Richtung {retning}',
+    'Ingen andre både i nærheden':
+        'Keine anderen Boote in der Nähe',
+    'Der er ingen inden for tres sømil, der har gjort sig synlig lige nu.':
+        'Innerhalb von sechzig Seemeilen hat sich gerade niemand sichtbar '
+        'gemacht.',
+    'Du ser kun både, der også har gjort sig synlige.':
+        'Du siehst nur Boote, die sich ebenfalls sichtbar gemacht haben.',
+    'Vi ved ikke, hvor du er endnu':
+        'Wir wissen noch nicht, wo du bist',
+    'Uden en position kan vi ikke sige, hvem der er i nærheden. Sig ja til '
+        'position, hvis browseren spørger.':
+        'Ohne Position können wir nicht sagen, wer in der Nähe ist. Erlaube '
+        'die Position, wenn der Browser fragt.',
 }

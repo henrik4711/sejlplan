@@ -622,4 +622,34 @@ WORDS: dict[str, str] = {
         'Seekarte noch Seewetterbericht, weder Nachrichten für Seefahrer '
         'noch gewöhnliche Seemannschaft. Die Verantwortung für die Fahrt '
         'trägt der Skipper.',
+
+    # ── Hvem er der lige nu ────────────────────────────────────────
+    'Hvem er der lige nu':
+        'Wer ist gerade da',
+    'Listen over både, delt op efter havn. Nemmere end kortet.':
+        'Die Liste der Boote, nach Häfen geteilt. Einfacher als die Karte.',
+    'Kortet er godt til at vise, hvor nogen er. Det er dårligt til at svare '
+        'på, hvem der overhovedet er der: en båd er en lille trekant, og '
+        'zoomer man ud så hele farvandet er med, kan man ikke se dem.':
+        'Die Karte ist gut darin zu zeigen, wo jemand ist. Sie ist schlecht '
+        'darin zu beantworten, wer überhaupt da ist: Ein Boot ist ein kleines '
+        'Dreieck, und zoomt man so weit heraus, dass das ganze Revier drauf '
+        'ist, sieht man sie nicht mehr.',
+    'Tryk "Se hvem der er i nærheden". De både, der ligger i en havn, står '
+        'under havnens navn — for det er dét, man vil vide, når man leder '
+        'efter nogen at drikke kaffe med. Resten står under Undervejs med '
+        'afstand og pejling.':
+        'Tippe auf „Sieh, wer in der Nähe ist“. Die Boote, die in einem Hafen '
+        'liegen, stehen unter dem Namen des Hafens — denn das will man '
+        'wissen, wenn man jemanden zum Kaffee sucht. Der Rest steht unter '
+        'Unterwegs, mit Entfernung und Peilung.',
+    'Havnene på ruten får også et mærke, når der ligger nogen: "3 både her". '
+        'Tryk på det, og du er i listen.':
+        'Auch die Häfen auf der Route bekommen ein Zeichen, wenn dort jemand '
+        'liegt: „3 Boote hier“. Tippe darauf, und du bist in der Liste.',
+    'Tryk på en båd for at skrive til den. Du ser kun både, der også har '
+        'gjort sig synlige — den regel gælder her som alle andre steder.':
+        'Tippe ein Boot an, um ihm zu schreiben. Du siehst nur Boote, die '
+        'sich ebenfalls sichtbar gemacht haben — diese Regel gilt hier wie '
+        'überall sonst.',
 }

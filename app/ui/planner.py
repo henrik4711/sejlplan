@@ -18,8 +18,9 @@ from datetime import date
 
 from nicegui import ui
 
-from .. import (ai, chat, geocode, harbours, landmask, narrative, offline,
-                pwa, reports, searoute, share, theme, weather, weatherbound)
+from .. import (ai, chat, fleetmap, geocode, harbours, landmask, narrative,
+                offline, pwa, reports, searoute, share, theme, weather,
+                weatherbound)
 from ..config import settings
 from ..dates import clock, day, day_time, full, month, spell
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
@@ -32,6 +33,7 @@ from . import talk
 from . import help as helpui
 from . import underway
 from . import myroutes
+from . import nearby
 from . import settings as settingsui
 from . import watch as watchui
 from .mapview import RouteMap
@@ -186,6 +188,10 @@ class Planner:
         self.sharing = False
         self.fleet: list = []
         self.fleet_timer = None
+        # Lytteren på postbuddet, og det abonnement den holder. Begge skal
+        # ryddes, når browseren går — ellers vokser abonnenttabellen.
+        self.postbud_task = None
+        self.postbud_abonnent = None
         self.last_pos = None
         # Hvor godt browseren kender positionen, i meter, og hvilken vej
         # båden peger. Begge dele kommer fra samme begivenhed som positionen.
@@ -207,11 +213,18 @@ class Planner:
     # Opbygning
     # ════════════════════════════════════════════════════════════════
     def build(self) -> None:
-        # Tidsmåleren, der henter de andre både. Den laves her, én gang, og
-        # hører til hele fladen — ikke til en dialog, der bliver lukket igen.
+        # Postbuddet siger til, når der sker noget: en besked, en båd der
+        # flytter sig. Lytteren lever, så længe browseren gør.
+        #
+        # Tidsmåleren bliver stående som sikkerhedsnet. Postbuddets kø ligger
+        # i hukommelsen i én proces, så to servere ville ikke kunne se
+        # hinandens hændelser — og så er det opslaget, der bærer. Den kører
+        # derfor sjældnere end før, ikke oftere.
         if fleetui.available():
             self.fleet_timer = ui.timer(
                 fleetui.POLL_S, lambda: fleetui.tick(self))
+            self.postbud_task = asyncio.create_task(fleetui.listen(self))
+            self.client.on_disconnect(self._stop_listening)
 
         # Hele appen bor i en skal, der er spændt ud over skærmen. Det er dét,
         # der gør at panelet kan rulle uafhængigt af hvor langt indholdet er.
@@ -802,9 +815,29 @@ class Planner:
                                 'flex items-center gap-2.5 flex-wrap'):
                             _guide_link(h)
                             berth.button(h, self._refresh_panel)
+                            self._boats_here(h)
                         berth.line(meldt.get(reports.key_of(h.lat, h.lon)))
                     ui.icon('add').classes('text-[16px] text-[var(--txt-3)] shrink-0')
                 row.on('click', lambda _, x=h: self._add_place(geocode.from_harbour(x)))
+
+    def _boats_here(self, harbour) -> None:
+        """Hvem ligger der lige nu.
+
+        Det er den ene oplysning, ingen model kan levere, og som ingen andre
+        end dem, der ligger der, kan give. Står den ved havnen, kan man se
+        det uden at lede — og trykke sig frem til at skrive til dem.
+        """
+        if not self.sharing or not self.fleet:
+            return
+        her = fleetmap.boats_at(self.fleet, harbour.lat, harbour.lon)
+        if not her:
+            return
+        chip = ui.html('<span class="chip chip--go" '
+                       'style="cursor:pointer">'
+                       '<span class="material-icons chip-ico">sailing</span>'
+                       f'{esc(plural(len(her), "båd her", "både her"))}'
+                       '</span>')
+        chip.on('click.stop', lambda: self.open_nearby())
 
     # ── Fast handlingslinje i bunden af panelet ─────────────────────
     @ui.refreshable_method
@@ -1177,6 +1210,18 @@ class Planner:
         self.pos_error = str(e.args or t('Kunne ikke finde positionen.'))
         self.progress = None
         self.plan_view.refresh()
+
+    def open_nearby(self) -> None:
+        """Oversigten over de både, der er synlige lige nu."""
+        nearby.dialog(self)
+
+    def _stop_listening(self) -> None:
+        """Browseren er gået. Så skal lytteren også væk."""
+        if self.postbud_task is not None:
+            self.postbud_task.cancel()
+            self.postbud_task = None
+        fleetui.postbud.unsubscribe(self.postbud_abonnent)
+        self.postbud_abonnent = None
 
     @staticmethod
     def _tell(*args, **kwargs) -> None:

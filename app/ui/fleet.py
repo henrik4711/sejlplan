@@ -19,17 +19,19 @@ er robust: der er ingen forbindelse mellem to browsere, der kan gå i stykker.
 """
 from __future__ import annotations
 
+import asyncio
 import secrets
 
 from nicegui import app, ui
 
-from .. import chat, fleetmap
+from .. import chat, fleetmap, postbud
 from ..i18n import t
 
-# Hvor tit hver browser kigger efter, om de andre har flyttet sig. En sejlbåd
-# når en tredjedel af en sømil på tyve sekunder — det er ikke noget, man kan se
-# på et kort i den zoom, man plejer at have.
-POLL_S = 20
+# Hvor tit sikkerhedsnettet kigger efter. Det er ikke længere det, der bærer —
+# postbuddet siger til, når der sker noget — så det må gerne være sjældent. To
+# minutter er nok til at samle op, hvis en hændelse er gået tabt, og lidt nok
+# til at ti åbne browsere ikke laver tredive opslag i minuttet om ingenting.
+POLL_S = 120
 
 MARK_KEY = 'sejlplan_baad'
 NAME_KEY = 'sejlplan_baadnavn'
@@ -251,15 +253,67 @@ def report_position(planner, lat: float, lon: float,
 
 
 def tick(planner) -> None:
-    """Tidsmålerens slag. Den kører altid — den gør bare ingenting, når man
-    ikke deler.
+    """Sikkerhedsnettets slag. Den kører altid — den gør bare ingenting, når
+    man ikke deler.
 
     Første udgave lavede måleren, når man tændte for delingen. Men det skete
     inde i dialogen, og da den forsvandt, forsvandt måleren med. Kortet blev
     aldrig opdateret, og de andre både dukkede aldrig op.
+
+    Nu er den ikke længere den, der bærer: postbuddet siger til, når der sker
+    noget. Måleren er dét, der ville bære, hvis vi en dag kører flere
+    processer, og den kører derfor meget sjældnere end før.
     """
     if planner.sharing:
         refresh(planner)
+
+
+async def listen(planner) -> None:
+    """Lyt efter hændelser og tegn om, når der sker noget.
+
+    Det her er det, der gør, at en besked kommer frem med det samme i stedet
+    for at vente på næste opslag. Opgaven lever, så længe browseren gør.
+    """
+    a = postbud.subscribe(mark())
+    if a is None:
+        return
+    planner.postbud_abonnent = a
+    try:
+        while True:
+            h = await a.kø.get()
+            if planner.client is None:
+                return
+            with planner.client:
+                if h.slags == postbud.BESKED:
+                    _ny_besked(planner, h)
+                elif planner.sharing:
+                    refresh(planner)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        # En lytter, der dør, må ikke tage fladen med sig. Sikkerhedsnettet
+        # henter stadig, det er bare langsommere.
+        pass
+    finally:
+        postbud.unsubscribe(a)
+        planner.postbud_abonnent = None
+
+
+def _ny_besked(planner, h) -> None:
+    """Der er kommet en besked. Sig det, hvor man kigger.
+
+    Vi åbner ikke samtalen af sig selv. Man kan stå med hænderne i en fald,
+    og en dialog, der springer op, er værre end en prik, man kan tage, når
+    man har tid.
+    """
+    planner.header_inbox.refresh()
+    planner.fleet_line.refresh()
+    if planner.sharing:
+        refresh(planner)
+    navn = (h.fra_navn or '').strip() or t('En anden båd')
+    ui.notify(t('{navn} har skrevet til dig', navn=navn),
+              position='bottom', type='info',
+              on_dismiss=None)
 
 
 def refresh(planner) -> None:
@@ -363,10 +417,13 @@ def line(planner) -> None:
 
     unøjagtig(planner)
 
-    if n and chat.available():
-        ui.label(t('Tryk på en båd på kortet for at skrive til den.')) \
-            .classes('text-[10.5px] text-[var(--txt-3)] leading-snug '
-                     'mt-1 block')
+    if n:
+        with ui.element('div').classes('flex items-center gap-2 mt-1.5'):
+            # Tallet er ikke nok. Man skal kunne se hvem, og hvor de ligger —
+            # en trekant på et zoomet kort er svær at finde, og umulig at
+            # overskue, når man leder efter nogen at skrive til.
+            ui.button(t('Se hvem der er i nærheden'), icon='groups',
+                      on_click=planner.open_nearby)                 .props('flat dense no-caps size=sm')                 .classes('text-[var(--accent)]')
 
 
 # Under det her er positionen god nok til at vise en båd. Derover er den et

@@ -27,6 +27,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from . import postbud
 from .config import settings
 
 DB_NAME = 'sejlplan.db'
@@ -126,6 +127,11 @@ def show(mark: str, name: str, lat: float, lon: float,
              None if speed_kn is None else float(speed_kn),
              datetime.now().isoformat(timespec='seconds')))
 
+    # Sig til de andre, at der er noget nyt at kigge efter. Hændelsen bærer
+    # ingen position — den siger kun "kig igen", og opslaget bagefter går
+    # gennem de samme regler som altid.
+    postbud.flåden_flyttede_sig(undtagen=mark)
+
 
 def hide(mark: str) -> None:
     """Sluk. Rækken slettes — den markeres ikke som skjult."""
@@ -133,6 +139,9 @@ def hide(mark: str) -> None:
         return
     with _open() as con:
         con.execute('DELETE FROM positions WHERE mark = ?', (mark,))
+    # En båd, der forsvinder, er lige så meget en ændring som en, der flytter
+    # sig. Uden det her blev den hængende på de andres kort til næste opslag.
+    postbud.flåden_flyttede_sig(undtagen=mark)
 
 
 def others(mark: str, lat: float | None = None,
@@ -158,6 +167,48 @@ def others(mark: str, lat: float | None = None,
     near = [(d, b) for d, b in near if d <= NEAR_NM]
     near.sort(key=lambda row: row[0])
     return [b for _d, b in near[:MAX_SHOWN]]
+
+
+# Så tæt på en havn skal en båd ligge, for at den ligger *i* den. En
+# lystbådehavn er sjældent mere end et par hundrede meter på tværs, og
+# positionen på havnen er ét punkt — så en kvart sømil rammer både den, der
+# ligger ved ydermolen, og den, der ligger inderst.
+I_HAVN_NM = 0.25
+
+
+def by_harbour(boats: list[Boat]) -> tuple[list[tuple], list[Boat]]:
+    """Del bådene op i dem, der ligger i en havn, og dem, der er undervejs.
+
+    Det er dét, man vil vide, når man leder efter nogen at skrive til: ligger
+    der nogen i Marstal i aften? Én prik på et zoomet kort er svær at få øje
+    på — en liste med havnens navn er ikke.
+
+    Giver (havne, undervejs), hvor havne er [(havn, [både]), …] med den
+    havn, der har flest, øverst.
+    """
+    from . import harbours as havne
+
+    i_havn: dict[str, list] = {}
+    fundet: dict[str, object] = {}
+    undervejs: list[Boat] = []
+    for b in boats:
+        nær = havne.nearest(b.lat, b.lon, 1)
+        if nær and distance_nm(b.lat, b.lon, nær[0].lat, nær[0].lon) <= I_HAVN_NM:
+            nøgle = f'{nær[0].lat:.4f},{nær[0].lon:.4f}'
+            i_havn.setdefault(nøgle, []).append(b)
+            fundet[nøgle] = nær[0]
+        else:
+            undervejs.append(b)
+
+    grupper = [(fundet[k], v) for k, v in i_havn.items()]
+    grupper.sort(key=lambda row: (-len(row[1]), row[0].name))
+    return grupper, undervejs
+
+
+def boats_at(boats: list[Boat], lat: float, lon: float) -> list[Boat]:
+    """De både, der ligger i havnen på det her punkt."""
+    return [b for b in boats
+            if distance_nm(lat, lon, b.lat, b.lon) <= I_HAVN_NM]
 
 
 def count(mark: str = '') -> int:

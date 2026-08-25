@@ -27,6 +27,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from . import postbud
 from .config import settings
 
 DB_NAME = 'sejlplan.db'
@@ -189,6 +190,11 @@ def send(from_mark: str, from_name: str, to_mark: str,
             ' VALUES (?,?,?,?,?,?)',
             (secrets.token_urlsafe(12), from_mark, from_name.strip()[:30],
              to_mark, text, datetime.now().isoformat(timespec='seconds')))
+
+    # Sig til modtageren med det samme. Før lå beskeden og ventede, til hans
+    # browser tilfældigvis spurgte efter den — op til tyve sekunder på en
+    # sætning, der som regel er "vi ligger ved ydermolen, kom over".
+    postbud.besked_til(to_mark, from_mark, from_name.strip()[:30])
     return True, ''
 
 

@@ -57,4 +57,4 @@ async def test_serverens_valg_slaar_cookien(user: User):
 
 def test_manualen_har_alle_emner():
     from app import help as helptext
-    assert len(helptext.TOPICS) >= 24
+    assert len(helptext.TOPICS) >= 25

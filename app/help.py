@@ -281,6 +281,24 @@ TOPICS: tuple[Topic, ...] = (
             'du ingen både, er der ingen inden for tres sømil, der har tændt.',
         )),
     Topic(
+        'hvem-er-her', 'Hvem er der lige nu', group='Undervejs',
+        short='Listen over både, delt op efter havn. Nemmere end kortet.',
+        body=(
+            'Kortet er godt til at vise, hvor nogen er. Det er dårligt til at '
+            'svare på, hvem der overhovedet er der: en båd er en lille '
+            'trekant, og zoomer man ud så hele farvandet er med, kan man ikke '
+            'se dem.',
+            'Tryk "Se hvem der er i nærheden". De både, der ligger i en havn, '
+            'står under havnens navn — for det er dét, man vil vide, når man '
+            'leder efter nogen at drikke kaffe med. Resten står under '
+            'Undervejs med afstand og pejling.',
+            'Havnene på ruten får også et mærke, når der ligger nogen: "3 '
+            'både her". Tryk på det, og du er i listen.',
+            'Tryk på en båd for at skrive til den. Du ser kun både, der også '
+            'har gjort sig synlige — den regel gælder her som alle andre '
+            'steder.',
+        )),
+    Topic(
         'beskeder', 'Beskeder mellem både', group='Undervejs',
         short='Tryk på en båd på kortet og skriv. Kun mellem synlige både.',
         body=(
