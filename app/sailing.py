@@ -125,9 +125,40 @@ def sea_direction(course: float, wave_dir: float, wave_m: float) -> str:
     return FOLLOWING
 
 
-def felt_wave(wave_m: float, sea: str) -> float:
-    """Den bølgehøjde, turen føles som — søens retning vejet ind."""
-    return wave_m * _SEA_WEIGHT.get(sea, 1.0)
+# Stejlheden er højden delt med bølgelængden, og bølgelængden er omtrent
+# 1,56·T². To søer på halvanden meter kan være to helt forskellige dage: med
+# fem sekunder mellem toppene er det en stejl, brydende vindsø, der smadrer en
+# weekend; med ni er det en dønning, man sover i. Vi hentede perioden i
+# forvejen og brugte den ikke.
+_BØLGE_G = 1.56
+
+# Den stejlhed, vejningen er skruet op omkring — en almindelig vindsø i
+# danske farvande.
+_STEJL_NORMAL = 0.025
+
+# Hvor meget perioden må flytte oplevelsen. Uden en grænse ville en meget lang
+# dønning kunne regne en høj sø ned til ingenting, og det er den ikke.
+_STEJL_MIN, _STEJL_MAKS = 0.75, 1.35
+
+
+def steepness_factor(wave_m: float, period_s: float | None) -> float:
+    """Hvor meget hårdere søen føles, end højden alene siger.
+
+    Uden en periode giver den 1,0. Det er med vilje: mangler tallet, skal
+    modellen opføre sig som før og ikke gætte.
+    """
+    if not period_s or period_s <= 0 or wave_m <= 0:
+        return 1.0
+    længde = _BØLGE_G * period_s * period_s
+    stejlhed = wave_m / længde
+    return min(_STEJL_MAKS, max(_STEJL_MIN,
+                                math.sqrt(stejlhed / _STEJL_NORMAL)))
+
+
+def felt_wave(wave_m: float, sea: str, period_s: float | None = None) -> float:
+    """Den bølgehøjde, turen føles som — søens retning og stejlhed vejet ind."""
+    return (wave_m * _SEA_WEIGHT.get(sea, 1.0)
+            * steepness_factor(wave_m, period_s))
 
 
 # ── Ruten ─────────────────────────────────────────────────────────────────────
@@ -439,7 +470,11 @@ class Segment:
     cur_along_kn: float   # hvor meget af den der er med (+) eller imod (−)
     status: str
     motoring: bool
+    # Mørkt nok til at der skal føres lanterner. Solen, ikke uret.
     night: bool
+    # Bølgeperioden i sekunder — afstanden i tid mellem to toppe. Den siger
+    # mere om, hvordan søen føles, end højden gør.
+    wave_s: float | None = None
 
 
 @dataclass
@@ -540,9 +575,16 @@ def _day_end(t: datetime, limits: Limits) -> datetime:
     return end if t < end else end + timedelta(days=1)
 
 
-def _is_night(t: datetime, limits: Limits) -> bool:
-    """Mørkesejlads: uden for sejldøgnet. Groft, men det er dét man mærker."""
-    return not (limits.day_start <= t.hour < limits.day_end)
+def _is_night(t: datetime, lat: float, lon: float) -> bool:
+    """Er der mørkt her og nu — altså skal der føres lanterner?
+
+    Det var før et klokkeslæt: alt uden for skipperens sejldøgn talte som
+    mørkesejlads. Det er forkert i begge ender af sæsonen — en ankomst klokken
+    ni en aften i juni er ikke mørkesejlads, og en ankomst halv otte sidst i
+    september er. Nu spørger vi solen, dér hvor båden faktisk er.
+    """
+    from .sun import dark
+    return dark(lat, lon, t)
 
 
 def _hour(boat: Boat, route: Route, along: float, t: datetime,
@@ -556,7 +598,8 @@ def _hour(boat: Boat, route: Route, along: float, t: datetime,
     wdir_wave = wx.get('wave_dir') or wdir
 
     sea = sea_direction(course, wdir_wave, wave)
-    felt = felt_wave(wave, sea)
+    period = wx.get('wave_s')
+    felt = felt_wave(wave, sea, period)
     twa = true_wind_angle(course, wdir)
 
     if boat.is_motor:
@@ -587,12 +630,13 @@ def _hour(boat: Boat, route: Route, along: float, t: datetime,
         course=round(course), twa=round(twa),
         wind_kn=round(wind, 1), wind_dir=round(wdir), gust_kn=round(gust, 1),
         wave_m=round(wave, 2), sea=sea, felt_m=round(felt, 2),
+        wave_s=round(period, 1) if period else None,
         speed_kn=round(max(speed, 0.5), 1),
         through_kn=round(through, 1),
         cur_kn=round(drift, 1),
         cur_along_kn=round(along_cur, 1),
         status=status_of(wind, felt, limits.max_wind, limits.max_wave),
-        motoring=motoring, night=_is_night(t, limits),
+        motoring=motoring, night=_is_night(t, lat, lon),
     )
 
 

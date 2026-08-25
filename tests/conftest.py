@@ -29,16 +29,18 @@ def sprog():
     i18n._TABLES.clear()
 
 
-@pytest.fixture(autouse=True)
-def ryd_sessionslager():
-    """Tøm NiceGUI's sessionslager efter hver prøve.
+@pytest.fixture
+def rent_sessionslager(user):
+    """Tøm NiceGUI's sessionslager, før fiksturet fjerner sin mappe.
 
     NiceGUI's prøvefikstur laver en midlertidig mappe og fjerner den bagefter
     med rmdir — som kræver, at den er tom. Skriver en prøve i
     `app.storage.user`, bliver der en fil tilbage, og så falder oprydningen
-    med "mappen er ikke tom". Fejlen står på en prøve, der intet har gjort
-    galt, og den kommer og går. Det er den slags, der gør, at folk holder op
-    med at stole på prøverne.
+    med "mappen er ikke tom", på en prøve der intet har gjort galt.
+
+    Den skal afhænge af `user`. En autouse-fikstur bliver lavet først og
+    revet ned sidst — altså efter at NiceGUI allerede har prøvet at fjerne
+    mappen. Første forsøg gjorde netop det, og fejlen kom og gik.
     """
     yield
     from nicegui import app
@@ -47,7 +49,7 @@ def ryd_sessionslager():
     except Exception:
         pass
     # `clear()` tømmer ordbogen, men filen bliver liggende — og det er filen,
-    # rmdir falder over. Så den skal væk.
+    # rmdir falder over.
     try:
         mappe = pathlib.Path(app.storage.path)
     except Exception:

@@ -177,7 +177,7 @@ VALGT AFGANG
   {plan.hours} timer med fart i, gennemsnitsfart {plan.avg_speed_kn} kn.
   Kraftigste vind {plan.worst_wind_kn:.0f} kn, højeste bølger {plan.worst_wave_m:.1f} m.
   {plan.red_hours} timer frarådes, {plan.yellow_hours} timer med skærpet opmærksomhed,
-  {plan.night_hours} timer uden for sejldøgnet, {plan.motor_hours} timer for motor.{fuel}{late}{wave_note}
+  {plan.night_hours} timer i mørke, {plan.motor_hours} timer for motor.{fuel}{late}{wave_note}
 
 DAGE
 {chr(10).join(days)}

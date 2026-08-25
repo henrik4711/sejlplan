@@ -447,8 +447,7 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
         practical.append(t('{n} af timerne er så vindsvage, at motoren må '
                            'hjælpe', n=plan.motor_hours))
     if plan.night_hours:
-        practical.append(t('{n} timer ligger uden for dit sejldøgn',
-                           n=plan.night_hours))
+        practical.append(t('{n} timer sejles i mørke', n=plan.night_hours))
     gusts = max(s.gust_kn for s in rows)
     if gusts > plan.worst_wind_kn + 5:
         practical.append(t('vindstødene går op til {kn} knob, altså noget '
@@ -612,11 +611,21 @@ def warnings(plan: Plan, limits: Limits, boat: Boat,
             else t('Reb i god tid'))))
 
     if plan.night_hours:
+        # Nu hvor mørket er solen og ikke uret, kan vi sige, hvornår den går
+        # ned — og dét er den oplysning, man planlægger efter.
+        from .sun import dusk
         night = [s for s in plan.segments if s.night]
+        først = night[0]
+        ned = dusk(først.lat, først.lon, først.time.date())
         out.append(Note(NOTE_WARN, t(
-            '{n} timer sejles uden for sejldøgnet, første gang omkring {tid}. '
-            'Sørg for lanterner, vagtplan og at besætningen er udhvilet.',
-            n=plan.night_hours, tid=clock(night[0].time))))
+            '{n} timer sejles i mørke. Solen går ned {solned}, og du er '
+            'stadig undervejs. Sørg for lanterner, vagtplan og at '
+            'besætningen er udhvilet.',
+            n=plan.night_hours, solned=clock(ned))
+            if ned else t(
+            '{n} timer sejles i mørke, første gang omkring {tid}. Sørg for '
+            'lanterner, vagtplan og at besætningen er udhvilet.',
+            n=plan.night_hours, tid=clock(først.time))))
 
     gusts = max((s.gust_kn for s in plan.segments), default=0)
     if gusts >= limits.max_wind:

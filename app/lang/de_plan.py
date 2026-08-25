@@ -277,4 +277,18 @@ WORDS: dict[str, str] = {
         'Nimm rechtzeitig Fahrt heraus',
     'Reb i god tid':
         'Reffe rechtzeitig',
+
+    # ── Mørket er solen, ikke uret ─────────────────────────────────
+    '{n} timer sejles i mørke':
+        '{n} Stunden werden im Dunkeln gesegelt',
+    '{n} timer sejles i mørke. Solen går ned {solned}, og du er stadig '
+        'undervejs. Sørg for lanterner, vagtplan og at besætningen er '
+        'udhvilet.':
+        '{n} Stunden werden im Dunkeln gesegelt. Die Sonne geht {solned} '
+        'unter, und du bist noch unterwegs. Sorge für Lichterführung, '
+        'Wachplan und eine ausgeruhte Crew.',
+    '{n} timer sejles i mørke, første gang omkring {tid}. Sørg for '
+        'lanterner, vagtplan og at besætningen er udhvilet.':
+        '{n} Stunden werden im Dunkeln gesegelt, das erste Mal gegen {tid}. '
+        'Sorge für Lichterführung, Wachplan und eine ausgeruhte Crew.',
 }

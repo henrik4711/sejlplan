@@ -23,19 +23,19 @@ pytestmark = pytest.mark.module_under_test('main')
 MINDST = 40
 
 
-async def test_forsiden_bygges(user: User):
+async def test_forsiden_bygges(user: User, rent_sessionslager):
     await user.open('/')
     assert len(user.client.elements) > MINDST, 'fladen blev aldrig bygget'
 
 
-async def test_forsiden_bygges_paa_tysk(user: User):
+async def test_forsiden_bygges_paa_tysk(user: User, rent_sessionslager):
     from app import i18n
     with i18n.using(i18n.DE):
         await user.open('/')
         assert len(user.client.elements) > MINDST
 
 
-async def test_sproget_kommer_fra_cookien(user: User):
+async def test_sproget_kommer_fra_cookien(user: User, rent_sessionslager):
     """Cookien følger med anmodningen, så sproget er kendt uden ventetid."""
     from nicegui import app
     from app import i18n
@@ -45,7 +45,7 @@ async def test_sproget_kommer_fra_cookien(user: User):
     assert i18n.lang() == i18n.DE
 
 
-async def test_serverens_valg_slaar_cookien(user: User):
+async def test_serverens_valg_slaar_cookien(user: User, rent_sessionslager):
     """Har brugeren valgt i den her session, er det dét, der gælder."""
     from nicegui import app
     from app import i18n

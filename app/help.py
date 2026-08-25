@@ -93,6 +93,9 @@ TOPICS: tuple[Topic, ...] = (
             'Vind og bølger over grænsen giver skærpede timer, og et stykke '
             'over dem frarådede. Det handler om, hvad du og besætningen kan '
             'holde til, ikke om hvad båden kan bære.',
+            'Bølgeperioden vejes med. To søer på halvanden meter er ikke '
+            'det samme: fem sekunder mellem toppene er en stejl, brydende '
+            'vindsø, ni sekunder er en dønning, man sover i.',
             'Bølgehøjden vejes efter, hvor søen kommer fra. Modsø tæller '
             'hårdere end tværsø, og medsø mildest — det er dét, man mærker.',
             'Grænserne bruges også til at afgøre, om du bliver blæst inde på '
@@ -112,6 +115,10 @@ TOPICS: tuple[Topic, ...] = (
             'Derfor kan planen finde på at lægge til i en havn midt på dagen. '
             'Det er med vilje: er næste stræk for langt til at nås inden '
             'lukketid, og er der ingen havn imellem, ender man i mørke.',
+            'Mørketimerne tælles efter solen, ikke efter uret: hvornår den '
+            'faktisk går ned dér, hvor du er. I juni er der halvanden times '
+            'forskel på solnedgang i Gedser og i Skagen, og det er dét, der '
+            'afgør, om der skal føres lanterner.',
             'Vil du hele vejen i ét stræk, så slå mørkesejlads til under '
             'Indstillinger. Så lægges der ingen overnatninger ind, og '
             'mørketimerne tælles for sig.',

@@ -652,4 +652,22 @@ WORDS: dict[str, str] = {
         'Tippe ein Boot an, um ihm zu schreiben. Du siehst nur Boote, die '
         'sich ebenfalls sichtbar gemacht haben — diese Regel gilt hier wie '
         'überall sonst.',
+
+    # ── Solen og bølgeperioden ─────────────────────────────────────
+    'Mørketimerne tælles efter solen, ikke efter uret: hvornår den faktisk '
+        'går ned dér, hvor du er. I juni er der halvanden times forskel på '
+        'solnedgang i Gedser og i Skagen, og det er dét, der afgør, om der '
+        'skal føres lanterner.':
+        'Die Dunkelstunden werden nach der Sonne gezählt, nicht nach der Uhr: '
+        'wann sie dort, wo du bist, tatsächlich untergeht. Im Juni liegen '
+        'anderthalb Stunden zwischen dem Sonnenuntergang in Gedser und in '
+        'Skagen, und das ist es, was entscheidet, ob Lichter geführt werden '
+        'müssen.',
+    'Bølgeperioden vejes med. To søer på halvanden meter er ikke det samme: '
+        'fem sekunder mellem toppene er en stejl, brydende vindsø, ni '
+        'sekunder er en dønning, man sover i.':
+        'Die Wellenperiode wird mitgewichtet. Zwei Seen von anderthalb Metern '
+        'sind nicht dasselbe: fünf Sekunden zwischen den Kämmen sind eine '
+        'steile, brechende Windsee, neun Sekunden sind eine Dünung, in der '
+        'man schläft.',
 }
