@@ -1,5 +1,14 @@
-nicegui>=2.10
-numpy>=1.26
-httpx>=0.27
-anthropic>=0.40
-python-dotenv>=1.0
+# Låst med vilje.
+#
+# Før stod der nicegui>=2.10, og så installerede Railway den nyeste ved hver
+# udrulning. Produktionen kørte 3.16 mens prøverne kørte 3.13 — altså blev
+# koden aldrig afprøvet i den udgave, brugerne fik. En ny udgivelse kunne
+# vælte fladen uden at nogen havde rørt en linje.
+#
+# Skal en pakke opdateres, sker det som en ændring for sig: hæv tallet, kør
+# prøverne, rul ud. Ikke ved et tilfælde klokken tre om natten.
+nicegui==3.16.0
+numpy==2.2.4
+httpx==0.28.1
+anthropic==0.86.0
+python-dotenv==1.2.2

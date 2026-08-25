@@ -52,10 +52,13 @@ havnelods.dk på position), **manual og hjælpebobler** fra ét sæt tekster.
 
 ## Hvad der mangler
 
-### 1. Der er næsten ingen tests
+### 1. Der er få tests
 
-`tests/test_dokumenter.py` er den eneste. Den findes, fordi den offline
-sejlplan var brudt i stilhed: `warnings()` giver Note-objekter, ikke tekst, så
+`tests/` har fem filer og 71 prøver. Det er langtfra nok, men de fleste findes,
+fordi de fanger noget, der faktisk gik galt.
+
+`test_dokumenter.py` findes, fordi den offline sejlplan var brudt i stilhed:
+`warnings()` giver Note-objekter, ikke tekst, så
 hver plan med en advarsel rejste AttributeError, når den skulle lægges i
 telefonen — og planlæggeren sluger den fejl med vilje. Knappen virkede,
 dokumentet blev bare aldrig gemt. Hele grunden til at have en PWA var væk, og
@@ -94,17 +97,25 @@ viden. Polardiagrammet er et skaleret gennemsnit, ikke en måling. Havneregistre
 er OpenStreetMap: skæve navne, manglende pladstal, og enkelte punkter der ikke
 er havne.
 
-### 6. Det juridiske
+### 6. Afhængigheder — låst nu
+
+`requirements.txt` sagde `nicegui>=2.10`, så Railway installerede den nyeste
+ved hver udrulning. Produktionen kørte 3.16, mens prøverne kørte 3.13 — koden
+blev altså aldrig afprøvet i den udgave, brugerne fik, og en ny udgivelse kunne
+vælte fladen uden at nogen havde rørt en linje. Alle fem pakker er nu låst til
+det, prøverne kører imod. En opdatering er en ændring for sig.
+
+### 7. Det juridiske
 
 Ingen betingelser, ingen privatlivspolitik. Skal på plads før den første
 betaling. Og havnelods.dk bør have besked om, at vi linker til dem.
 
-### 7. Motorbåde
+### 8. Motorbåde
 
 Bådregistret er kun sejlbåde. Der mangler omkring hundrede motorbåde, før en
 motorbådsfører kan finde sin egen.
 
-### 8. Sprog
+### 9. Sprog
 
 Dansk og tysk, 573 tekster, alle oversat: fladen, de 24 hjælpeemner, manualen,
 sejlplanens egen tekst, den offline plan, vejrvagtens mails og
