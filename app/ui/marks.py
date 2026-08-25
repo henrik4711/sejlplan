@@ -64,6 +64,7 @@ def _byg(sejlbåd: bool = True) -> None:
             _liste(t('Lydsignaler i nedsat sigtbarhed'), sm.SOUND_FOG,
                    'foggy')
             _liste(t('Nødsignaler'), sm.DISTRESS, 'sos')
+            _vhf()
 
             ui.html('<div class="hairline mt-4 mb-3"></div>')
             ui.label(t('En huskeseddel, ikke Søvejsreglerne. Er du i tvivl '
@@ -130,6 +131,78 @@ def _sejltrim() -> None:
                     'text-[15px] text-[var(--accent)] shrink-0 mt-0.5')
                 ui.label(t(råd.watch)).classes(
                     'text-[11.5px] text-[var(--txt-2)] leading-snug')
+
+
+def _vhf() -> None:
+    """VHF: kanalerne, opkaldet og nødopkaldet ord for ord.
+
+    Nødopkaldet står som en liste, man kan læse op fra ovenfra og ned. Det er
+    ikke pynt: den, der skal kalde MAYDAY, har sjældent overskud til at huske
+    en rækkefølge, og det er rækkefølgen, der gør, at redningen ved, hvor de
+    skal hen og hvad de skal have med.
+    """
+    _overskrift(t('VHF'), 'radio')
+
+    with ui.element('div').classes(
+            'px-3.5 py-3 mb-3 rounded-[10px] flex items-start gap-2.5 '
+            'bg-[var(--accent-soft)] border border-[var(--accent)]'):
+        ui.icon('info').classes(
+            'text-[17px] text-[var(--accent)] shrink-0 mt-0.5')
+        ui.label(t(sm.VHF_CERTIFICATE)).classes(
+            'text-[11.5px] leading-snug')
+
+    ui.label(t('Kanaler')).classes(
+        'text-[11px] font-semibold mb-1.5 mt-1 block')
+    with ui.element('div').classes('card overflow-hidden mb-3'):
+        for i, (kanal, brug) in enumerate(sm.CHANNELS):
+            if i:
+                ui.html('<div class="hairline"></div>')
+            with ui.element('div').classes(
+                    'flex items-start gap-3 px-3 py-2'):
+                ui.html(f'<span class="trim-part tnum">{esc(t(kanal))}</span>')
+                ui.label(t(brug)).classes(
+                    'text-[12px] leading-snug text-[var(--txt-2)] flex-1')
+
+    ui.label(t('Et almindeligt opkald')).classes(
+        'text-[11px] font-semibold mb-1.5 block')
+    with ui.element('div').classes('card px-3.5 py-3 mb-3'):
+        ui.label(t(sm.CALL_SCRIPT[0])).classes(
+            'text-[12.5px] font-medium leading-snug block')
+        ui.label(t(sm.CALL_SCRIPT[1])).classes(
+            'text-[11px] text-[var(--txt-3)] leading-snug block mt-1.5')
+
+    ui.label(t('Nødopkald — læs ovenfra og ned')).classes(
+        'text-[11px] font-semibold mb-1.5 block')
+    with ui.element('div').classes('card overflow-hidden mb-3'):
+        for i, linje in enumerate(sm.MAYDAY):
+            if i:
+                ui.html('<div class="hairline"></div>')
+            with ui.element('div').classes('px-3 py-2'):
+                ui.label(t(linje.say)).classes(
+                    'text-[12.5px] font-semibold block leading-snug')
+                if linje.note:
+                    ui.label(t(linje.note)).classes(
+                        'text-[11px] text-[var(--txt-3)] leading-snug block '
+                        'mt-0.5')
+
+    for overskrift, afsnit in ((t('Når det ikke er MAYDAY'), sm.PAN_PAN),
+                               (t('DSC — den røde knap'), sm.DSC)):
+        ui.label(overskrift).classes(
+            'text-[11px] font-semibold mb-1 block')
+        for tekst in afsnit:
+            ui.label(t(tekst)).classes(
+                'text-[11.5px] text-[var(--txt-2)] leading-snug mb-1.5 block')
+
+    ui.label(t('Udtryk')).classes('text-[11px] font-semibold mb-1.5 block')
+    with ui.element('div').classes('card overflow-hidden'):
+        for i, (ord_, betyder) in enumerate(sm.PROWORDS):
+            if i:
+                ui.html('<div class="hairline"></div>')
+            with ui.element('div').classes(
+                    'flex items-start gap-3 px-3 py-1.5'):
+                ui.html(f'<span class="trim-part">{esc(t(ord_))}</span>')
+                ui.label(t(betyder)).classes(
+                    'text-[12px] leading-snug text-[var(--txt-2)] flex-1')
 
 
 def _overskrift(titel: str, ikon: str) -> None:

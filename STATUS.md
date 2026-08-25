@@ -54,7 +54,7 @@ havnelods.dk på position), **manual og hjælpebobler** fra ét sæt tekster.
 
 ### 1. Der er få tests
 
-`tests/` har syv filer og 618 prøver. Det er langtfra nok, men de fleste findes,
+`tests/` har syv filer og 648 prøver. Det er langtfra nok, men de fleste findes,
 fordi de fanger noget, der faktisk gik galt.
 
 `test_dokumenter.py` findes, fordi den offline sejlplan var brudt i stilhed:

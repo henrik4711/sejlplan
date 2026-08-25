@@ -121,12 +121,63 @@ h3 { font-size:17px; margin:20px 0 2px; letter-spacing:-.01em; }
 p { margin:0 0 10px; color:var(--ink2); }
 footer { margin-top:40px; padding-top:16px; border-top:1px solid var(--line);
   font-size:12px; color:var(--ink3); }
+.trimkort { margin:22px 0; page-break-inside:avoid; }
+.trimfig { float:right; width:100px; margin:0 0 8px 14px; }
+.trimfig svg { width:100%; height:auto; }
+table.trim { width:100%; border-collapse:collapse; font-size:12.5px; }
+table.trim th { text-align:left; vertical-align:top; width:8.5em;
+  padding:3px 8px 3px 0; font-weight:600; color:var(--ink); }
+table.trim td { vertical-align:top; padding:3px 0; color:var(--ink2); }
+table.trim tr + tr th, table.trim tr + tr td {
+  border-top:1px solid var(--line); }
+p.advarsel { border-left:3px solid var(--gold); padding-left:10px;
+  font-weight:600; }
 @media print {
   body { padding:0; font-size:11pt; }
   h3 { page-break-after:avoid; } h2 { page-break-after:avoid; }
   footer { page-break-before:avoid; }
 }
 """
+
+
+def _trimtabel() -> str:
+    """Trimmet som en tabel bagerst i manualen.
+
+    Det er dén side, der giver mening at printe og lægge i kortbordet: alle
+    sejlstillinger ved siden af hinanden, med tegningen af, hvor bommen står.
+    Tabellen bliver regnet af de samme råd som fladen, så en rettelse ét sted
+    slår igennem begge steder.
+    """
+    from .. import trim
+
+    ud = [f'<h2>{esc(t("Sejltrim"))}</h2>',
+          f'<p>{esc(t("Sådan står sejlene på hver sejlstilling ved omkring "
+                      "{kn} knob. I sejlplanen står det samme for den vind, "
+                      "du faktisk får på hvert stræk.", kn=OPSLAG_KN))}</p>']
+
+    for twa in (25, 45, 68, 90, 130, 170):
+        råd = trim.advise(twa, OPSLAG_KN)
+        if råd is None:
+            continue
+        ud.append('<div class="trimkort">')
+        ud.append(f'<h3>{esc(t(råd.sail).capitalize())}</h3>')
+        ud.append(f'<div class="trimfig">{trim.diagram(twa)}</div>')
+        if råd.warning:
+            ud.append(f'<p class="advarsel">{esc(t(råd.warning))}</p>')
+        ud.append('<table class="trim">')
+        for navn, tekst in råd.rows:
+            ud.append(f'<tr><th>{esc(t(navn))}</th>'
+                      f'<td>{esc(t(tekst))}</td></tr>')
+        ud.append(f'<tr><th>{esc(t("Kig efter"))}</th>'
+                  f'<td>{esc(t(råd.watch))}</td></tr>')
+        ud.append(f'<tr><th>{esc(t("Rebning"))}</th>'
+                  f'<td>{esc(t(råd.reef))}</td></tr>')
+        ud.append('</table></div>')
+    return ''.join(ud)
+
+
+# Den vindstyrke, tabellen viser — midt i det, man sejler i.
+OPSLAG_KN = 12
 
 
 def document() -> str:
@@ -148,6 +199,8 @@ def document() -> str:
             parts.append(f'<h3>{esc(t(emne.title))}</h3>'
                          f'<p class="short">{esc(t(emne.short))}</p>')
             parts += [f'<p>{esc(t(para))}</p>' for para in emne.body]
+
+    parts.append(_trimtabel())
 
     parts.append(f'<footer>{esc(t(helptext.DISCLAIMER))}<br>'
                  f'{esc(t("Hentet"))} {stamp:%d.%m.%Y}.</footer></div>')

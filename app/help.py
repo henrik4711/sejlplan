@@ -423,7 +423,20 @@ def _fra_soemandskab() -> tuple[Topic, ...]:
                  for id, titel, kort, krop in seamanship.HELP)
 
 
-TOPICS = TOPICS + _fra_soemandskab()
+def _fra_trim() -> tuple[Topic, ...]:
+    """Trimmet.
+
+    Rådene under hvert stræk siger, hvad man skal gøre. Manualen siger,
+    hvorfor — og det er dét, der gør forskellen på at følge en opskrift og
+    at kunne trimme selv. Teksten står i `trim.py` sammen med rådene, så de
+    to aldrig kan komme til at sige noget forskelligt.
+    """
+    from . import trim
+    return tuple(Topic(id, titel, kort, krop, group='Sejltrim')
+                 for id, titel, kort, krop in trim.HELP)
+
+
+TOPICS = TOPICS + _fra_trim() + _fra_soemandskab()
 
 
 def groups() -> list[tuple[str, list[Topic]]]:

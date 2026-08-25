@@ -154,3 +154,61 @@ def test_tegningen_holder_sig_inden_for_rammen(twa):
     assert tal, 'ingen koordinater'
     assert min(tal) >= -1, f'noget stikker ud til venstre eller op: {min(tal)}'
     assert max(tal) <= max(trim.BÅD_BREDDE, trim.BÅD_HØJDE) + 1
+
+
+# ── VHF ──────────────────────────────────────────────────────────────────────
+# Nødopkaldet er den eneste tekst i Sejlplan, nogen læser op mens de er bange.
+# Mangler en linje, mangler redningen en oplysning, de skal bruge.
+def test_noedopkaldet_har_alle_leddene():
+    ord_ = ' '.join(l.say + ' ' + l.note for l in sm.MAYDAY).lower()
+    for led in ('mayday', 'position', 'personer', 'skift'):
+        assert led in ord_, f'nødopkaldet mangler {led}'
+    assert sm.MAYDAY[0].say.upper().count('MAYDAY') == 3, 'ikke tre gange'
+
+
+def test_kanal_16_og_70_staar_der():
+    kanaler = {k for k, _ in sm.CHANNELS}
+    assert '16' in kanaler and '70' in kanaler
+
+
+def test_beviset_forklares_uden_at_spaerre_for_noed():
+    """Reglen om SRC må ikke komme til at læse som "du må ikke kalde"."""
+    tekst = sm.VHF_CERTIFICATE.lower()
+    assert 'src' in tekst
+    assert 'enhver' in tekst and 'hjælp' in tekst
+
+
+@pytest.mark.parametrize('sprog', ['da', 'de'])
+def test_vhf_kan_skrives_ud_paa_begge_sprog(sprog):
+    with i18n.using(sprog):
+        for l in sm.MAYDAY:
+            assert i18n.t(l.say).strip()
+        for kanal, brug in sm.CHANNELS:
+            assert i18n.t(kanal).strip() and i18n.t(brug).strip()
+        for ord_, betyder in sm.PROWORDS:
+            assert i18n.t(ord_).strip() and i18n.t(betyder).strip()
+
+
+def test_mayday_hedder_mayday_paa_tysk():
+    """Nødordene er de samme på alle sprog — det er hele pointen med dem."""
+    with i18n.using('de'):
+        assert 'MAYDAY' in i18n.t(sm.MAYDAY[0].say)
+        assert 'PAN-PAN' in i18n.t(sm.PAN_PAN[0])
+        assert 'SÉCURITÉ' in i18n.t(sm.PAN_PAN[1])
+
+
+# ── Manualen ─────────────────────────────────────────────────────────────────
+def test_trimmet_staar_i_manualen():
+    """Det manglede helt. Manualen er den, man printer og tager med."""
+    from app import help as helptext
+    grupper = {g for g, _ in helptext.groups()}
+    assert 'Sejltrim' in grupper
+
+
+@pytest.mark.parametrize('sprog', ['da', 'de'])
+def test_manualen_har_trimtabellen(sprog):
+    from app.ui import help as hui
+    with i18n.using(sprog):
+        doc = hui.document()
+    assert 'trimkort' in doc, 'trimtabellen mangler i den printede manual'
+    assert doc.count('<svg') >= 6, 'tegningerne mangler'

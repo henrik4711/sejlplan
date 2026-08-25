@@ -26,3 +26,22 @@ def sprog():
     i18n._TABLES.clear()
     yield
     i18n._TABLES.clear()
+
+
+@pytest.fixture(autouse=True)
+def ryd_sessionslager():
+    """Tøm NiceGUI's sessionslager efter hver prøve.
+
+    NiceGUI's prøvefikstur laver en midlertidig mappe og fjerner den bagefter
+    med rmdir — som kræver, at den er tom. Skriver en prøve i
+    `app.storage.user`, bliver der en fil tilbage, og så falder oprydningen
+    med "mappen er ikke tom". Fejlen står på en prøve, der intet har gjort
+    galt, og den kommer og går. Det er den slags, der gør, at folk holder op
+    med at stole på prøverne.
+    """
+    yield
+    try:
+        from nicegui import app
+        app.storage.user.clear()
+    except Exception:
+        pass

@@ -96,7 +96,16 @@ def seamanship_strings() -> list[str]:
                    sm.SOUND_FOG, sm.DISTRESS):
         for sig in gruppe:
             ud += [sig.what, sig.means]
-    return ud
+    # VHF: kanaler, udtryk, opkaldet og nødopkaldet.
+    ud.append(sm.VHF_CERTIFICATE)
+    for kanal, brug in sm.CHANNELS:
+        ud += [kanal, brug]
+    for ord_, betyder in sm.PROWORDS:
+        ud += [ord_, betyder]
+    ud += list(sm.CALL_SCRIPT) + list(sm.PAN_PAN) + list(sm.DSC)
+    for linje in sm.MAYDAY:
+        ud += [linje.say, linje.note]
+    return [x for x in ud if x]
 
 
 def trim_strings() -> list[str]:
@@ -136,11 +145,11 @@ def all_strings() -> list[str]:
 
 
 def main() -> None:
-    from app.lang import de, de_manual, de_plan, de_soe, de_ui
+    from app.lang import de, de_manual, de_plan, de_soe, de_ui, de_vhf
     # Samme tre tabeller, som i18n lægger sammen. Læste værktøjet kun de.py,
     # ville manualen og sejlplanens prosa tælle som umarkerede.
     ord_ = {**de.WORDS, **de_ui.WORDS, **de_manual.WORDS,
-            **de_plan.WORDS, **de_soe.WORDS}
+            **de_plan.WORDS, **de_soe.WORDS, **de_vhf.WORDS}
 
     found = all_strings()
     bad = [s for s in found if s.startswith('\0F-STRENG')]

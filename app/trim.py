@@ -375,3 +375,93 @@ def _vind(twa: float, side: float) -> str:
             f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
             f'stroke="{_VIND_F}" stroke-width="2.5" stroke-dasharray="5 4" '
             f'marker-end="url(#vindspids)"/>')
+
+
+# ── Til manualen ─────────────────────────────────────────────────────────────
+# Rådene under hvert stræk siger, hvad du skal gøre. De siger ikke, hvorfor —
+# og det er dét, der gør forskellen på at følge en opskrift og at kunne
+# trimme selv. Her står det, der ikke kan stå i et lille foldet kort:
+# hvad hver del faktisk gør, hvad twist er, og hvad rortrykket fortæller.
+#
+# Formen er den, `help.py` bruger, så manualen og fladen har samme kilde.
+HELP: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
+    ('trim-sadan', 'Sådan bruger du trimrådet',
+     'Under hvert stræk i sejlplanen, og i opslagsværket på kortet.',
+     ('Planen kender vindens vinkel ind på båden og hvor hårdt det blæser på '
+      'hvert stræk. Det er nok til et rigtigt råd, og det ligger foldet '
+      'sammen under strækket: tryk "Optimér mine sejl".',
+      'Vil du slå op uden at have lagt en rute — hvordan står bommen nu igen '
+      'for halvvind — så ligger det samme under bogikonet på kortet, med en '
+      'tegning af sejlføringen set oppefra.',
+      'Det er et udgangspunkt, ikke en facitliste. Sejlene er dine, og en '
+      'tiårig dacronsæk vil noget andet end et nyt laminatsejl. Rådene er '
+      'skrevet til en almindelig krydser med storsejl og rullegenua.')),
+    ('trim-dele', 'Hvad delene gør',
+     'Syv liner, og hver af dem ændrer én ting ved sejlet.',
+     ('Storskødet trækker bommen ind og ned på én gang. På kryds er det dét, '
+      'der holder bommen nede — derfor skal bomnedhalet være løst der.',
+      'Løjgangsvognen flytter bommen sideværts, uden at ændre hvor hårdt '
+      'sejlet er skødet ned. Det er dét, der lader dig lette trykket i en '
+      'byge uden at åbne toppen af sejlet: kør vognen i læ i stedet for at '
+      'slække skødet.',
+      'Bomnedhalet holder bommen nede, når skødet ikke længere kan — altså '
+      'fra halvvind og ned. Uden det løfter bommen sig, toppen af sejlet '
+      'falder af, og du mister det tryk, du troede du havde.',
+      'Udhalet strækker underliget. Stramt giver et fladt sejl forneden til '
+      'meget vind; løst giver dybde til lidt vind.',
+      'Nedhalet strammer forliget langs masten. Det flytter sejlets dybeste '
+      'punkt fremad og flader sejlet. Stram det, når det blæser, og lad det '
+      'være løst, når det ikke gør.',
+      'Agterstaget bøjer masten. Storsejlet flader ud, og forstaget bliver '
+      'stivere — og et stift forstag er dét, der gør, at du kan holde højde '
+      'i frisk vind.',
+      'Skødevognen på forsejlet bestemmer, om skødet trækker mest nedad '
+      'eller mest bagud. Frem: dybde forneden og lukket top. Agter: fladt '
+      'forneden og åben top.')),
+    ('trim-twist', 'Twist — hvorfor toppen skal stå anderledes',
+     'Vinden foroven er både stærkere og kommer fra en anden vinkel.',
+     ('Vinden bremses af vandet, så den er svagere nede ved bommen end oppe '
+      'i toppen af masten. Og fordi båden selv sejler, kommer den '
+      'tilsyneladende vind ind i en anden vinkel foroven end forneden.',
+      'Twist er den vridning, der lader toppen af sejlet stå i den vinkel, '
+      'den faktisk får. Er der for lidt twist, står toppen for hårdt og '
+      'lægger båden ned. Er der for meget, laver toppen ingenting.',
+      'Du styrer det med skødet og bomnedhalet: strammere giver mindre '
+      'twist. Kig på øverste sejlpind — den skal stå omtrent parallel med '
+      'bommen. I byger må den gerne falde en smule af.')),
+    ('trim-kraengning', 'Krængning og rortryk',
+     'To ting båden fortæller dig, som er mere værd end noget instrument.',
+     ('En almindelig krydser sejler bedst under omkring tyve graders '
+      'krængning. Derover skrider den sidelæns i stedet for fremad, og du '
+      'taber både fart og højde. Ligger den længere ned, er det ikke en '
+      'stærk sejlads — det er for meget sejl.',
+      'Rortryk er det andet tegn. Skal du hele tiden holde imod for at '
+      'undgå, at båden luffer op, er der for meget tryk agter i båden. Så '
+      'er det storsejlet, der skal rebes — ikke forsejlet.',
+      'Ruller man genuaen ind og lader storsejlet stå, bliver rortrykket '
+      'værre, ikke bedre. Det er den fejl, de fleste gør først, fordi '
+      'rullegenuaen er den nemmeste at tage af.')),
+    ('trim-bomholder', 'Bomholder på læns',
+     'Det ene sted, hvor trimmet ikke handler om fart.',
+     ('Fra rumskøds og ned mod læns kan bommen slå over af sig selv, hvis '
+      'båden gribes af en bølge eller styrmanden falder for langt af. Det '
+      'sker hurtigt, og bommen kommer i hovedhøjde.',
+      'En bomholder er en line fra bommen og frem til dækket, der holder '
+      'den ude. Sæt den, før du falder af — ikke bagefter. Det er dét, der '
+      'gør en utilsigtet bomvending til en irritation i stedet for en '
+      'ulykke.',
+      'Husk at tage den af igen, før du vender med vilje. En bomholder, der '
+      'sidder, når bommen skal over, forhindrer manøvren midt i den.')),
+    ('trim-reb', 'Hvornår der skal rebes',
+     'Tidligere end du tror — og altid før det bliver nødvendigt.',
+     ('En god regel: reb, når du begynder at overveje det. Tanken kommer '
+      'som regel et kvarter, før det er ubehageligt, og det er langt '
+      'nemmere at rebe, mens det stadig er behageligt.',
+      'På kryds mærkes vinden hårdere end på læns, fordi bådens egen fart '
+      'lægges til. Derfor rebes der tidligere op mod vinden end ned med '
+      'den, og derfor kan en tur, der var rar på vej ud, være noget andet '
+      'på vej hjem.',
+      'Et reb koster sjældent fart. En overtrimmet båd krænger, skrider '
+      'sidelæns og er trættende at styre — den rebede er ofte hurtigere '
+      'over grunden og altid nemmere at være ombord på.')),
+)

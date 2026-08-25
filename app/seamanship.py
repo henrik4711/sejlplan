@@ -389,6 +389,33 @@ HELP: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
       'I nød: MAYDAY på kanal 16 eller DSC-nødknappen. 112 går videre til '
       'JRCC og virker, så længe du har mobildækning. Røde blus er nød; et '
       'hvidt blus er en advarsel og noget helt andet.')),
+    ('vhf', 'VHF — opkald og nødopkald',
+     'Kanal 16 til nød og opkald. Og MAYDAY ord for ord.',
+     ('Til daglig kræver en VHF et SRC-bevis, og anlægget skal være tilladt '
+      'til båden. Men er nogen i fare, må enhver ombord bruge ethvert middel '
+      'til at tilkalde hjælp. Så tag mikrofonen — ingen er nogensinde blevet '
+      'straffet for at kalde MAYDAY, når der var brug for det.',
+      'Kanal 16 er til nød og til at kalde hinanden op. Har I fået fat i '
+      'hinanden, så aftal en arbejdskanal — 06, 08, 72 eller 77 — og flyt '
+      'derover, så 16 er fri. Kanal 13 er skib til skib om manøvrer; det er '
+      'dér, du kalder færgen i et smalt løb. På 70 tales der aldrig — den er '
+      'radioens egen til DSC.',
+      'Et opkald lyder: modtagerens navn to gange, "dette er" og dit eget '
+      'navn to gange, og så Skift. Skift betyder "nu venter jeg svar". Slut '
+      'betyder "samtalen er forbi".',
+      'Et nødopkald har en fast rækkefølge, og det er rækkefølgen, der gør, '
+      'at redningen ved, hvor de skal hen og hvad de skal have med: MAYDAY '
+      'tre gange, bådens navn tre gange, MAYDAY og navnet igen, position, '
+      'hvad der er sket, hvad du beder om, hvor mange I er, hvordan båden '
+      'ser ud — og Skift. Svarer ingen, så gentag det hele.',
+      'PAN-PAN er den, der ikke er livstruende endnu: motoren er død i et '
+      'sejlløb, nogen er syg men ikke i fare. SÉCURITÉ er en advarsel til '
+      'alle andre om noget i vandet.',
+      'Den røde knap under klappen er DSC. Hold den nede i fem sekunder — '
+      'radioen sender bådens MMSI og positionen af sig selv. Følg altid op '
+      'med stemmen på 16: alarmen siger, at nogen har brug for hjælp, ikke '
+      'hvad der er sket. Hele opkaldet står ord for ord under bogikonet på '
+      'kortet.')),
     ('ikke-farer', 'Hvorfor vi ikke advarer om grunde',
      'Sejlplan kender land og vand — ikke dybder. Farerne står i søkortet.',
      ('Ruten lægges uden om land med en maske over de skandinaviske '
@@ -406,3 +433,99 @@ HELP: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
 def help_topics():
     """Emnerne til manualen — som `help.Topic` forventer dem."""
     return HELP
+
+
+# ── VHF ──────────────────────────────────────────────────────────────────────
+# Om beviset: i Danmark kræver det et SRC-certifikat at betjene en VHF, og
+# anlægget skal være tilladt til fartøjet. Det gælder den daglige brug.
+#
+# Det gælder ikke, når nogen er i fare. I nød må enhver ombord bruge et hvilket
+# som helst middel til at tilkalde hjælp — det er derfor, det her står her, og
+# derfor det står med ordene, man skal sige, og ikke som en henvisning til et
+# kursus. Den, der står med en bevidstløs ombord, skal ikke først finde ud af,
+# om han må.
+VHF_CERTIFICATE = (
+    'Til daglig kræver en VHF et SRC-bevis, og anlægget skal være tilladt til '
+    'båden. Men er nogen i fare, må enhver ombord bruge ethvert middel til at '
+    'tilkalde hjælp. Så tag mikrofonen. Ingen er nogensinde blevet straffet '
+    'for at kalde MAYDAY, når der var brug for det.')
+
+CHANNELS: tuple[tuple[str, str], ...] = (
+    ('16', 'Nød, hastemeddelelser og opkald. Lyt her, når du sejler. Flyt '
+           'over på en arbejdskanal, så snart I har fået fat i hinanden.'),
+    ('70', 'DSC — den digitale nødknap. Her tales der aldrig. Radioen bruger '
+           'kanalen selv.'),
+    ('13', 'Skib til skib om manøvrer. Det er her, du kalder færgen eller '
+           'coasteren, der kommer imod dig i et smalt løb.'),
+    ('06 · 08 · 72 · 77', 'Arbejdskanaler mellem både. Aftal en, når I har '
+                          'kaldt hinanden op på 16.'),
+    ('Lyngby Radio', 'Den danske kystradio. Nødtrafik, farvandsudsigter og '
+                     'efterretninger. Kalder du 16, hører de med.'),
+    ('Havnens kanal', 'Mange havne og broer lytter på deres egen kanal. Den '
+                      'står i havnelodsen — slå den op, før du kommer.'),
+)
+
+PROWORDS: tuple[tuple[str, str], ...] = (
+    ('SKIFT', 'Jeg er færdig, og jeg venter svar. På engelsk: OVER.'),
+    ('SLUT', 'Samtalen er slut. Jeg venter ikke svar. OUT.'),
+    ('MODTAGET', 'Jeg har hørt og forstået. ROGER.'),
+    ('GENTAG', 'Sig det igen. SAY AGAIN.'),
+    ('VENT', 'Bliv på kanalen, jeg kommer tilbage. STAND BY.'),
+    ('STAVER', 'Nu bogstaverer jeg. I SPELL.'),
+)
+
+# Selve opkaldet. Tre gange var reglen dengang, forbindelserne var dårlige;
+# to er nok i dag, og på kanal 16 er kortere altid bedre.
+CALL_SCRIPT = (
+    'Marstal Havn, Marstal Havn — dette er Havfruen, Havfruen. Skift.',
+    'Når I har svaret hinanden: aftal en arbejdskanal og flyt derover. '
+    'Kanal 16 skal være fri.',
+)
+
+
+@dataclass(frozen=True)
+class Line:
+    """Én linje i et opkald: hvad man siger, og hvad man fylder i."""
+    say: str
+    note: str = ''
+
+
+MAYDAY: tuple[Line, ...] = (
+    Line('MAYDAY — MAYDAY — MAYDAY',
+         'Kun når der er fare for liv eller for at båden går tabt.'),
+    Line('Dette er Havfruen, Havfruen, Havfruen',
+         'Bådens navn tre gange. Sig også kaldesignal eller MMSI, hvis du '
+         'har det.'),
+    Line('MAYDAY, Havfruen', 'Én gang mere, så den, der skriver ned, ved, '
+                             'hvem meldingen er fra.'),
+    Line('Min position er …',
+         'Bredde og længde, hvis du har dem. Ellers: pejling og afstand til '
+         'noget, alle kender — "to sømil nord for Sprogø".'),
+    Line('Jeg har …',
+         'Hvad der er sket. Brand, vand i båden, mand overbord, alvorlig '
+         'tilskadekomst, grundstødning.'),
+    Line('Jeg har brug for …',
+         'Hvad du beder om. Redning, lægehjælp, slæbning.'),
+    Line('Vi er … personer ombord',
+         'Antallet. Det er dét, der afgør, hvad de sender.'),
+    Line('… og båden er …',
+         'Kort: længde, farve, sejlbåd eller motorbåd. Nok til at finde jer.'),
+    Line('Skift', 'Slip knappen og lyt. Svarer ingen, så gentag det hele.'),
+)
+
+PAN_PAN = (
+    'PAN-PAN, tre gange, er den, der ikke er livstruende endnu: motoren er '
+    'død i et sejlløb, nogen er syg, men ikke i fare, I er drevet på grund i '
+    'roligt vejr. Ellers er formen den samme som MAYDAY.',
+    'SÉCURITÉ, tre gange, er en advarsel til alle andre — en drivende '
+    'genstand, et sømærke der er væk. Sig den på 16 og flyt over på en '
+    'arbejdskanal med selve meldingen.')
+
+DSC = (
+    'Den røde knap under klappen er DSC-nødalarmen. Hold den nede i fem '
+    'sekunder. Radioen sender bådens MMSI og — er den koblet til en GPS — '
+    'positionen, til alle skibe og kyststationer i nærheden.',
+    'Følg altid op med stemmen på kanal 16. Alarmen siger, at nogen har '
+    'brug for hjælp; den siger ikke, hvad der er sket.',
+    'Hører du en andens nødalarm og ingen svarer, så svar. Kan du ikke '
+    'hjælpe selv, så giv den videre: "MAYDAY RELAY" og hvad du har hørt.')
