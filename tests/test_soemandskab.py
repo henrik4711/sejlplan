@@ -100,3 +100,57 @@ def test_tysk_bruger_de_tyske_soemandsord():
         assert 'Patenthalse' in i18n.t(trim.advise(170, 15).warning)
         fare = next(m for m in sm.MARKS if m.id == 'fare')
         assert i18n.t(fare.name) == 'Einzelgefahrenzeichen'
+
+
+# ── Tegningen ────────────────────────────────────────────────────────────────
+# En tegning, der viser sejlene i den forkerte side, er værre end ingen
+# tegning: den, der er i tvivl, er præcis den, der ikke opdager fejlen.
+def _bom_punkt(svg: str) -> tuple[float, float]:
+    """Bommens yderste punkt ud af tegningen."""
+    import re
+    m = re.search(r'<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.-]+)" '
+                  r'y2="([\d.-]+)" stroke="#3A4252"', svg)
+    assert m, 'ingen bom i tegningen'
+    return float(m.group(3)), float(m.group(4))
+
+
+@pytest.mark.parametrize('twa', [40, 60, 90, 120, 150, 180])
+def test_bommen_staar_i_lae(twa):
+    """Vinden fra styrbord betyder bommen i bagbord — altså til venstre i
+    tegningen, hvor stævnen vender opad."""
+    x, _y = _bom_punkt(trim.diagram(twa, 'styrbords halse'))
+    assert x < trim._MIDTE_X, f'bommen står i luv ved {twa}°'
+    x, _y = _bom_punkt(trim.diagram(twa, 'bagbords halse'))
+    assert x > trim._MIDTE_X, f'bommen står i luv ved {twa}°'
+
+
+@pytest.mark.parametrize('twa', [40, 60, 90, 120, 150, 180])
+def test_bommen_staar_agter_for_masten(twa):
+    _x, y = _bom_punkt(trim.diagram(twa))
+    assert y > trim._MAST_Y, 'bommen peger fremad'
+
+
+def test_bomvinklen_vokser_med_vindvinklen():
+    """Jo længere agterind vinden kommer, jo længere ude står bommen. Er den
+    ikke monoton, er der en fejl i opslagstabellen."""
+    vinkler = [trim.boom_angle(t) for t in range(0, 181, 5)]
+    assert vinkler == sorted(vinkler)
+    assert vinkler[0] == 0 and vinkler[-1] > 70
+
+
+def test_i_vindoejet_tegnes_uden_bom():
+    """Der er ingen sejlføring at vise — der er en beslutning at træffe."""
+    svg = trim.diagram(20)
+    assert 'stroke="#3A4252"' not in svg
+
+
+@pytest.mark.parametrize('twa', [0, 20, 45, 90, 135, 180])
+def test_tegningen_holder_sig_inden_for_rammen(twa):
+    """Et element uden for viewBox bliver klippet væk, og så mangler der
+    noget uden at nogen kan se hvad."""
+    import re
+    svg = trim.diagram(twa)
+    tal = [float(x) for x in re.findall(r'[xy][12]?="(-?[\d.]+)"', svg)]
+    assert tal, 'ingen koordinater'
+    assert min(tal) >= -1, f'noget stikker ud til venstre eller op: {min(tal)}'
+    assert max(tal) <= max(trim.BÅD_BREDDE, trim.BÅD_HØJDE) + 1

@@ -67,3 +67,24 @@ def _indhold(råd: trim.Trim, kn: float) -> None:
                     'text-[11px] font-semibold block')
                 ui.label(t(tekst)).classes(
                     'text-[11.5px] text-[var(--txt-2)] leading-snug block')
+
+
+def tegning(twa: float, tack: str = 'styrbords halse') -> None:
+    """Sejlføringen set oppefra.
+
+    "Bommen ud til tyve-tredive grader" er en sætning, man kan læse forkert.
+    En tegning kan man ikke — og det er dét, der gør, at man ikke står og er
+    i tvivl, når man skal skøde ud.
+    """
+    with ui.element('div').classes(
+            'trim-fig flex items-center gap-3 mb-2.5'):
+        ui.html(f'<div class="trim-art">{trim.diagram(twa, tack)}</div>')
+        with ui.element('div').classes('min-w-0 flex-1'):
+            ui.label(t('Set oppefra, stævnen opad.'))                 .classes('text-[11px] font-semibold block')
+            ui.label(t('Den stiplede pil er vinden. Det gyldne er storsejlet, '
+                       'det grønne forsejlet.'))                 .classes('text-[10.5px] text-[var(--txt-3)] leading-snug '
+                         'block mt-0.5')
+            if twa >= trim.I_VINDØJET:
+                ui.label(t('Bommen står omkring {grader}° fra midterlinjen.',
+                           grader=f'{trim.boom_angle(twa):.0f}'))                     .classes('text-[11px] text-[var(--txt-2)] leading-snug '
+                             'block mt-1 tnum')

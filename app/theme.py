@@ -277,6 +277,10 @@ body.body--dark .boat-mark i { border-bottom-color: var(--teal); }
 
 /* Sømærkerne. Tegningen står fast i bredden, så navnene under hinanden
    ligger på linje — ellers hopper listen, og så er den svær at skimme. */
+.trim-art { width: 96px; flex-shrink: 0; }
+.trim-art svg { display: block; width: 100%; height: auto; }
+.trim-fig { padding: 2px 0 4px; }
+
 .mark-art {
   width: 64px; flex-shrink: 0;
   display: flex; align-items: flex-start; justify-content: center;

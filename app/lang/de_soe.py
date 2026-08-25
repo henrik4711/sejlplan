@@ -698,4 +698,22 @@ WORDS: dict[str, str] = {
         'Baume die Genua auf der dem Großsegel gegenüberliegenden Seite '
         'aus, oder setze den Spinnaker. Ohne das steht sie im '
         'Windschatten des Großsegels und klappert, ohne zu nützen.',
+
+    # ── Tegningen og opslaget uden en plan ─────────────────────────
+    'Sejltrim':
+        'Segeltrimm',
+    'Sådan står sejlene på hver sejlstilling ved omkring {kn} knob. I '
+        'sejlplanen står det samme for den vind, du faktisk får på hvert '
+        'stræk.':
+        'So stehen die Segel auf jedem Kurs zum Wind bei etwa {kn} Knoten. Im '
+        'Segelplan steht dasselbe für den Wind, den du auf jedem Abschnitt '
+        'tatsächlich bekommst.',
+    'Set oppefra, stævnen opad.':
+        'Von oben gesehen, Bug nach oben.',
+    'Den stiplede pil er vinden. Det gyldne er storsejlet, det grønne '
+        'forsejlet.':
+        'Der gestrichelte Pfeil ist der Wind. Das Goldene ist das Großsegel, '
+        'das Grüne das Vorsegel.',
+    'Bommen står omkring {grader}° fra midterlinjen.':
+        'Der Baum steht etwa {grader}° von der Mittschiffslinie.',
 }

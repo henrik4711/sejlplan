@@ -11,27 +11,37 @@ from html import escape as esc
 from nicegui import ui
 
 from .. import seamanship as sm
+from .. import trim as trimlib
 from ..i18n import t
+from . import trim as trimui
 
 
 def dialog(planner=None) -> None:
     """Hele opslagsværket. Åbnes fra kortet og fra manualen."""
+    # Sejltrim hører kun til, hvis der er sejl at trimme. Har man valgt en
+    # motorbåd, er der ikke noget at fortælle om bommen — og et afsnit, der
+    # ikke angår én, gør resten sværere at finde.
+    sejlbåd = True
     if planner is not None:
+        try:
+            sejlbåd = not planner.s.boat.is_motor
+        except AttributeError:
+            pass
         # Dialogen skal høre til fladen, ikke til dét, man kom fra.
         with planner.client.content:
-            _byg()
+            _byg(sejlbåd)
         return
-    _byg()
+    _byg(sejlbåd)
 
 
-def _byg() -> None:
+def _byg(sejlbåd: bool = True) -> None:
     with ui.dialog() as dlg, ui.card().classes(
             'w-full max-w-[520px] p-0 bg-[var(--sea-1)] rounded-[var(--r)]'):
 
         with ui.row().classes('w-full items-center px-5 py-3.5 border-b '
                               'border-[var(--line)] no-wrap'):
             ui.icon('waves').classes('text-[20px] text-[var(--accent)]')
-            ui.label(t('Sømærker og signaler')).classes(
+            ui.label(t('Til søs')).classes(
                 'text-[16px] font-bold flex-1')
             ui.button(icon='close', on_click=dlg.close) \
                 .props('flat round dense')
@@ -44,6 +54,8 @@ def _byg() -> None:
                          'mb-3 block')
 
             _afmærkning()
+            if sejlbåd:
+                _sejltrim()
             _fyr()
             _liste(t('Lanterner om natten'), sm.LANTERNS, 'light_mode')
             _liste(t('Dagsignaler'), sm.DAY_SHAPES, 'wb_sunny')
@@ -66,6 +78,58 @@ def _byg() -> None:
                 .props('flat no-caps').classes('text-[var(--txt-2)]')
 
     dlg.open()
+
+
+# Den vindstyrke, opslaget viser. Et sted midt i det, man sejler i — og
+# sejlplanen giver alligevel rådet for den vind, man faktisk får.
+OPSLAG_KN = 12
+
+
+def _sejltrim() -> None:
+    """Trimmet uden en plan.
+
+    I sejlplanen ligger rådet under hvert stræk, regnet på den vind, der
+    faktisk kommer. Men dét kræver en færdig plan, og det er fem trin nede —
+    og man skal kunne slå op, hvor bommen står for halvvind, uden at have
+    lagt en rute først.
+    """
+    _overskrift(t('Sejltrim'), 'tune')
+    ui.label(t('Sådan står sejlene på hver sejlstilling ved omkring {kn} '
+               'knob. I sejlplanen står det samme for den vind, du faktisk '
+               'får på hvert stræk.', kn=OPSLAG_KN))         .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mb-2 block')
+
+    # Én vinkel midt i hver sejlstilling — det er dér, rådet er repræsentativt.
+    for twa in (25, 45, 68, 90, 130, 170):
+        råd = trimlib.advise(twa, OPSLAG_KN)
+        if råd is None:
+            continue
+        with ui.expansion(t(råd.sail).capitalize())                 .props('dense dense-toggle')                 .classes('trim w-full'):
+            trimui.tegning(twa)
+            if råd.warning:
+                with ui.element('div').classes(
+                        'px-3 py-2.5 mb-2 rounded-[9px] flex items-start '
+                        'gap-2.5 bg-[var(--warn-soft)] '
+                        'border border-[var(--warn)]'):
+                    ui.icon('warning_amber').classes(
+                        'text-[17px] text-[var(--warn)] shrink-0 mt-0.5')
+                    ui.label(t(råd.warning)).classes(
+                        'text-[12px] leading-snug')
+            with ui.element('div').classes('card overflow-hidden'):
+                for i, (navn, tekst) in enumerate(råd.rows):
+                    if i:
+                        ui.html('<div class="hairline"></div>')
+                    with ui.element('div').classes(
+                            'flex items-start gap-3 px-3 py-2'):
+                        ui.html(f'<span class="trim-part">'
+                                f'{esc(t(navn))}</span>')
+                        ui.label(t(tekst)).classes(
+                            'text-[12px] leading-snug text-[var(--txt-2)] '
+                            'flex-1')
+            with ui.element('div').classes('flex items-start gap-2.5 mt-2'):
+                ui.icon('visibility').classes(
+                    'text-[15px] text-[var(--accent)] shrink-0 mt-0.5')
+                ui.label(t(råd.watch)).classes(
+                    'text-[11.5px] text-[var(--txt-2)] leading-snug')
 
 
 def _overskrift(titel: str, ikon: str) -> None:
