@@ -66,6 +66,49 @@ async def test_serverens_valg_slaar_cookien(user: User):
     assert i18n.lang() == i18n.DA
 
 
+def _stræk(twa: float = 90, motor: bool = False):
+    """Ét stræk at bygge trimkortet af."""
+    from app.narrative import StretchBrief
+    from app.sailing import point_of_sail
+    return StretchBrief(
+        number=1, frm='Køge', to='Rødvig', course=170, distance_nm=12.0,
+        hours=2.5, wind_min=10, wind_max=14, wind_from='NØ', wave_max=0.6,
+        sea='tværsø', sail=point_of_sail(twa), twa=twa,
+        tack='styrbords halse', speed_min=4.5, speed_max=5.5,
+        motor_share=0.0, status='go', starts='08:00', ends='10:30',
+        is_motor=motor)
+
+
+async def test_trimkortet_har_tegningen(user: User):
+    """Rådet stod i ord under strækket, men tegningen lå kun under bogikonet
+    og i den printede manual. "Bommen ud til tyve-tredive grader" er en
+    sætning, man kan læse forkert — og den, der leder efter tegningen, leder
+    dér, hvor rådet står."""
+    from app.ui import trim as trimui
+    await user.open('/')
+    # Kun dét, kortet selv laver. Ser vi på hele siden, findes der svg i
+    # forvejen, og prøven ville sige god for en tegning, der aldrig kom.
+    før = set(user.client.elements)
+    with user.client.content:
+        trimui.card(_stræk())
+    nye = [user.client.elements[i]
+           for i in set(user.client.elements) - før]
+    assert nye, 'der kom slet intet trimkort'
+    html = ''.join(str(getattr(e, 'content', '') or '') for e in nye)
+    assert '<svg' in html, 'tegningen mangler i trimkortet'
+    assert 'trim-art' in html, 'tegningen står uden sin ramme'
+
+
+async def test_motorbaad_faar_intet_trimkort(user: User):
+    """En motorbåd har ingen sejl at trimme, og et tomt kort er støj."""
+    from app.ui import trim as trimui
+    await user.open('/')
+    før = len(user.client.elements)
+    with user.client.content:
+        trimui.card(_stræk(motor=True))
+    assert len(user.client.elements) == før, 'der kom et trimkort alligevel'
+
+
 def test_manualen_har_alle_emner():
     from app import help as helptext
     assert len(helptext.TOPICS) >= 25

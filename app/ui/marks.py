@@ -97,14 +97,17 @@ def _sejltrim() -> None:
     _overskrift(t('Sejltrim'), 'tune')
     ui.label(t('Sådan står sejlene på hver sejlstilling ved omkring {kn} '
                'knob. I sejlplanen står det samme for den vind, du faktisk '
-               'får på hvert stræk.', kn=OPSLAG_KN))         .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mb-2 block')
+               'får på hvert stræk.', kn=OPSLAG_KN)) \
+        .classes('text-[11.5px] text-[var(--txt-3)] leading-snug mb-2 block')
 
     # Én vinkel midt i hver sejlstilling — det er dér, rådet er repræsentativt.
     for twa in (25, 45, 68, 90, 130, 170):
         råd = trimlib.advise(twa, OPSLAG_KN)
         if råd is None:
             continue
-        with ui.expansion(t(råd.sail).capitalize())                 .props('dense dense-toggle')                 .classes('trim w-full'):
+        with ui.expansion(t(råd.sail).capitalize()) \
+                .props('dense dense-toggle') \
+                .classes('trim w-full'):
             trimui.tegning(twa)
             if råd.warning:
                 with ui.element('div').classes(

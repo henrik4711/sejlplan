@@ -28,6 +28,10 @@ def card(brief) -> None:
     with ui.expansion(t('Optimér mine sejl'), icon='tune') \
             .props('dense dense-toggle') \
             .classes('trim mt-2 w-full'):
+        # Tegningen først. Rådet står i ord nedenunder, men "bommen ud til
+        # tyve-tredive grader" er en sætning, man kan læse forkert — og her
+        # vender den samme vej som virkeligheden, for strækket har en halse.
+        tegning(brief.twa, brief.tack)
         _indhold(råd, kn)
 
 
@@ -80,11 +84,14 @@ def tegning(twa: float, tack: str = 'styrbords halse') -> None:
             'trim-fig flex items-center gap-3 mb-2.5'):
         ui.html(f'<div class="trim-art">{trim.diagram(twa, tack)}</div>')
         with ui.element('div').classes('min-w-0 flex-1'):
-            ui.label(t('Set oppefra, stævnen opad.'))                 .classes('text-[11px] font-semibold block')
+            ui.label(t('Set oppefra, stævnen opad.')) \
+                .classes('text-[11px] font-semibold block')
             ui.label(t('Den stiplede pil er vinden. Det gyldne er storsejlet, '
-                       'det grønne forsejlet.'))                 .classes('text-[10.5px] text-[var(--txt-3)] leading-snug '
+                       'det grønne forsejlet.')) \
+                .classes('text-[10.5px] text-[var(--txt-3)] leading-snug '
                          'block mt-0.5')
             if twa >= trim.I_VINDØJET:
                 ui.label(t('Bommen står omkring {grader}° fra midterlinjen.',
-                           grader=f'{trim.boom_angle(twa):.0f}'))                     .classes('text-[11px] text-[var(--txt-2)] leading-snug '
+                           grader=f'{trim.boom_angle(twa):.0f}')) \
+                    .classes('text-[11px] text-[var(--txt-2)] leading-snug '
                              'block mt-1 tnum')

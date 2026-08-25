@@ -129,6 +129,41 @@ def test_bommen_staar_i_lae(twa):
     assert x > trim._MIDTE_X, f'bommen står i luv ved {twa}°'
 
 
+def _forsejl_punkt(svg: str) -> tuple[float, float]:
+    """Forsejlets skødebarm — det yderste punkt af forsejlet i tegningen."""
+    import re
+    m = re.search(r'<path d="M[\d.,\- ]+Q[\d.,\- ]+ ([\d.-]+),([\d.-]+)"'
+                  r' fill="none" stroke="#0F9B8E"', svg)
+    assert m, 'intet forsejl i tegningen'
+    return float(m.group(1)), float(m.group(2))
+
+
+@pytest.mark.parametrize('twa', [40, 60, 90, 120, 145])
+def test_forsejlet_staar_i_lae_sammen_med_storsejlet(twa):
+    """Op til læns står begge sejl i samme side. Gør de ikke det, er det
+    tegningen, der er forkert — ikke båden."""
+    for halse in ('styrbords halse', 'bagbords halse'):
+        svg = trim.diagram(twa, halse)
+        bom_x, _ = _bom_punkt(svg)
+        for_x, _ = _forsejl_punkt(svg)
+        assert (bom_x - trim._MIDTE_X) * (for_x - trim._MIDTE_X) > 0, \
+            f'sejlene står i hver sin side ved {twa}° for {halse}'
+
+
+@pytest.mark.parametrize('twa', [150, 165, 180])
+def test_forsejlet_er_bommet_ud_i_luv_paa_laens(twa):
+    """På læns siger rådet: bom genuaen ud på modsat side af storsejlet.
+    Viser tegningen den i storsejlets vindskygge, viser den dét, der ikke
+    virker — og så er den værre end ingen tegning."""
+    for halse in ('styrbords halse', 'bagbords halse'):
+        svg = trim.diagram(twa, halse)
+        bom_x, _ = _bom_punkt(svg)
+        for_x, _ = _forsejl_punkt(svg)
+        assert (bom_x - trim._MIDTE_X) * (for_x - trim._MIDTE_X) < 0, \
+            f'genuaen står i læ ved {twa}° for {halse}'
+        assert trim._STAGE in svg, 'stagen mangler'
+
+
 @pytest.mark.parametrize('twa', [40, 60, 90, 120, 150, 180])
 def test_bommen_staar_agter_for_masten(twa):
     _x, y = _bom_punkt(trim.diagram(twa))

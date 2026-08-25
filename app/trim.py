@@ -307,7 +307,14 @@ def diagram(twa: float, tack: str = 'styrbords halse') -> str:
     # åbent på læns. Det er derfor forholdet ikke er fast.
     for_vinkel = math.radians(boom_angle(twa) * (0.55 if twa < HALVVIND
                                                  else 0.9))
-    for_x = _MIDTE_X - side * 46 * math.sin(for_vinkel)
+    # På læns står genuaen bommet ud i luv — på modsat side af storsejlet.
+    # Tegnede vi begge sejl i læ, viste tegningen genuaen i storsejlets
+    # vindskygge, hvor den klapper og ikke trækker. Det er præcis dét, rådet
+    # ved siden af siger, man ikke skal, og en tegning, der viser det
+    # forkerte, er værre end ingen tegning.
+    udbommet = twa >= RUMSKØDS
+    for_side = -side if udbommet else side
+    for_x = _MIDTE_X - for_side * 46 * math.sin(for_vinkel)
     for_y = _MAST_Y - 6 + 46 * math.cos(for_vinkel)
 
     dele = [_skrog(), _vind(twa, side)]
@@ -324,8 +331,15 @@ def diagram(twa: float, tack: str = 'styrbords halse') -> str:
             f'<line x1="{_MIDTE_X}" y1="{_MAST_Y}" x2="{bom_x:.1f}" '
             f'y2="{bom_y:.1f}" stroke="{_BOM_F}" stroke-width="2.5" '
             f'stroke-linecap="round"/>')
+        if udbommet:
+            # Stagen, der holder genuaen ude. Tyndere og lysere end bommen,
+            # så de to spir ikke bliver til det samme.
+            dele.append(
+                f'<line x1="{_MIDTE_X}" y1="{_MAST_Y}" x2="{for_x:.1f}" '
+                f'y2="{for_y:.1f}" stroke="{_STAGE}" stroke-width="2" '
+                f'stroke-linecap="round"/>')
         dele.append(
-            f'<path d="{_bue((_MIDTE_X, _STÆVN_Y + 4), (for_x, for_y), -side * 8)}"'
+            f'<path d="{_bue((_MIDTE_X, _STÆVN_Y + 4), (for_x, for_y), -for_side * 8)}"'
             f' fill="none" stroke="{_FORSEJL}" stroke-width="6" '
             f'stroke-linecap="round" stroke-opacity=".85"/>')
 
@@ -341,6 +355,7 @@ _SKROG = '#8A94A6'
 _SEJL = '#C8933B'
 _FORSEJL = '#0F9B8E'
 _BOM_F = '#3A4252'
+_STAGE = '#5A6478'
 _VIND_F = '#6B7280'
 
 
@@ -389,10 +404,12 @@ HELP: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
      'Under hvert stræk i sejlplanen, og i opslagsværket på kortet.',
      ('Planen kender vindens vinkel ind på båden og hvor hårdt det blæser på '
       'hvert stræk. Det er nok til et rigtigt råd, og det ligger foldet '
-      'sammen under strækket: tryk "Optimér mine sejl".',
+      'sammen under strækket: tryk "Optimér mine sejl". Øverst står '
+      'sejlføringen tegnet oppefra, med bommen i den side, den faktisk skal '
+      'stå i på det stræk.',
       'Vil du slå op uden at have lagt en rute — hvordan står bommen nu igen '
-      'for halvvind — så ligger det samme under bogikonet på kortet, med en '
-      'tegning af sejlføringen set oppefra.',
+      'for halvvind — så ligger de samme tegninger under bogikonet på '
+      'kortet, én for hver sejlstilling.',
       'Det er et udgangspunkt, ikke en facitliste. Sejlene er dine, og en '
       'tiårig dacronsæk vil noget andet end et nyt laminatsejl. Rådene er '
       'skrevet til en almindelig krydser med storsejl og rullegenua.')),

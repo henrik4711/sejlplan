@@ -29,18 +29,22 @@ WORDS: dict[str, str] = {
         'der Karte.',
     'Planen kender vindens vinkel ind på båden og hvor hårdt det '
         'blæser på hvert stræk. Det er nok til et rigtigt råd, og det '
-        'ligger foldet sammen under strækket: tryk "Optimér mine sejl".':
+        'ligger foldet sammen under strækket: tryk "Optimér mine sejl". '
+        'Øverst står sejlføringen tegnet oppefra, med bommen i den side, '
+        'den faktisk skal stå i på det stræk.':
         'Der Plan kennt den Winkel, in dem der Wind auf das Boot trifft, '
         'und wie hart es auf jedem Abschnitt weht. Das reicht für einen '
         'richtigen Rat, und er liegt zusammengefaltet unter dem '
-        'Abschnitt: Tippe auf „Meine Segel trimmen“.',
+        'Abschnitt: Tippe auf „Meine Segel trimmen“. Ganz oben steht die '
+        'Segelstellung von oben gezeichnet, mit dem Baum auf der Seite, '
+        'auf der er auf diesem Abschnitt tatsächlich stehen soll.',
     'Vil du slå op uden at have lagt en rute — hvordan står bommen nu '
-        'igen for halvvind — så ligger det samme under bogikonet på '
-        'kortet, med en tegning af sejlføringen set oppefra.':
+        'igen for halvvind — så ligger de samme tegninger under '
+        'bogikonet på kortet, én for hver sejlstilling.':
         'Willst du nachschlagen, ohne eine Route gelegt zu haben — wie '
-        'stand der Baum noch mal bei halbem Wind — dann liegt dasselbe '
-        'unter dem Buchsymbol auf der Karte, mit einer Zeichnung der '
-        'Segelstellung von oben.',
+        'stand der Baum noch mal bei halbem Wind — dann liegen dieselben '
+        'Zeichnungen unter dem Buchsymbol auf der Karte, eine für jede '
+        'Segelstellung.',
     'Det er et udgangspunkt, ikke en facitliste. Sejlene er dine, og '
         'en tiårig dacronsæk vil noget andet end et nyt laminatsejl. '
         'Rådene er skrevet til en almindelig krydser med storsejl og '
