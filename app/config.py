@@ -20,6 +20,56 @@ def _env(name: str, default: str = '') -> str:
     return (os.getenv(name) or default).strip()
 
 
+# Alt andet end et tydeligt ja er et nej. En kontakt, der står til "måske",
+# findes ikke — og en, der åbner sig selv på en stavefejl, er værre end en,
+# der bliver lukket.
+_JA = {'til', '1', 'ja', 'true', 'on', 'yes', 'åben'}
+
+
+def _til(name: str) -> bool:
+    return _env(name).lower() in _JA
+
+
+# ── Fællesskabet ─────────────────────────────────────────────────────────────
+# At vise sin båd, at melde plads i havnen og at skrive til hinanden virker kun,
+# når der er nogen at være sammen med. En flåde med én båd i er ikke en halv
+# flåde — den fortæller den første bruger, at han er alene, og det er det
+# indtryk, han tager med sig. Derfor er de tre lukkede som standard og åbnes
+# med vilje, når der er brugere nok.
+#
+# De åbnes hver for sig, for de har ikke samme tærskel: en pladsmelding hjælper
+# den næste, der kommer til havnen, allerede når vi er få, mens bådene på
+# kortet først giver mening, når der er nogen at se.
+FLÅDE = 'flåde'
+PLADSMELDING = 'pladsmelding'
+BESKEDER = 'beskeder'
+
+_KONTAKTER = {
+    FLÅDE: 'SEJLPLAN_FLAADE',
+    PLADSMELDING: 'SEJLPLAN_PLADSMELDING',
+    BESKEDER: 'SEJLPLAN_BESKEDER',
+}
+
+ÅBNE: dict[str, bool] = {navn: _til(nøgle)
+                         for navn, nøgle in _KONTAKTER.items()}
+
+
+def åben(hvad: str) -> bool:
+    """Er funktionen åben? Lukket er standard — vi åbner med vilje."""
+    if hvad == BESKEDER:
+        # Beskeder kræver, at man kan se hinanden: samtalen begynder ved at
+        # trykke på en båd på kortet. Åbner man kun beskederne, er der ingen
+        # at skrive til, og indbakken er en knap, der ikke fører nogen steder
+        # hen.
+        return ÅBNE.get(BESKEDER, False) and ÅBNE.get(FLÅDE, False)
+    return ÅBNE.get(hvad, False)
+
+
+def fællesskab() -> dict[str, bool]:
+    """Hvad der er åbent lige nu. Til opstartslinjen og til /api/status."""
+    return {navn: åben(navn) for navn in _KONTAKTER}
+
+
 SECRET_FILE = ROOT / '.storage_secret'
 
 

@@ -6,12 +6,29 @@ from __future__ import annotations
 
 from nicegui import app, ui
 
-from app import api, lookout, mishap, pwa
+from app import api, config, lookout, mishap, pwa
 from app.config import settings
 from app.ui import page
 from app.ui import watchpages
 
+
+def _sig_hvad_der_er_aabent() -> None:
+    """Skriv i loggen, hvad der er åbent, og hvad der er lukket.
+
+    En funktion, der er lukket med vilje, må ikke ligne en, der er i stykker.
+    Står det i opstartslinjen, kan man se det uden at gætte — og uden at
+    lede efter en knap, der ikke er tegnet.
+    """
+    navne = {config.FLÅDE: 'SEJLPLAN_FLAADE',
+             config.PLADSMELDING: 'SEJLPLAN_PLADSMELDING',
+             config.BESKEDER: 'SEJLPLAN_BESKEDER'}
+    for hvad, er_åben in config.fællesskab().items():
+        tilstand = 'åben' if er_åben else f'lukket (åbn med {navne[hvad]}=til)'
+        print(f'Sejlplan · {hvad}: {tilstand}')
+
+
 mishap.install()
+_sig_hvad_der_er_aabent()
 page.register()
 pwa.register_routes()
 api.register_routes()

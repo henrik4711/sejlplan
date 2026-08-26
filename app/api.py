@@ -25,7 +25,7 @@ from datetime import datetime
 from fastapi import Response
 from nicegui import app
 
-from . import chat, fleetmap, postbud
+from . import chat, config, fleetmap, postbud
 from .config import settings
 
 _startet = datetime.now()
@@ -51,6 +51,10 @@ def register_routes() -> None:
         data = {
             'oppe_sekunder': round(oppe),
             'lager': bool(settings.storage_dir),
+            # Hvad der er åbent. Uden det her skulle man gætte sig til, om en
+            # funktion mangler, fordi den er lukket med vilje, eller fordi
+            # noget er i stykker.
+            'fællesskab': config.fællesskab(),
             'postbud': {
                 'lyttere': postbud.lyttere(),
                 'levering': 'øjeblikkelig',

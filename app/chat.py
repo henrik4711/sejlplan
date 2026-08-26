@@ -27,7 +27,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from . import postbud
+from . import config, postbud
 from .config import settings
 
 DB_NAME = 'sejlplan.db'
@@ -113,7 +113,12 @@ def _row(r: sqlite3.Row) -> Message:
 
 
 def available() -> bool:
-    return bool(settings.storage_dir)
+    """Er beskederne åbne? Lager og kontakt — og flåden skal være åben med.
+
+    Samtalen begynder ved at trykke på en båd på kortet. Er der ingen både,
+    er indbakken en knap, der ikke fører nogen steder hen. Se `config.åben`.
+    """
+    return bool(settings.storage_dir) and config.åben(config.BESKEDER)
 
 
 # ── Blokering ────────────────────────────────────────────────────────────────

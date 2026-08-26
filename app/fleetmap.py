@@ -27,7 +27,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from . import postbud
+from . import config, postbud
 from .config import settings
 
 DB_NAME = 'sejlplan.db'
@@ -102,7 +102,12 @@ def _row(r: sqlite3.Row) -> Boat:
 
 
 def available() -> bool:
-    return bool(settings.storage_dir)
+    """Er flåden åben? Der skal både være et lager og en kontakt, der er sat.
+
+    Kontakten er ikke en indstilling for brugeren — det er en beslutning om,
+    hvornår funktionen overhovedet findes. Se `config.åben`.
+    """
+    return bool(settings.storage_dir) and config.åben(config.FLÅDE)
 
 
 def show(mark: str, name: str, lat: float, lon: float,

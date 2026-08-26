@@ -40,7 +40,33 @@ der er et sejlbart døgn tilbage på destinationen.
 også hvis vinduet ligger længere ude, end prognosen rækker i dag.
 
 **Er der plads i havnen.** Tre knapper, anonymt, ingen fritekst. Meldinger dør
-efter halvandet døgn.
+efter halvandet døgn. **Lukket lige nu** — se Fællesskabet nedenfor.
+
+**Fællesskabet — bygget, men lukket.** Tre funktioner kræver, at der er andre
+derude: pladsmeldingerne, bådene på kortet ("Vis min båd for andre" og listen
+over dem i nærheden), og beskederne mellem både. De er færdige og prøvet af,
+men de står lukkede, til der er brugere nok. En flåde med én båd i er ikke en
+halv flåde — den fortæller den første bruger, at han er alene, og det er det
+indtryk, han tager med sig.
+
+Lukket betyder væk, ikke gråt: ingen knapper, intet kortlag, og ingen afsnit i
+manualen om noget, man ikke kan finde. Teksterne bliver stående i koden og i
+begge oversættelser, så de er klar den dag, kontakten bliver sat.
+
+De åbnes hver for sig, for tærsklen er ikke den samme. En pladsmelding hjælper
+den næste, der kommer til havnen, allerede når vi er få; bådene på kortet
+giver først mening, når der er nogen at se. Beskederne kan ikke åbnes alene —
+samtalen begynder ved at trykke på en båd på kortet.
+
+```
+SEJLPLAN_PLADSMELDING=til     # lavest tærskel — åbn den først
+SEJLPLAN_FLAADE=til           # både på kortet
+SEJLPLAN_BESKEDER=til         # kræver at flåden er åben
+```
+
+Alt andet end et tydeligt ja er et nej — også en stavefejl. Serveren skriver i
+opstartslinjen, hvad der er åbent og lukket, og `/api/status` siger det samme,
+så en lukket funktion aldrig kommer til at ligne en, der er i stykker.
 
 **App og uden dækning.** Manifest, ikoner, service worker. Den seneste sejlplan
 lægges i telefonen som ét selvstændigt dokument og kan læses uden forbindelse.

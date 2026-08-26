@@ -19,7 +19,7 @@ from html import escape as esc
 
 from nicegui import app, ui
 
-from .. import reports
+from .. import config, reports
 from ..config import settings
 from ..i18n import t
 
@@ -42,8 +42,12 @@ def author_id() -> str:
 
 
 def available() -> bool:
-    """Meldinger kræver et sted at ligge. Uden lager, ingen meldinger."""
-    return bool(settings.storage_dir)
+    """Meldinger kræver et sted at ligge. Uden lager, ingen meldinger.
+
+    Og en kontakt: en pladsmelding er kun værd at trykke på, hvis der er
+    nogen, der læser den bagefter. Se `config.åben`.
+    """
+    return bool(settings.storage_dir) and config.åben(config.PLADSMELDING)
 
 
 def badge(rep) -> None:

@@ -421,6 +421,32 @@ def by_id(topic_id: str) -> Topic | None:
     return next((t for t in TOPICS if t.id == topic_id), None)
 
 
+# Emner, der beskriver en funktion, som kan være lukket. Er den lukket, står
+# emnet hverken i boblerne eller i manualen: en manual, der forklarer en knap,
+# der ikke findes, sender folk ud at lede efter noget, der ikke er der — og så
+# er det manualen, der er forkert, ikke læseren.
+#
+# Teksterne bliver stående i koden og i oversættelserne. De skal være der den
+# dag, kontakten bliver sat, og et emne, der er væk fra fladen, er ikke det
+# samme som et emne, der er slettet.
+def _kræver() -> dict[str, str]:
+    from . import config
+    return {
+        'plads': config.PLADSMELDING,
+        'andre-baade': config.FLÅDE,
+        'hvem-er-her': config.FLÅDE,
+        'beskeder': config.BESKEDER,
+    }
+
+
+def åbne_emner() -> tuple[Topic, ...]:
+    """Emnerne, der hører til noget, man rent faktisk kan finde i fladen."""
+    from . import config
+    kræver = _kræver()
+    return tuple(t for t in TOPICS
+                 if t.id not in kræver or config.åben(kræver[t.id]))
+
+
 # Sømandskabet står i sit eget modul sammen med tegningerne, så teksten og
 # billedet af det samme mærke ikke kan komme til at sige noget forskelligt.
 # Her hentes teksten ind, så den også står i manualen og kan hentes ned.
@@ -446,10 +472,17 @@ def _fra_trim() -> tuple[Topic, ...]:
 TOPICS = TOPICS + _fra_trim() + _fra_soemandskab()
 
 
-def groups() -> list[tuple[str, list[Topic]]]:
-    """Emnerne samlet i den rækkefølge, de står — til manualen."""
+def groups(alle: bool = False) -> list[tuple[str, list[Topic]]]:
+    """Emnerne samlet i den rækkefølge, de står — til manualen.
+
+    `alle` tager dem med, der hører til en lukket funktion. Det er kun
+    oversættelsestjekket, der skal bruge det: teksterne findes stadig, og
+    havde værktøjet ikke set dem, ville det melde deres oversættelser
+    forældede — og så var de blevet slettet, mens funktionen lå og ventede.
+    """
+    kilde = TOPICS if alle else åbne_emner()
     out: list[tuple[str, list[Topic]]] = []
-    for t in TOPICS:
+    for t in kilde:
         if not out or out[-1][0] != t.group:
             out.append((t.group, []))
         out[-1][1].append(t)

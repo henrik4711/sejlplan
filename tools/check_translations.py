@@ -74,7 +74,9 @@ def manual_strings() -> list[str]:
     """
     from app import help as helptext
     out = []
-    for group, topics in helptext.groups():
+    # Også emnerne bag en lukket kontakt. Teksten står i koden og skal være
+    # oversat den dag, funktionen åbnes — ikke først derefter.
+    for group, topics in helptext.groups(alle=True):
         out.append(group)
         for e in topics:
             out += [e.title, e.short, *e.body]
