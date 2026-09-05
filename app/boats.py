@@ -120,6 +120,44 @@ BOATS: dict[str, Boat] = {
             180: {5: 2.2, 10: 3.2, 15: 4.0, 20: 4.5, 25: 4.8},
         }),
 
+    # De to Winga'er er tegnet før polardiagrammer fulgte med en båd. Tallene
+    # herunder er derfor ikke målte, men krydserens diagram skaleret til
+    # skrogfarten — samme regnestykke, som `scaled_polar` bruger på brugerens
+    # egen båd. Formen er en almindelig masttoprigget krydsers; niveauet er
+    # bådens eget. Kender du din Winga bedre end det, så tast din egen ind.
+    'winga87': Boat(
+        id='winga87', name='Winga 87', icon='sailing', kind=SAIL,
+        length_m=8.7, hull_speed_kn=6.6, desc='Klassisk krydser',
+        crew_note='lille, men sødygtig', max_wind_kn=20, max_wave_m=1.5,
+        motor_speed_kn=5.0, fuel_lph=2.0,
+        polar={
+            30:  {5: 2.3, 10: 3.7, 15: 4.6, 20: 5.1, 25: 5.3},
+            45:  {5: 2.8, 10: 4.4, 15: 5.3, 20: 5.8, 25: 6.0},
+            60:  {5: 3.2, 10: 4.8, 15: 5.7, 20: 6.3, 25: 6.4},
+            75:  {5: 3.5, 10: 5.1, 15: 6.0, 20: 6.4, 25: 6.6},
+            90:  {5: 3.7, 10: 5.3, 15: 6.3, 20: 6.5, 25: 6.6},
+            110: {5: 3.9, 10: 5.2, 15: 6.0, 20: 6.3, 25: 6.4},
+            135: {5: 3.2, 10: 4.4, 15: 5.1, 20: 5.5, 25: 5.7},
+            150: {5: 2.6, 10: 3.7, 15: 4.4, 20: 4.8, 25: 5.1},
+            180: {5: 2.3, 10: 3.2, 15: 3.9, 20: 4.4, 25: 4.6},
+        }),
+    'winga78': Boat(
+        id='winga78', name='Winga 78', icon='sailing', kind=SAIL,
+        length_m=7.8, hull_speed_kn=6.2, desc='Lille krydser',
+        crew_note='nem at have med at gøre', max_wind_kn=18, max_wave_m=1.2,
+        motor_speed_kn=4.5, fuel_lph=1.5,
+        polar={
+            30:  {5: 2.1, 10: 3.4, 15: 4.3, 20: 4.7, 25: 5.0},
+            45:  {5: 2.6, 10: 4.1, 15: 5.0, 20: 5.4, 25: 5.6},
+            60:  {5: 3.0, 10: 4.5, 15: 5.3, 20: 5.8, 25: 6.0},
+            75:  {5: 3.3, 10: 4.7, 15: 5.6, 20: 6.0, 25: 6.2},
+            90:  {5: 3.4, 10: 5.0, 15: 5.8, 20: 6.1, 25: 6.2},
+            110: {5: 3.6, 10: 4.8, 15: 5.6, 20: 5.9, 25: 6.0},
+            135: {5: 3.0, 10: 4.1, 15: 4.7, 20: 5.2, 25: 5.3},
+            150: {5: 2.4, 10: 3.4, 15: 4.1, 20: 4.5, 25: 4.7},
+            180: {5: 2.1, 10: 3.0, 15: 3.6, 20: 4.1, 25: 4.3},
+        }),
+
     # ── Motorbåde ────────────────────────────────────────────────────────────
     # Marchfarten er den, man holder i smult vande. Hvad søen gør ved den,
     # regner `sailing.motor_speed` ud time for time.

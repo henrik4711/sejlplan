@@ -473,10 +473,14 @@ WORDS: dict[str, str] = {
         'Wetterdaten konnten nicht geholt werden: {fejl}',
     'Familiekrydser':
         'Familienkreuzer',
+    'Klassisk krydser':
+        'Klassischer Fahrtenkreuzer',
     'Fortrængningsbåd':
         'Verdränger',
     'Langturssejler':
         'Fahrtensegler',
+    'Lille krydser':
+        'Kleiner Fahrtenkreuzer',
     'Stor planende':
         'Großer Gleiter',
     'Weekendbåd':
@@ -489,6 +493,10 @@ WORDS: dict[str, str] = {
         'Komfort und Reichweite',
     'langsom, men uanfægtet':
         'langsam, aber unbeirrt',
+    'lille, men sødygtig':
+        'klein, aber seetüchtig',
+    'nem at have med at gøre':
+        'unkompliziert im Umgang',
     'rolig og tilgivende':
         'ruhig und nachsichtig',
     'rummelig og hurtig nok':

@@ -492,10 +492,14 @@ WORDS: dict[str, str] = {
         'Kunde inte hämta väderdata: {fejl}',
     'Familiekrydser':
         'Familjekryssare',
+    'Klassisk krydser':
+        'Klassisk kryssare',
     'Fortrængningsbåd':
         'Deplacementsbåt',
     'Langturssejler':
         'Långfärdsseglare',
+    'Lille krydser':
+        'Liten kryssare',
     'Stor planende':
         'Stor planande',
     'Weekendbåd':
@@ -508,6 +512,10 @@ WORDS: dict[str, str] = {
         'komfort och räckvidd',
     'langsom, men uanfægtet':
         'långsam, men obekymrad',
+    'lille, men sødygtig':
+        'liten, men sjöduglig',
+    'nem at have med at gøre':
+        'lätt att ha att göra med',
     'rolig og tilgivende':
         'lugn och förlåtande',
     'rummelig og hurtig nok':

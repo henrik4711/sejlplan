@@ -133,6 +133,20 @@ def trim_strings() -> list[str]:
     return [x for x in ud if x]
 
 
+def boat_strings() -> list[str]:
+    """Bådenes egne ord. Samme sag: data, ikke `t()`-kald.
+
+    Kortene i indstillingerne viser bådens beskrivelse og det ene ord om, hvad
+    den er god til, og begge går gennem `t()` ude i fladen. Uden dem her ville
+    en ny båd stå på dansk i den svenske udgave, uden at noget sagde det.
+    """
+    from app import boats
+    ud: list[str] = []
+    for b in boats.BOATS.values():
+        ud += [b.desc, b.crew_note]
+    return [x for x in ud if x]
+
+
 def all_strings() -> list[str]:
     """Alt, der er markeret til oversættelse, i den rækkefølge filerne læses."""
     seen, out = set(), []
@@ -143,7 +157,7 @@ def all_strings() -> list[str]:
             if s not in seen:
                 seen.add(s)
                 out.append(s)
-    for s in manual_strings() + trim_strings():
+    for s in manual_strings() + trim_strings() + boat_strings():
         if s not in seen:
             seen.add(s)
             out.append(s)
