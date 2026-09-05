@@ -20,7 +20,7 @@ from __future__ import annotations
 import pytest
 from nicegui.testing import User
 
-from app import chat, config, fleetmap
+from app import chat, config, fleetmap, landing
 from app import help as helptext
 from app.ui import berth
 
@@ -151,13 +151,13 @@ def _tekst(elementer) -> str:
 
 async def test_fladen_bygges_uden_dem(user: User, lukket):
     """Siden skal stå, også når tre af dens funktioner ikke findes."""
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     assert len(user.client.elements) > 40, 'fladen blev aldrig bygget'
 
 
 async def test_meld_plads_er_ikke_tegnet(user: User, lukket):
     """Ikke en knap, der ikke virker — en knap, der ikke er der."""
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     tekst = _tekst(user.client.elements.values())
     for ord_ in ('Meld plads', 'Meld om der er plads'):
         assert ord_ not in tekst, f'"{ord_}" står stadig i fladen'
@@ -166,7 +166,7 @@ async def test_meld_plads_er_ikke_tegnet(user: User, lukket):
 async def test_meld_plads_er_tegnet_naar_den_er_aaben(user: User, åbent):
     """Modstykket. Uden den kunne prøven ovenfor være grøn, fordi knappen
     slet ikke hører til på forsiden — og så målte den ingenting."""
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     tekst = _tekst(user.client.elements.values())
     assert 'Meld plads' in tekst, 'knappen kom ikke, selv om der er åbent'
 
@@ -180,7 +180,7 @@ async def test_flaadelinjen_er_ikke_tegnet(user: User, lukket):
     """"Vis min båd for andre" står nede i planen, ikke på forsiden — så den
     tegnes her for sig, med og uden kontakt."""
     from app.ui import fleet as fleetui
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     før = set(user.client.elements)
     with user.client.content:
         fleetui.line(_Stub())
@@ -189,7 +189,7 @@ async def test_flaadelinjen_er_ikke_tegnet(user: User, lukket):
 
 async def test_flaadelinjen_er_tegnet_naar_den_er_aaben(user: User, åbent):
     from app.ui import fleet as fleetui
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     før = set(user.client.elements)
     with user.client.content:
         fleetui.line(_Stub())

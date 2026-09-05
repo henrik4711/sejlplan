@@ -21,11 +21,12 @@ from nicegui import ui
 from .. import (ai, chat, fleetmap, geocode, harbours, landmask, narrative,
                 offline, pwa, reports, searoute, share, theme, weather,
                 weatherbound)
+from .. import landing
 from ..config import settings
 from ..dates import clock, day, day_time, full, month, spell
 from ..sailing import (GO, STATUS_COLOR, STATUS_LABEL, STOP, WARN, Waypoint,
                        beaufort, compass, find_windows, haversine,
-                       point_of_sail)
+                       point_of_sail, why_ranked)
 from ..state import Session, signature
 from . import berth
 from . import fleet as fleetui
@@ -178,6 +179,13 @@ class Planner:
         # Hvilke afsnit i sejlplanen der staar aabne. Tomt = som de
         # starter, og de lange starter lukkede.
         self._sections: dict[str, bool] = {}
+        # Skippervurderingen hentes af sig selv, saa snart planen staar. To
+        # ting skal holdes styr paa: at den er i gang (saa fladen viser en
+        # ventetilstand i stedet for tom-tilstanden), og hvilken afgang den
+        # sidst blev hentet for (saa den ikke hentes igen for den samme).
+        self._ai_busy = False
+        self._ai_task: asyncio.Task | None = None
+        self._ai_done_for: tuple | None = None
         # Undervejs: bådens egen position, mens man sejler. Den bliver her og
         # gemmes ikke — hverken på serveren eller nogen andre steder.
         self.underway = False
@@ -294,17 +302,33 @@ class Planner:
             # står nu tydeligt i panelets "Turen"-liste.
             self.header_inbox()
             settingsui.language_button()
-            ui.button(icon='menu_book', on_click=helpui.manual_dialog) \
-                .props('flat round dense').tooltip(t('Manual og hjælp'))
-            ui.button(icon='bookmarks', on_click=self._open_routes) \
-                .props('flat round dense').tooltip(t('Mine gemte ruter'))
-            ui.button(icon='tune', on_click=self._open_settings) \
-                .props('flat round dense').tooltip(t('Båd, grænser og sejldøgn'))
+            # Værktøjstip findes kun, hvor der er en mus. På en telefon var
+            # de her seks ikoner navnløse — man skulle trykke for at finde ud
+            # af hvad de var. `aria-label` giver skærmlæseren navnet, og
+            # `.hdr-btn` lægger det under ikonet, når der er plads.
+            self._header_button('menu_book', t('Hjælp'),
+                                t('Manual og hjælp'), helpui.manual_dialog)
+            self._header_button('bookmarks', t('Ruter'),
+                                t('Mine gemte ruter'), self._open_routes)
+            self._header_button('tune', t('Tur'),
+                                t('Båd, grænser og sejldøgn'),
+                                self._open_settings)
             self.share_button()
 
             self.dark = ui.dark_mode(value=False)
-            ui.button(icon='dark_mode', on_click=self._toggle_theme) \
-                .props('flat round dense').tooltip(t('Skift mellem lyst og mørkt'))
+            self._header_button('dark_mode', t('Tema'),
+                                t('Skift mellem lyst og mørkt'),
+                                self._toggle_theme)
+
+    @staticmethod
+    def _header_button(icon: str, label: str, hint: str, on_click) -> None:
+        """Et ikon i toppen med sit navn under — og altid et navn for oplæsning."""
+        btn = ui.button(icon=icon, on_click=on_click) \
+            .props('flat round dense') \
+            .props(f'aria-label="{html.escape(hint, quote=True)}"') \
+            .classes('hdr-btn').tooltip(hint)
+        with btn:
+            ui.html(f'<span class="hdr-btn-lbl">{esc(label)}</span>')
 
     @ui.refreshable_method
     def header_inbox(self) -> None:
@@ -516,6 +540,7 @@ class Planner:
         self._nav = 'back' if num < self.s.step else 'fwd'
         self.s.step = num
         self.refresh()
+        self._maybe_run_ai()
 
     # ════════════════════════════════════════════════════════════════
     # Panelet
@@ -665,6 +690,12 @@ class Planner:
         with ui.element('div').classes('leg'):
             ui.html('<div class="leg-rule"></div>')
             ui.label(text).classes('tnum')
+            # Indtil havvejen er regnet ud, er tallet luftlinjen. Står der
+            # ikke andet, planlægger man brændstof efter en afstand, der kan
+            # være mange sømil for kort — her otte, rundt om Stevns.
+            if not self.s.route_ready:
+                ui.label(t('i luftlinje — vejen udenom land regnes stadig')) \
+                    .classes('leg-note')
 
     def _empty_route(self) -> None:
         with ui.element('div').classes('empty'):
@@ -769,6 +800,16 @@ class Planner:
                     ui.icon('chevron_right').classes(
                         'text-[18px] text-[var(--txt-3)] shrink-0 -mr-1')
                 row.on('click', self._open_settings)
+
+        # Har vi flyttet et gemt datovindue frem, skal det stå der — ikke
+        # bare være sket. En plan, der åbner på andre datoer end dem, man
+        # gemte, er præcis den slags, man ikke opdager før man er af sted.
+        if self.s.dates_moved:
+            ui.label(t('Din gemte plan begyndte {dato}. Prognosen rækker '
+                       'kun fra i dag, så vi er startet der — ret den under '
+                       'Hvornår, hvis du vil noget andet.',
+                       dato=self._short_date(self.s.dates_moved))) \
+                .classes('note-moved')
 
     def _stopover_preview(self, route) -> None:
         """Havnene langs ruten — dem man kan søge ind i, hvis vejret skifter.
@@ -934,10 +975,28 @@ class Planner:
                 dage=plural(days, 'dag', 'dage'),
                 bedste=esc(full(best.depart))) + '</div>')
 
+        # Sorteret rent på rangering hoppede listen søn, søn, søn, lør, man,
+        # man, søn, tir… En skipper tænker i døgn, ikke i point. Dagene
+        # kommer i kalenderorden, afgangene inde i dagen i vores rangering,
+        # og nummeret følger med, så anbefalingen stadig kan læses.
+        efter_dag: dict = {}
         for i, w in enumerate(self.s.windows):
-            self._window_card(i, w)
+            efter_dag.setdefault(w.depart.date(), []).append((i, w))
 
-    def _window_card(self, i: int, w) -> None:
+        for d in sorted(efter_dag):
+            rows = efter_dag[d]
+            bedste_nr = min(i for i, _ in rows)
+            with ui.element('div').classes('day-head'):
+                ui.label(day(rows[0][1].depart)).classes('day-head-name')
+                ui.element('div').classes('flex-1')
+                ui.label(plural(len(rows), 'afgang', 'afgange')
+                         + (' · ' + t('dagens bedste er nr. {n}', n=bedste_nr + 1)
+                            if bedste_nr else ' · ' + t('bedste dag'))) \
+                    .classes('day-head-note')
+            for i, w in rows:
+                self._window_card(i, w, best)
+
+    def _window_card(self, i: int, w, best=None) -> None:
         selected = i == self.s.selected
         rank = {0: 'BEDST', 1: 'NR. 2', 2: 'NR. 3'}.get(i, f'NR. {i + 1}')
 
@@ -948,7 +1007,10 @@ class Planner:
             with ui.element('div').classes('flex items-baseline gap-2 mb-0.5'):
                 ui.html(f'<div class="win-day">{esc(day(w.depart))}</div>')
                 ui.element('div').classes('flex-1')
-                ui.html(self._verdict_chip(w))
+                # Mærkaten siger kun noget, når der findes afgange uden den.
+                # Står "Gode forhold" på alle atten, er den ren støj.
+                if self._verdict_varies():
+                    ui.html(self._verdict_chip(w))
 
             with ui.element('div').classes('flex items-baseline gap-2'):
                 ui.html(f'<div class="win-time tnum">{clock(w.depart)}</div>')
@@ -988,7 +1050,45 @@ class Planner:
                     ui.html(chip('settings', t('{n} t motor',
                                                n=w.motor_hours)))
 
+            # Hvorfor ligger den her? Rangeringen var indtil nu et tal, ingen
+            # så — og med lavere vind på nr. 2 end på nr. 1 lignede den en fejl.
+            if best is not None:
+                ui.html(self._why_line(w, best))
+
         card.on('click', lambda _, k=i: self._select_window(k))
+
+    def _why_line(self, w, best) -> str:
+        """Begrundelsen som færdig linje. Sætningerne står her, ikke i regnemodulet.
+
+        Hver af dem er et rigtigt `t('…')`-kald, så `check_translations.py`
+        kan se dem, og så de kan slås op på tysk og svensk. Bygges de som
+        f-strenge dér, hvor tallene regnes, står de på dansk for altid.
+        """
+        nøgle, tal, art = why_ranked(w, best, self.s.limits)
+        sætning = {
+            'kort': lambda: t('når kun {nået} af {ialt} sømil, før prognosen '
+                              'slipper op', **tal),
+            'sent': lambda: t('fremme efter sejldøgnet er omme'),
+            'frarådet': lambda: t('{n} t i forhold, der frarådes', **tal),
+            'skærpet': lambda: t('{n} t i skærpede forhold', **tal),
+            'vind': lambda: t('topper {kn} kn — over din grænse', **tal),
+            'sø': lambda: t('bølger op til {m} m — over din grænse', **tal),
+            'nætter': lambda: t('kræver {n} overnatninger undervejs', **tal),
+            'længere': lambda: t('{t} t længere undervejs end den bedste', **tal),
+            'langsommere': lambda: t('{kn} knob langsommere i snit', **tal),
+            'bedst': lambda: t('roligste vejr og hurtigst fremme'),
+            'tidlig': lambda: t('tidlig afgang — hele dagen i baghånden'),
+            'senere': lambda: t('samme vejr, men senere af sted'),
+        }[nøgle]()
+        ikon = {'god': 'check', 'pris': 'trending_down'}.get(art, 'schedule')
+        return (f'<div class="win-why win-why--{art}">'
+                f'<span class="material-icons win-why-ico">{ikon}</span>'
+                f'{esc(sætning)}</div>')
+
+    def _verdict_varies(self) -> bool:
+        """Er der overhovedet forskel på mærkaterne? Ellers siger de intet."""
+        return len({(w.late_arrival, bool(w.red_hours), bool(w.yellow_hours))
+                    for w in self.s.windows}) > 1
 
     @staticmethod
     def _verdict_chip(w) -> str:
@@ -1107,13 +1207,19 @@ class Planner:
                             .classes('text-[var(--txt-2)]')
 
                 underway.bar(self)
+                # Skippervurderingen står først. Den svarer på dét, man kom
+                # for — hvornår skal jeg kaste los, og hvor er det svært —
+                # og den lå før nederst bag en lukket harmonika, hvor en
+                # førstegangsbruger aldrig fandt den. Nøgletal og time for
+                # time er opslagsværk og hører nedenunder.
+                self._ai_tab()
                 self._plan_overview(p, boat, route)
                 self._plan_warnings(p, boat)
                 self._plan_days(p)
                 self._key_figures(p, boat)
                 self._plan_stretches(p, route, boat)
                 self._weather_tab()
-                self._ai_tab()
+                self._next_actions()
 
     def _plan_overview(self, p, boat, route) -> None:
         if not self._section(t('Overblik'), 'overblik', 'sadan'):
@@ -1128,9 +1234,30 @@ class Planner:
     # komme til skippervurderingen skulle man forbi det hele. Nu kan hvert
     # afsnit klappes sammen, og de lange starter lukkede — de er opslagsværk,
     # ikke læsestof.
-    def _toggle_section(self, key: str, standard: bool) -> None:
+    async def _toggle_section(self, key: str, standard: bool) -> None:
+        """Klap et afsnit ud eller sammen — og bliv, hvor man er.
+
+        `plan_view` tegnes helt om, og så stod rullepositionen på nul: man
+        åbnede "Time for time" nede i planen og blev sendt op i toppen igen.
+        Vi spørger browseren, hvor den står, før vi tegner om, og lægger den
+        tilbage bagefter. Svarer den ikke inden for et øjeblik, tegner vi om
+        alligevel — et afsnit, der ikke vil åbne, er værre end et hop.
+        """
         self._sections[key] = not self._sections.get(key, standard)
+        y = 0
+        try:
+            y = await asyncio.wait_for(ui.run_javascript(
+                "(document.querySelector('.plan-view.scroll-y')||{}).scrollTop||0"),
+                timeout=1.0)
+        except (asyncio.TimeoutError, Exception):   # noqa: BLE001
+            y = 0
         self.plan_view.refresh()
+        if y:
+            ui.run_javascript(
+                'requestAnimationFrame(() => requestAnimationFrame(() => {'
+                "  const n = document.querySelector('.plan-view.scroll-y');"
+                f'  if (n) n.scrollTop = {int(y)};'
+                '}));')
 
     def _section(self, title: str, key: str, topic: str = '',
                  standard: bool = True, hint: str = '') -> bool:
@@ -1332,7 +1459,9 @@ class Planner:
         metrics = [
             (spell(p.under_way_h), t('Sejltid'), ''),
             (f'{dk(p.avg_speed_kn)} {t("kn")}', t('Gns. fart'), ''),
-            (f'{p.total_nm:.0f} {t("sm")}', t('Distance'), ''),
+            # Samme tal som i overblikket ovenfor. "31 sm" i nøgletallene og
+            # "30,6 sømil" i teksten er to tal på samme skærm, ikke ét.
+            (f'{nm(p.total_nm)} {t("sm")}', t('Distance'), ''),
             (f'{p.worst_wind_kn:.0f} {t("kn")}', t('Højeste vind'),
              self._level(p.worst_wind_kn, lim.max_wind)),
             (f'{dk(p.worst_wave_m)} {t("m")}', t('Højeste bølger'),
@@ -1386,14 +1515,65 @@ class Planner:
             with ui.element('div').classes('flex items-center gap-2 mb-1'):
                 ui.html(f'<i class="dot" style="background:'
                         f'{STATUS_COLOR[brief.status]}"></i>')
+                # Klippet overskrift på et ben er ubrugelig: "1. Ud for Køge
+                # → ud for …" fortæller ikke, hvor benet ender. Den må bryde.
                 ui.label(brief.headline).classes(
-                    'text-[13.5px] font-semibold flex-1 truncate')
+                    'text-[13.5px] font-semibold flex-1 leading-snug')
                 ui.html(f'<span class="chip tnum">{esc(brief.heading)}</span>')
             ui.label(f'{brief.starts} → {brief.ends}') \
                 .classes('text-[11.5px] text-[var(--txt-3)] mb-1.5 block')
             ui.label(brief.sentence).classes(
                 'text-[13px] leading-relaxed text-[var(--txt-2)] block')
             trimui.card(brief)
+
+    def _next_actions(self) -> None:
+        """Hvad gør man nu, hvor planen står?
+
+        Bunden af planen var en knap, der lavede den samme analyse igen.
+        Funktionerne fandtes — de lå bag navnløse ikoner i toppen og på trin 1,
+        hvor man ikke leder efter dem, når man lige har fået sin plan.
+        """
+        gemt = any(r.get('id') == self.s.route_id for r in self.s.routes)
+        handlinger = [
+            ('bookmark_added' if gemt else 'bookmark_border',
+             t('Ruten er gemt') if gemt else t('Gem denne rute'),
+             t('Ligger på hylden under Mine ruter') if gemt
+             else t('Så kan du hente den frem igen uden at lægge den om'),
+             None if gemt else self._save_route),
+            ('notifications_active', t('Hold øje med vejret'),
+             t('Vi skriver, hvis prognosen ændrer anbefalingen inden afgang'),
+             self._open_watch),
+            ('ios_share', t('Del med besætningen'),
+             t('Et link, der åbner den samme rute hos dem'),
+             self._copy_link),
+        ]
+
+        ui.label(t('Hvad nu')).classes('section-label mt-6 mb-2 block')
+        with ui.element('div').classes('card overflow-hidden mb-2'):
+            for i, (icon, title, sub, handler) in enumerate(handlinger):
+                if i:
+                    ui.html('<div class="hairline"></div>')
+                row = ui.element('div').classes(
+                    'flex items-center gap-3 px-4 py-3 '
+                    + ('opacity-60' if handler is None
+                       else 'cursor-pointer hover:bg-[var(--sea-3)] '
+                            'transition-colors'))
+                with row:
+                    ui.icon(icon).classes(
+                        'text-[19px] shrink-0 '
+                        + ('text-[var(--go)]' if handler is None
+                           else 'text-[var(--accent)]'))
+                    with ui.element('div').classes('min-w-0 flex-1'):
+                        ui.label(title).classes(
+                            'text-[13.5px] font-semibold block leading-tight')
+                        ui.label(sub).classes(
+                            'text-[11.5px] text-[var(--txt-3)] block '
+                            'leading-snug mt-0.5')
+                    if handler is not None:
+                        ui.icon('chevron_right').classes(
+                            'text-[18px] text-[var(--txt-3)] shrink-0 -mr-1')
+                if handler is not None:
+                    row.on('click', handler)
 
     def _print_plan(self) -> None:
         """Åbn planen i et nyt vindue, hvor browserens udskrift kan tage over."""
@@ -1510,28 +1690,43 @@ class Planner:
         if not settings.ai_available:
             return
 
-        if not self._section(t('Skippervurdering'), 'skipper', 'skipper',
-                             standard=bool(self.s.ai_text)):
+        if not self._section(t('Skippervurdering'), 'skipper', 'skipper'):
             return
 
-        if not self.s.ai_text:
-            with ui.element('div').classes('empty pb-4'):
-                ui.icon('auto_awesome').classes('text-[38px] text-[var(--accent)] opacity-70 mb-2')
-                ui.label(t('Få en skippervurdering')).classes('empty-title')
-                ui.label(t('En erfaren sejlkonsulent gennemgår ruten ben for '
-                           'ben og anbefaler, hvornår du bør kaste los.'))                     .classes('empty-sub')
-
+        # Alt herunder skiftes ud, mens teksten strømmer ind. Lå tom-tilstanden
+        # eller knapteksten udenfor, blev de stående med det, de sagde før —
+        # og "Få en skippervurdering" kom til at stå oven på den færdige.
         self.ai_output()
-
-        label = 'Lav analysen om' if self.s.ai_text else 'Analysér ruten'
-        ui.button(label, icon='auto_awesome', on_click=self.run_ai) \
-            .props('unelevated no-caps size=lg') \
-            .props('color=secondary').classes('w-full mt-3 font-bold')
 
     @ui.refreshable_method
     def ai_output(self) -> None:
         if self.s.ai_text:
             ui.markdown(self.s.ai_text).classes('ai-text')
+        elif self._ai_busy:
+            with ui.element('div').classes('ai-wait'):
+                ui.spinner('dots', size='1.7rem').classes('text-[var(--accent)]')
+                ui.label(t('Skipperen læser vejrudsigten igennem…')) \
+                    .classes('text-[13px] text-[var(--txt-2)]')
+                ui.label(t('Den tager en halv til hel minut. Resten af planen '
+                           'står klar nedenunder imens.')) \
+                    .classes('text-[12px] text-[var(--txt-3)]')
+        else:
+            with ui.element('div').classes('empty pb-4'):
+                ui.icon('auto_awesome').classes(
+                    'text-[38px] text-[var(--accent)] opacity-70 mb-2')
+                ui.label(t('Få en skippervurdering')).classes('empty-title')
+                ui.label(t('En erfaren sejlkonsulent gennemgår ruten ben for '
+                           'ben og anbefaler, hvornår du bør kaste los.')) \
+                    .classes('empty-sub')
+
+        if self._ai_busy:
+            return
+        ui.button(t('Lav vurderingen om') if self.s.ai_text
+                  else t('Hent skippervurderingen'),
+                  icon='auto_awesome', on_click=self.run_ai) \
+            .props('unelevated no-caps' + ('' if self.s.ai_text else ' size=lg')) \
+            .classes(('w-full mt-3 ' + ('btn-quiet' if self.s.ai_text
+                                        else 'btn-primary')))
 
     # ════════════════════════════════════════════════════════════════
     # Handlinger
@@ -1958,6 +2153,7 @@ class Planner:
 
         self.s.selected = 0
         self.s.ai_text = ''
+        self._ai_done_for = None
 
         if not self.s.windows:
             self.s.step = 1
@@ -1994,20 +2190,57 @@ class Planner:
 
     def _select_window(self, index: int) -> None:
         self.s.selected = index
+        # Vurderingen gjaldt den gamle afgang. Den skal væk med det samme,
+        # så der ikke står en anbefaling om kl. 07:00 over en plan, der
+        # afgår kl. 11:00.
         self.s.ai_text = ''
+        if self._ai_task and not self._ai_task.done():
+            self._ai_task.cancel()
+        self._ai_busy = False
         self._refresh_panel()
         self._redraw_map()
+        # Står vi allerede på trin 3, er den nye plan synlig nu — så skal
+        # vurderingen af den også hentes nu.
+        if self.s.step == 3:
+            self.plan_view.refresh()
+            self._maybe_run_ai()
 
     # ── AI ──────────────────────────────────────────────────────────
+    def _ai_key(self) -> tuple | None:
+        """Hvilken plan vurderingen ville gælde for. Skifter den, er den forældet."""
+        p = self.s.plan
+        if not p:
+            return None
+        return (signature(self.s.waypoints), self.s.boat_id,
+                p.depart.isoformat())
+
+    def _maybe_run_ai(self) -> None:
+        """Hent vurderingen af dig selv, når planen står.
+
+        Den er svaret på dét, brugeren kom efter. At lade ham finde en knap
+        nederst på siden og vente et minut mere er at gemme sit bedste
+        indhold. Den hentes én gang pr. afgang — skifter han afgang, er den
+        gamle vurdering ikke længere sand, og så hentes den nye.
+        """
+        if not settings.ai_available or self.s.step != 3:
+            return
+        key = self._ai_key()
+        if key is None or key == self._ai_done_for or self._ai_busy:
+            return
+        self._ai_done_for = key
+        self._ai_busy = True
+        self._ai_task = asyncio.create_task(self.run_ai())
+
     async def run_ai(self) -> None:
         p = self.s.plan
         if not p:
             return
 
         self.s.ai_text = ''
-        self.ai_output.refresh()
-        spinner = ui.notification(t('Claude læser vejrudsigten…'), spinner=True,
-                                  position='bottom', timeout=None)
+        self._ai_busy = True
+        self._ai_done_for = self._ai_key()
+        with self.client:
+            self.ai_output.refresh()
         buffer: list[str] = []
         last_flush = 0.0
         started = False
@@ -2019,24 +2252,32 @@ class Planner:
                 buffer.append(chunk)
                 if not started:
                     started = True
-                    spinner.dismiss()
+                    self._ai_busy = False
                 # Tegn ikke om for hvert lille stykke tekst – ca. 8 gange
                 # i sekundet er rigeligt til at det ser levende ud.
                 now = time.monotonic()
                 if now - last_flush > 0.12:
                     last_flush = now
                     self.s.ai_text = ''.join(buffer)
-                    self.ai_output.refresh()
+                    with self.client:
+                        self.ai_output.refresh()
         except ai.AIUnavailable as exc:
-            spinner.dismiss()
-            ui.notify(str(exc), type='negative', position='bottom', timeout=6000)
+            # En vurdering, der ikke kunne hentes, må ikke bare mangle.
+            # Afsnittet falder tilbage til sin tom-tilstand med knappen,
+            # og beskeden siger hvorfor.
+            self._ai_busy = False
+            self._ai_done_for = None
+            with self.client:
+                self.ai_output.refresh()
+                ui.notify(str(exc), type='negative', position='bottom',
+                          timeout=6000)
             return
         finally:
-            if not started:
-                spinner.dismiss()
+            self._ai_busy = False
 
         self.s.ai_text = ''.join(buffer).strip()
-        self.ai_output.refresh()
+        with self.client:
+            self.ai_output.refresh()
 
     # ── Deling ──────────────────────────────────────────────────────
     async def _copy_link(self) -> None:
@@ -2045,7 +2286,10 @@ class Planner:
             return
         token = share.encode_route(self.s.waypoints, self.s.boat_id)
         origin = await ui.run_javascript('window.location.origin', timeout=3)
-        ui.clipboard.write(f'{origin}/?rute={token}')
+        # Peg direkte paa planlaeggeren. `/?rute=…` sendes stadig videre, saa
+        # de links, folk allerede har liggende, bliver ved med at virke — men
+        # et nyt link skal ikke bruge et ekstra hop.
+        ui.clipboard.write(f'{origin}{landing.APP_PATH}?rute={token}')
         ui.notify(t('Delelink kopieret — send det til gasterne'),
                   type='positive', position='bottom')
 

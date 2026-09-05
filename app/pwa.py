@@ -39,7 +39,11 @@ MANIFEST = {
     'name': 'Sejlplan',
     'short_name': 'Sejlplan',
     'description': 'Find den bedste afgang, og tag sejlplanen med til søs.',
-    'start_url': '/',
+    # Appen paa hjemmeskaermen skal aabne i planlaeggeren, ikke paa
+    # forsiden. Den, der har lagt Sejlplan paa skaermen, er ikke i gang med
+    # at laese om, hvad den kan. `scope` bliver paa roden, saa forsiden og
+    # de andre sprog stadig hoerer med til appen.
+    'start_url': '/planlaeg',
     'scope': '/',
     'display': 'standalone',
     'orientation': 'any',

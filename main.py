@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from nicegui import app, ui
 
-from app import api, config, lookout, mishap, pwa
+from app import api, config, landing, lookout, mishap, pwa
 from app.config import settings
 from app.ui import page
 from app.ui import watchpages
@@ -29,6 +29,9 @@ def _sig_hvad_der_er_aabent() -> None:
 
 mishap.install()
 _sig_hvad_der_er_aabent()
+# Forsiden skal ligge paa plads foer planlaeggeren: den ejer `/`,
+# og planlaeggeren ejer `/planlaeg`.
+landing.register()
 page.register()
 pwa.register_routes()
 api.register_routes()

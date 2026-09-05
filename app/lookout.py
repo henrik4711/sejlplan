@@ -24,7 +24,8 @@ from __future__ import annotations
 import asyncio
 from datetime import date, datetime
 
-from . import chat, fleetmap, i18n, mailer, reports, share, watch, weatherbound
+from . import (chat, fleetmap, i18n, landing, mailer, reports, share, watch,
+               weatherbound)
 from .boats import BOATS, DEFAULT_BOAT, custom_boat
 from .config import settings
 from .dates import full
@@ -132,7 +133,7 @@ async def tell(w: watch.Watch, hit: dict) -> bool:
     """Skriv til brugeren, at vejret er der."""
     plan, route = hit['plan'], hit['route']
     code = share.encode_route(route.waypoints, w.boat.get('boat_id') or '')
-    open_url = _link(f'/?rute={code}')
+    open_url = _link(f'{landing.APP_PATH}?rute={code}')
     stop_url = _link(f'/vagt/stop/{w.id}')
 
     # Mailen skrives på det sprog, vagten blev lagt på. Der er ingen browser

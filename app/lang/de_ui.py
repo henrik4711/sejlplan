@@ -627,4 +627,71 @@ WORDS: dict[str, str] = {
         'position, hvis browseren spørger.':
         'Ohne Position können wir nicht sagen, wer in der Nähe ist. Erlaube '
         'die Position, wenn der Browser fragt.',
+    # ── forside, rangering og "hvad nu" ──
+    'Ruten {navne} er på {sm} sømil fordelt på {ben} mellem dine punkter. ':
+        'Die Route {navne} ist {sm} Seemeilen lang, verteilt auf {ben} zwischen deinen Punkten. ',
+    'Ruter':
+        'Routen',
+    'Hjælp':
+        'Hilfe',
+    'Indstil':
+        'Einstellen',
+    'Tema':
+        'Thema',
+    'Vi skriver, hvis prognosen ændrer anbefalingen inden afgang':
+        'Wir schreiben, wenn die Vorhersage die Empfehlung vor der Abfahrt ändert',
+    'Del med besætningen':
+        'Mit der Crew teilen',
+    'Et link, der åbner den samme rute hos dem':
+        'Ein Link, der bei ihnen dieselbe Route öffnet',
+    'Ruten er gemt':
+        'Route gespeichert',
+    'Gem denne rute':
+        'Diese Route speichern',
+    'Ligger på hylden under Mine ruter':
+        'Liegt unter Meine Routen bereit',
+    'Så kan du hente den frem igen uden at lægge den om':
+        'Dann kannst du sie wieder aufrufen, ohne sie neu zu legen',
+    'Hvad nu':
+        'Was jetzt',
+    'Din gemte plan begyndte {dato}. Prognosen rækker kun fra i dag, så vi er startet der — ret den under Hvornår, hvis du vil noget andet.':
+        'Dein gespeicherter Plan begann {dato}. Die Vorhersage reicht erst ab heute, deshalb haben wir dort angefangen — ändere das unter Wann, wenn du etwas anderes willst.',
+    'når kun {nået} af {ialt} sømil, før prognosen slipper op':
+        'schafft nur {nået} von {ialt} Seemeilen, bevor die Vorhersage endet',
+    'fremme efter sejldøgnet er omme':
+        'kommt nach Ende des Segeltages an',
+    '{n} t i forhold, der frarådes':
+        '{n} Std. bei Bedingungen, von denen abgeraten wird',
+    '{n} t i skærpede forhold':
+        '{n} Std. bei verschärften Bedingungen',
+    'topper {kn} kn — over din grænse':
+        'Spitze {kn} kn — über deiner Grenze',
+    'bølger op til {m} m — over din grænse':
+        'Wellen bis {m} m — über deiner Grenze',
+    'kræver {n} overnatninger undervejs':
+        'erfordert {n} Übernachtungen unterwegs',
+    '{t} t længere undervejs end den bedste':
+        '{t} Std. länger unterwegs als die beste',
+    '{kn} knob langsommere i snit':
+        '{kn} Knoten langsamer im Schnitt',
+    'roligste vejr og hurtigst fremme':
+        'ruhigstes Wetter und am schnellsten da',
+    'tidlig afgang — hele dagen i baghånden':
+        'frühe Abfahrt — der ganze Tag in Reserve',
+    'samme vejr, men senere af sted':
+        'gleiches Wetter, aber später los',
+    'i luftlinje — vejen udenom land regnes stadig':
+        'Luftlinie — der Weg um das Land wird noch berechnet',
+    'Skipperen læser vejrudsigten igennem…':
+        'Der Skipper liest die Vorhersage durch…',
+    'Den tager en halv til hel minut. Resten af planen står klar nedenunder imens.':
+        'Das dauert eine halbe bis ganze Minute. Der Rest des Plans steht solange darunter bereit.',
+    'Lav vurderingen om':
+        'Bewertung neu erstellen',
+    'Hent skippervurderingen':
+        'Skipperbewertung holen',
+    'dagens bedste er nr. {n}':
+        'die beste des Tages ist Nr. {n}',
+    'bedste dag':
+        'bester Tag',
 }

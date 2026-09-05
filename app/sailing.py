@@ -871,6 +871,65 @@ def score(p: Plan, limits: Limits) -> float:
     return round(s, 2)
 
 
+def why_ranked(p: Plan, best: Plan, limits: Limits) -> tuple[str, dict, str]:
+    """Hvorfor denne afgang ligger, hvor den gør.
+
+    `score` vejer ni ting mod hinanden, og resultatet var indtil nu et tal,
+    ingen så. Atten kort med samme grønne mærkat og samme grønne bjælke, hvor
+    nr. 2 havde mindre vind end nr. 1, lignede en fejl. Her regnes den tungeste
+    forskel mod den bedste afgang ud.
+
+    Returnerer (nøgle, tal, art) — ikke en færdig sætning. Sætningen hører til
+    fladen, som kan slå den op på brugerens sprog; en f-streng bygget herinde
+    ville stå på dansk i den tyske udgave for altid.
+
+    `art` er 'god', 'pris' eller '' — fladen farver efter den.
+    """
+    if p.incomplete:
+        return 'kort', {'nået': f'{p.reached_nm:.0f}',
+                        'ialt': f'{p.total_nm:.0f}'}, 'pris'
+    if p.arrived_late or any(st.late for st in p.stops):
+        return 'sent', {}, 'pris'
+
+    # Det, der koster mest på denne afgang i forhold til den bedste. Hver post
+    # er (hvor mange point det koster, nøgle, tal).
+    poster: list[tuple[float, str, dict]] = []
+    if p.red_hours:
+        poster.append((p.red_hours * 12, 'frarådet', {'n': p.red_hours}))
+    if p.yellow_hours:
+        poster.append((p.yellow_hours * 2.5, 'skærpet', {'n': p.yellow_hours}))
+    over_vind = max(0.0, p.worst_wind_kn - limits.max_wind)
+    if over_vind:
+        poster.append((over_vind * 5, 'vind',
+                       {'kn': f'{p.worst_wind_kn:.0f}'}))
+    over_sø = max(0.0, p.worst_wave_m - limits.max_wave)
+    if over_sø:
+        poster.append((over_sø * 8, 'sø',
+                       {'m': f'{p.worst_wave_m:.1f}'.replace('.', ',')}))
+    if p.nights > best.nights:
+        poster.append(((p.nights - best.nights) * 6, 'nætter',
+                       {'n': p.nights}))
+    længere = p.elapsed_hours - best.elapsed_hours
+    if længere > 0.75:
+        poster.append((længere * 0.08 + (p.hours - best.hours) * 0.4,
+                       'længere', {'t': f'{længere:.0f}'}))
+    langsommere = best.avg_speed_kn - p.avg_speed_kn
+    if langsommere > 0.25:
+        poster.append((langsommere * 2, 'langsommere',
+                       {'kn': f'{langsommere:.1f}'.replace('.', ',')}))
+
+    if poster:
+        _, nøgle, tal = max(poster, key=lambda x: x[0])
+        return nøgle, tal, 'pris'
+
+    # Ingen omkostning at pege på — så er det dét, den er god til.
+    if p is best or p.score <= best.score + 0.01:
+        return 'bedst', {}, 'god'
+    if p.depart.hour <= limits.day_start + 1:
+        return 'tidlig', {}, 'god'
+    return 'senere', {}, ''
+
+
 def find_windows(boat: Boat, route: Route, weather: list,
                  limits: Limits, stopovers: list | None = None,
                  max_results: int = 18) -> list[Plan]:

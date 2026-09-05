@@ -15,6 +15,7 @@ from nicegui import ui
 
 from .. import theme, watch
 from ..dates import day
+from .. import landing
 from ..i18n import t
 
 
@@ -70,7 +71,7 @@ def _shell(title: str, body: str, icon: str, stop_id: str = '') -> None:
 
             with ui.row().classes('items-center justify-center gap-2 mt-6 w-full'):
                 ui.button(t('Åbn Sejlplan'),
-                          on_click=lambda: ui.navigate.to('/')) \
+                          on_click=lambda: ui.navigate.to(landing.APP_PATH)) \
                     .props('unelevated no-caps').classes('btn-primary px-4')
                 if stop_id:
                     ui.button(t('Stop vagten'),

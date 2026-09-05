@@ -378,7 +378,11 @@ def overview(boat: Boat, route: Route, plan: Plan) -> list[str]:
     names = ' → '.join(retranslate(w.name) for w in route.waypoints)
     legs = len(route.waypoints) - 1
 
-    head = t('Ruten {navne} er på {sm} sømil fordelt på {ben}. ',
+    # "1 ben" over for "3 stræk" på samme skærm er to ord for det, der ligner
+    # det samme. Ben er dine punkter; stræk er de kurser, du styrer imellem
+    # dem — og det skal stå, hvor tallet står.
+    head = t('Ruten {navne} er på {sm} sømil fordelt på {ben} mellem dine '
+             'punkter. ',
              navne=names, sm=num(plan.total_nm),
              ben=plural(legs, 'ben', 'ben'))
     if plan.incomplete:

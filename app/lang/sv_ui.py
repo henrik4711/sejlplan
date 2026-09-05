@@ -642,4 +642,71 @@ WORDS: dict[str, str] = {
         'ja til position, hvis browseren spørger.':
         'Utan en position kan vi inte säga vem som är i närheten. Säg ja '
         'till position om webbläsaren frågar.',
+    # ── forside, rangering og "hvad nu" ──
+    'Ruten {navne} er på {sm} sømil fordelt på {ben} mellem dine punkter. ':
+        'Rutten {navne} är {sm} sjömil fördelat på {ben} mellan dina punkter. ',
+    'Ruter':
+        'Rutter',
+    'Hjælp':
+        'Hjälp',
+    'Indstil':
+        'Inställ',
+    'Tema':
+        'Tema',
+    'Vi skriver, hvis prognosen ændrer anbefalingen inden afgang':
+        'Vi hör av oss om prognosen ändrar rekommendationen före avgång',
+    'Del med besætningen':
+        'Dela med besättningen',
+    'Et link, der åbner den samme rute hos dem':
+        'En länk som öppnar samma rutt hos dem',
+    'Ruten er gemt':
+        'Rutten är sparad',
+    'Gem denne rute':
+        'Spara den här rutten',
+    'Ligger på hylden under Mine ruter':
+        'Ligger under Mina rutter',
+    'Så kan du hente den frem igen uden at lægge den om':
+        'Då kan du ta fram den igen utan att lägga om den',
+    'Hvad nu':
+        'Vad nu',
+    'Din gemte plan begyndte {dato}. Prognosen rækker kun fra i dag, så vi er startet der — ret den under Hvornår, hvis du vil noget andet.':
+        'Din sparade plan började {dato}. Prognosen räcker bara från i dag, så vi har börjat där — ändra under När om du vill något annat.',
+    'når kun {nået} af {ialt} sømil, før prognosen slipper op':
+        'når bara {nået} av {ialt} sjömil innan prognosen tar slut',
+    'fremme efter sejldøgnet er omme':
+        'framme efter att seglingsdygnet är slut',
+    '{n} t i forhold, der frarådes':
+        '{n} tim i förhållanden som avråds',
+    '{n} t i skærpede forhold':
+        '{n} tim i skärpta förhållanden',
+    'topper {kn} kn — over din grænse':
+        'toppar {kn} kn — över din gräns',
+    'bølger op til {m} m — over din grænse':
+        'vågor upp till {m} m — över din gräns',
+    'kræver {n} overnatninger undervejs':
+        'kräver {n} övernattningar på vägen',
+    '{t} t længere undervejs end den bedste':
+        '{t} tim längre på vägen än den bästa',
+    '{kn} knob langsommere i snit':
+        '{kn} knop långsammare i snitt',
+    'roligste vejr og hurtigst fremme':
+        'lugnaste vädret och snabbast framme',
+    'tidlig afgang — hele dagen i baghånden':
+        'tidig avgång — hela dagen i reserv',
+    'samme vejr, men senere af sted':
+        'samma väder, men senare i väg',
+    'i luftlinje — vejen udenom land regnes stadig':
+        'fågelvägen — vägen runt land räknas fortfarande',
+    'Skipperen læser vejrudsigten igennem…':
+        'Skepparen läser igenom prognosen…',
+    'Den tager en halv til hel minut. Resten af planen står klar nedenunder imens.':
+        'Det tar en halv till hel minut. Resten av planen står klar nedanför under tiden.',
+    'Lav vurderingen om':
+        'Gör om bedömningen',
+    'Hent skippervurderingen':
+        'Hämta skepparbedömningen',
+    'dagens bedste er nr. {n}':
+        'dagens bästa är nr {n}',
+    'bedste dag':
+        'bästa dagen',
 }

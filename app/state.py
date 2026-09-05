@@ -79,6 +79,10 @@ class Session:
 
     step: int = 1  # 1 = rute, 2 = afgang, 3 = sejlplan
 
+    # Sat af `normalise_dates`, når et gemt datovindue måtte flyttes frem.
+    # Holder den dato, brugeren selv havde stående, indtil fladen har sagt det.
+    dates_moved: str = ''
+
     # ── Afledt ──────────────────────────────────────────────────────
     @property
     def boat(self) -> Boat:
@@ -400,11 +404,21 @@ class Session:
             d.day_start, d.day_end = 7, 20
         d.night_ok = bool(lim.get('night_ok', not lim.get('avoid_night', True)))
         d.use_motor = bool(lim.get('use_motor', d.use_motor))
+        # Datovinduet blev gemt, men aldrig læst tilbage. Den gemte plan åbnede
+        # derfor altid på standardvinduet — uden at nogen fik det at vide.
+        d.date_from = str(lim.get('date_from') or d.date_from)
+        d.date_to = str(lim.get('date_to') or d.date_to)
         s.normalise_dates()
         return s
 
     def normalise_dates(self) -> None:
-        """Hold datovinduet inden for det prognosen faktisk dækker."""
+        """Hold datovinduet inden for det prognosen faktisk dækker.
+
+        Flytter vi vinduet, skal brugeren vide det. En gemt plan fra i forgårs
+        skal ikke stiltiende åbne på i dag, som om det var dét, han valgte.
+        `dates_moved` holder den dato, han faktisk havde stående, indtil
+        fladen har sagt det højt.
+        """
         today = date.today()
         horizon = today + timedelta(days=MAX_FORECAST_DAYS - 1)
 
@@ -417,7 +431,9 @@ class Session:
         except (TypeError, ValueError):
             end = today + timedelta(days=PLANNING_DAYS)
 
+        ønsket = start
         start = min(max(start, today), horizon)
         end = min(max(end, start), horizon)
+        self.dates_moved = ønsket.isoformat() if ønsket != start else ''
         self.limits.date_from = start.isoformat()
         self.limits.date_to = end.isoformat()

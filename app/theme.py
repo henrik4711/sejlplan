@@ -343,6 +343,23 @@ body.body--dark .boat-mark i { border-bottom-color: var(--teal); }
 }
 @media (min-width: 768px) { .app-header { padding: 0 16px; } }
 
+/* Ikonerne i toppen med deres navn under. Værktøjstip virker kun med en mus,
+   og på en telefon stod de her seks knapper navnløse — man skulle trykke for
+   at finde ud af, hvad de var. Navnet står lille under ikonet, hvor der er
+   plads; på en smal skærm bliver ikonet alene, men `aria-label` sidder på
+   knappen uanset hvad, så oplæsningen aldrig mangler et navn. */
+.hdr-btn.q-btn { flex-direction: column; gap: 0; line-height: 1; }
+.hdr-btn .q-btn__content { flex-direction: column; gap: 1px; }
+.hdr-btn-lbl {
+  font-size: 8.5px; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--txt-3);
+  white-space: nowrap; pointer-events: none;
+}
+/* Navnene skal netop vaere der paa en telefon — det er dér, der ingen mus er
+   til at fremkalde et vaerktoejstip. Derfor er de korte nok til at kunne staa
+   paa 390 px, og de forsvinder foerst paa en skaerm, hvor intet kan staa. */
+@media (max-width: 339px) { .hdr-btn-lbl { display: none; } }
+
 .nicegui-content {
   padding: 0 !important; gap: 0 !important; max-width: none !important;
 }
@@ -491,6 +508,57 @@ body {
 }
 .win-stops .material-icons { color: #6C5CE7; }
 
+/* Hvorfor ligger denne afgang, hvor den gør. Uden den linje er rangeringen
+   et tal, ingen ser — og atten kort med samme grønne mærkat, hvor nr. 2 har
+   mindre vind end nr. 1, ligner en fejl i stedet for en afvejning. */
+.win-why {
+  display: flex; align-items: flex-start; gap: 5px;
+  margin-top: 9px; padding-top: 8px;
+  border-top: 1px dashed var(--line-2);
+  font-size: 11.5px; line-height: 1.4; color: var(--txt-2);
+}
+.win-why-ico { font-size: 14px; flex: none; margin-top: .5px; }
+.win-why--god { color: var(--go); }
+.win-why--god .win-why-ico { color: var(--go); }
+.win-why--pris .win-why-ico { color: var(--txt-3); }
+
+/* Dagen som overskrift over sine afgange. Listen var sorteret rent på
+   rangering og hoppede søn, søn, lør, man, søn — en skipper tænker i døgn. */
+.day-head {
+  display: flex; align-items: baseline; gap: 8px;
+  margin: 18px 0 2px; padding-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+}
+.day-head:first-child { margin-top: 4px; }
+.day-head-name {
+  font-size: 12px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--txt-1);
+}
+.day-head-note { font-size: 11px; color: var(--txt-3); }
+
+/* Luftlinjen på trin 1, indtil havvejen er regnet ud. */
+.leg-note {
+  display: block; font-size: 10.5px; color: var(--txt-3);
+  font-style: italic; margin-top: 1px;
+}
+
+/* Et gemt datovindue, vi har måttet flytte frem. Det skal ses, ikke bare ske. */
+.note-moved {
+  display: block; margin-top: 8px; padding: 8px 11px;
+  border-radius: var(--r); border: 1px solid var(--line);
+  background: var(--accent-soft);
+  font-size: 11.5px; line-height: 1.45; color: var(--txt-2);
+}
+
+/* Mens skippervurderingen hentes. Den står dér, hvor svaret kommer — ikke
+   som en boble nede i hjørnet oven på en knap. */
+.ai-wait {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 26px 16px 22px; text-align: center;
+  border: 1px dashed var(--line); border-radius: var(--r);
+  background: var(--sea-1);
+}
+
 /* Timestribe: én celle pr. sejltime, farvet efter vejrstatus.
    Timerne uden for sejldøgnet skraveres, så mørket kan ses i stribet. */
 .hourbar { display: flex; gap: 1.5px; height: 7px; border-radius: 4px; overflow: hidden; }
@@ -531,10 +599,19 @@ body {
   .plan-view { position: absolute; top: 0; }
 }
 
-.plan-legs { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 1100px) {
+/* Strækkene er en sekvens — man sejler 1, så 2, så 3. Lagt i to spalter
+   læses de 1, så til højre, så tilbage til venstre, og det er ikke den
+   rækkefølge, de gælder i. Dertil målte det gamle knæk på *vinduets* 1100 px,
+   mens spalten med sidepanelet åbent kun er ~625 px: hvert kort endte på
+   308 px, og trimtabellen med "Løjgangsvognen" brækkede over fem linjer.
+   Nu måler knækket beholderen selv, og der skal være rigtig plads til to. */
+.plan-legs { display: grid; grid-template-columns: 1fr; gap: 8px;
+             container-type: inline-size; }
+@container (min-width: 760px) {
   .plan-legs { grid-template-columns: 1fr 1fr; }
 }
+/* Kender browseren ikke container queries, bliver det ved én spalte — og
+   én spalte er det rigtige svar for et forløb alligevel. */
 
 /* ═══ Dag for dag ════════════════════════════════════════════════ */
 /* Sejldøgnene under hinanden, forbundet af en tynd linje — turen læses
@@ -709,6 +786,15 @@ body.body--dark .chart-tiles { filter: brightness(.74) saturate(1.1) contrast(1.
    højest med !important. */
 .btn-primary.q-btn { font-weight: 700; }
 .btn-primary .q-btn__content { color: #12212F !important; }
+
+/* Den dæmpede udgave: en handling, man kan gentage, men sjældent vil.
+   Den skal kunne ses uden at konkurrere med den store guldknap. */
+.btn-quiet.q-btn {
+  font-weight: 600; background: transparent !important;
+  border: 1px solid var(--line);
+}
+.btn-quiet .q-btn__content { color: var(--txt-2) !important; }
+.btn-quiet.q-btn:hover { background: var(--sea-3) !important; }
 
 /* ═══ Segmentvælger ══════════════════════════════════════════════ */
 /* To valg, ét spor, og en markør der glider. Den fylder mindre end to knapper

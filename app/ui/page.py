@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from nicegui import context, ui
 
-from .. import pwa, share, theme
+from .. import landing, pwa, share, theme
 from .. import i18n
 from ..i18n import t
 from ..boats import BOATS
@@ -73,5 +73,10 @@ async def index(rute: str = '') -> None:
 
 
 def register() -> None:
-    """Læg forsiden på. Kaldes én gang ved opstart — og igen i prøverne."""
-    ui.page('/')(index)
+    """Læg planlæggeren på. Kaldes én gang ved opstart — og igen i prøverne.
+
+    Den lå før på `/`. Roden er nu forsiden — den, Google kan læse — og
+    planlæggeren har fået sin egen sti. `landing.register()` sender
+    `/?rute=…` videre hertil, så delelinks og gamle bogmærker holder.
+    """
+    ui.page(landing.APP_PATH)(index)

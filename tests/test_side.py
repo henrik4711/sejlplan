@@ -15,7 +15,7 @@ from __future__ import annotations
 import pytest
 from nicegui.testing import User
 
-from app import i18n
+from app import i18n, landing
 
 pytestmark = pytest.mark.module_under_test('main')
 
@@ -29,7 +29,7 @@ MINDST = 40
 
 
 async def test_forsiden_bygges(user: User):
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     assert len(user.client.elements) > MINDST, 'fladen blev aldrig bygget'
 
 
@@ -41,7 +41,7 @@ async def test_forsiden_bygges_paa_fremmedsprog(user: User, sprog):
     holdt kun på dansk. Derfor bygges siden her på hvert sprog.
     """
     with i18n.using(sprog):
-        await user.open('/')
+        await user.open(landing.APP_PATH)
         assert len(user.client.elements) > MINDST, (
             f'fladen blev aldrig bygget på {sprog}')
 
@@ -49,8 +49,8 @@ async def test_forsiden_bygges_paa_fremmedsprog(user: User, sprog):
 async def test_sproget_kommer_fra_cookien(user: User):
     """Cookien følger med anmodningen, så sproget er kendt uden ventetid."""
     from nicegui import app
-    from app import i18n
-    await user.open('/')
+    from app import i18n, landing
+    await user.open(landing.APP_PATH)
     app.storage.user.pop(i18n.STORAGE_KEY, None)
     i18n.adopt({i18n.COOKIE: 'de'}, 'da-DK,da')
     assert i18n.lang() == i18n.DE
@@ -59,8 +59,8 @@ async def test_sproget_kommer_fra_cookien(user: User):
 async def test_serverens_valg_slaar_cookien(user: User):
     """Har brugeren valgt i den her session, er det dét, der gælder."""
     from nicegui import app
-    from app import i18n
-    await user.open('/')
+    from app import i18n, landing
+    await user.open(landing.APP_PATH)
     app.storage.user[i18n.STORAGE_KEY] = i18n.DA
     i18n.adopt({i18n.COOKIE: 'de'}, 'de-DE,de')
     assert i18n.lang() == i18n.DA
@@ -85,7 +85,7 @@ async def test_trimkortet_har_tegningen(user: User):
     sætning, man kan læse forkert — og den, der leder efter tegningen, leder
     dér, hvor rådet står."""
     from app.ui import trim as trimui
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     # Kun dét, kortet selv laver. Ser vi på hele siden, findes der svg i
     # forvejen, og prøven ville sige god for en tegning, der aldrig kom.
     før = set(user.client.elements)
@@ -102,7 +102,7 @@ async def test_trimkortet_har_tegningen(user: User):
 async def test_motorbaad_faar_intet_trimkort(user: User):
     """En motorbåd har ingen sejl at trimme, og et tomt kort er støj."""
     from app.ui import trim as trimui
-    await user.open('/')
+    await user.open(landing.APP_PATH)
     før = len(user.client.elements)
     with user.client.content:
         trimui.card(_stræk(motor=True))
