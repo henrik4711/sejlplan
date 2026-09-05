@@ -683,8 +683,8 @@ WORDS: dict[str, str] = {
         'toppar {kn} kn — över din gräns',
     'bølger op til {m} m — over din grænse':
         'vågor upp till {m} m — över din gräns',
-    'kræver {n} overnatninger undervejs':
-        'kräver {n} övernattningar på vägen',
+    'kræver {overnatninger} undervejs':
+        'kräver {overnatninger} på vägen',
     '{t} t længere undervejs end den bedste':
         '{t} tim längre på vägen än den bästa',
     '{kn} knob langsommere i snit':

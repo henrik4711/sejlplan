@@ -668,8 +668,8 @@ WORDS: dict[str, str] = {
         'Spitze {kn} kn — über deiner Grenze',
     'bølger op til {m} m — over din grænse':
         'Wellen bis {m} m — über deiner Grenze',
-    'kræver {n} overnatninger undervejs':
-        'erfordert {n} Übernachtungen unterwegs',
+    'kræver {overnatninger} undervejs':
+        'erfordert {overnatninger} unterwegs',
     '{t} t længere undervejs end den bedste':
         '{t} Std. länger unterwegs als die beste',
     '{kn} knob langsommere i snit':

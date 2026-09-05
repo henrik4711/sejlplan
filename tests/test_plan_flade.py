@@ -144,3 +144,25 @@ def test_planen_slutter_med_noget_at_gaa_videre_med():
 def test_handlingerne_findes_faktisk(navn):
     """En knap, der peger på en metode, der ikke findes, fejler først ved klik."""
     assert callable(getattr(Planner, navn))
+
+
+# ── Rækkefølgen på afgangslisten ──────────────────────────────────────────────
+def test_dagene_staar_efter_deres_bedste_afgang():
+    """Anbefalingen skal stå øverst — også når den ikke er på den første dag.
+
+    Med dagene i kalenderorden lå lørdagens bedste som nr. 8, og man rullede
+    forbi otte midterste forslag, før man nåede dét, linjen ovenfor pegede på.
+    """
+    kilde = _kode(Planner._windows_panel)
+    assert 'sorted(efter_dag, key=' in kilde, \
+        'dagene er sorteret på dato igen — så havner anbefalingen midt nede'
+
+
+def test_én_overnatning_hedder_ikke_overnatninger():
+    """Begrundelsen bøjes med plural(), ikke med et hårdkodet flertal."""
+    kilde = _kode(Planner._why_line)
+    assert "'nætter'" in kilde
+    # Det, der stod før: 'kræver {n} overnatninger undervejs' — som gav
+    # "kræver 1 overnatninger undervejs" på hver eneste éndøgnstur.
+    assert 'overnatninger undervejs' not in kilde, 'flertallet er hårdkodet igen'
+    assert 'plural(' in kilde, 'nætter-linjen bøjer ikke tallet'

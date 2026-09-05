@@ -471,8 +471,12 @@ body {
   margin-left: 23px; padding: 3px 0;
   font-size: 11.5px; color: var(--txt-3);
 }
+/* Benets tal og noten under det er to linjer, ikke to spalter. Uden det her
+   lagde "i luftlinje" sig ved siden af afstanden og pressede begge dele om
+   i to kolonner, der brækkede hver for sig. */
+.leg-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .leg-rule {
-  width: 1px; height: 17px; flex: none;
+  width: 1px; height: 17px; flex: none; align-self: stretch;
   background: repeating-linear-gradient(to bottom,
     var(--line-2) 0 3px, transparent 3px 6px);
 }

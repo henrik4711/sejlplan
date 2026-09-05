@@ -689,13 +689,14 @@ class Planner:
             text += ' · ' + t('{sm} sm udenom land', sm=nm(dist - direct))
         with ui.element('div').classes('leg'):
             ui.html('<div class="leg-rule"></div>')
-            ui.label(text).classes('tnum')
-            # Indtil havvejen er regnet ud, er tallet luftlinjen. Står der
-            # ikke andet, planlægger man brændstof efter en afstand, der kan
-            # være mange sømil for kort — her otte, rundt om Stevns.
-            if not self.s.route_ready:
-                ui.label(t('i luftlinje — vejen udenom land regnes stadig')) \
-                    .classes('leg-note')
+            with ui.element('div').classes('leg-text'):
+                ui.label(text).classes('tnum')
+                # Indtil havvejen er regnet ud, er tallet luftlinjen. Står der
+                # ikke andet, planlægger man brændstof efter en afstand, der kan
+                # være mange sømil for kort — her otte, rundt om Stevns.
+                if not self.s.route_ready:
+                    ui.label(t('i luftlinje — vejen udenom land regnes stadig')) \
+                        .classes('leg-note')
 
     def _empty_route(self) -> None:
         with ui.element('div').classes('empty'):
@@ -983,7 +984,13 @@ class Planner:
         for i, w in enumerate(self.s.windows):
             efter_dag.setdefault(w.depart.date(), []).append((i, w))
 
-        for d in sorted(efter_dag):
+        # Dagene i den rækkefølge, deres bedste afgang ligger — ikke i
+        # kalenderorden. Med kalenderorden stod anbefalingen pludselig midt
+        # nede på siden: lørdagens bedste var nr. 8, så man rullede forbi otte
+        # midterste forslag, før man nåede dét, linjen ovenfor peger på.
+        # Grupperingen var til for at man kan tænke i døgn — den holder,
+        # dagen står med navn på hver gruppe, og datoen står på hvert kort.
+        for d in sorted(efter_dag, key=lambda k: min(i for i, _ in efter_dag[k])):
             rows = efter_dag[d]
             bedste_nr = min(i for i, _ in rows)
             with ui.element('div').classes('day-head'):
@@ -1073,7 +1080,9 @@ class Planner:
             'skærpet': lambda: t('{n} t i skærpede forhold', **tal),
             'vind': lambda: t('topper {kn} kn — over din grænse', **tal),
             'sø': lambda: t('bølger op til {m} m — over din grænse', **tal),
-            'nætter': lambda: t('kræver {n} overnatninger undervejs', **tal),
+            'nætter': lambda: t('kræver {overnatninger} undervejs',
+                                overnatninger=plural(tal['n'], 'overnatning',
+                                                     'overnatninger')),
             'længere': lambda: t('{t} t længere undervejs end den bedste', **tal),
             'langsommere': lambda: t('{kn} knob langsommere i snit', **tal),
             'bedst': lambda: t('roligste vejr og hurtigst fremme'),
